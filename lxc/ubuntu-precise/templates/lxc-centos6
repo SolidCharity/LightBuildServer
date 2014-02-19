@@ -57,7 +57,21 @@ USERCTL=yes
 PEERDNS=yes
 IPV6INIT=no
 #DHCP_HOSTNAME="$(if [ -x /etc/hostname ] && [ ! -z `cat /etc/hostname` ] ; then cat /etc/hostname ; else hostname ; fi )"
+NETWORK=10.0.3.0 
+NETMASK=255.255.255.0 
+IPADDR=$ipaddress
+GATEWAY=10.0.3.1
 EOF
+
+    if [ -z "$ipaddress" ]; then
+       sed -i 's/^#BOOTPROTO=dhcp/BOOTPROTO=dhcp/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^BOOTPROTO=none/#BOOTPROTO=none/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^IPADDR/#IPADDR/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^GATEWAY/#GATEWAY/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^NETMASK/#NETMASK/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^NETWORK/#NETWORK/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^#DHCP_HOSTNAME/DHCP_HOSTNAME/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+    fi
 
     # set the dns
     cat > ${rootfs_path}/etc/resolv.conf << END
@@ -296,9 +310,6 @@ EOF
 
     if [ -z "$ipaddress" ]; then
        sed -i 's/^lxc\.network\.ipv4/#lxc.network.ipv4/g' $config_path/config
-       sed -i 's/^#BOOTPROTO=dhcp/BOOTPROTO=dhcp/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
-       sed -i 's/^BOOTPROTO=none/#BOOTPROTO=none/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
-       sed -i 's/^#DHCP_HOSTNAME/DHCP_HOSTNAME/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
     fi
 
     cat <<EOF > $config_path/fstab
