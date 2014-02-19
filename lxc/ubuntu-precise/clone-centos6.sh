@@ -28,4 +28,4 @@ sed -i 's/^NETMASK.*/NETMASK=255.255.255.0/g' ${rootfs_path}/etc/sysconfig/netwo
 sed -i 's/^NETWORK.*/NETWORK=10.0.3.0/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
 sed -i 's/^DHCP_HOSTNAME/#DHCP_HOSTNAME/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
 ./tunnelssh.sh $name $cid
-cp $rootfs_path/usr/share/zoneinfo/Europe/Berlin $rootfs_path/etc/localtime
+cd $rootfs_path/etc; rm localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime; cd -
