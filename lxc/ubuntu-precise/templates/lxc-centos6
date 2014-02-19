@@ -171,7 +171,7 @@ download_centos()
     YUM="yum --installroot $INSTALL_ROOT -y --nogpgcheck"
     PKG_LIST="yum initscripts passwd rsyslog vim-minimal dhclient chkconfig"
     PKG_LIST="$PKG_LIST rootfiles policycoreutils centos-release openssh-server avahi"
-    PKG_LIST="$PKG_LIST openssh-clients sudo plymouth wget centos-release"
+    PKG_LIST="$PKG_LIST openssh-clients sudo plymouth wget"
     MIRRORLIST_URL="http://mirrorlist.centos.org/?release=$release&arch=$arch&repo=os"
 
     DOWNLOAD_OK=no
