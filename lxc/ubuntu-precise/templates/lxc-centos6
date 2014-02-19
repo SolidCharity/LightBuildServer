@@ -49,13 +49,14 @@ configure_centos()
    # configure the network using the dhcp
     cat <<EOF > ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
 DEVICE=eth0
-BOOTPROTO=dhcp
+#BOOTPROTO=dhcp
+BOOTPROTO=none
 ONBOOT=yes
 TYPE=Ethernet
 USERCTL=yes
 PEERDNS=yes
 IPV6INIT=no
-DHCP_HOSTNAME="$(if [ -x /etc/hostname ] && [ ! -z `cat /etc/hostname` ] ; then cat /etc/hostname ; else hostname ; fi )"
+#DHCP_HOSTNAME="$(if [ -x /etc/hostname ] && [ ! -z `cat /etc/hostname` ] ; then cat /etc/hostname ; else hostname ; fi )"
 EOF
 
     # set the dns
@@ -89,7 +90,6 @@ EOF
     sed -i 's/^.*dev.pts.*$/#\0/' ${rootfs_path}/etc/rc.d/rc.sysinit
 
     sed -i 's/^#baseurl/baseurl/g' ${rootfs_path}/etc/yum.repos.d/CentOS-Base.repo
-    # TODO that sed does not seem to be executed, still releasever in repo?
     sed -i "s/\$releasever/$release.$releaseminor/g" ${rootfs_path}/etc/yum.repos.d/CentOS-Base.repo
     sed -i '115,126s/^/#/' ${rootfs_path}/etc/rc.d/init.d/halt
 
@@ -296,6 +296,9 @@ EOF
 
     if [ -z "$ipaddress" ]; then
        sed -i 's/^lxc\.network\.ipv4/#lxc.network.ipv4/g' $config_path/config
+       sed -i 's/^#BOOTPROTO=dhcp/BOOTPROTO=dhcp/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^BOOTPROTO=none/#BOOTPROTO=none/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+       sed -i 's/^#DHCP_HOSTNAME/DHCP_HOSTNAME/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
     fi
 
     cat <<EOF > $config_path/fstab

@@ -9,6 +9,15 @@ fi
 name=$1
 cid=$2
 
+rootfs_path=/var/lib/lxc/$name/rootfs
+config_path=/var/lib/lxc/$name
+
 lxc-clone -o centos6-master -n $name
-sed -i "s/centos6-master/$name/g" /var/lib/lxc/$name/config
+sed -i "s/centos6-master/$name/g" $config_path/config
+sed -i "s/HOSTNAME=.*/HOSTNAME=$name/g" $rootfs_path/etc/sysconfig/network
+sed -i "s/^#lxc\.network\.ipv4.*/lxc.network.ipv4=10.0.3.$cid/g" $config_path/config
+sed -i 's/^BOOTPROTO=dhcp/#BOOTPROTO=dhcp/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i 's/^#BOOTPROTO=none/BOOTPROTO=none/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i 's/^DHCP_HOSTNAME/#DHCP_HOSTNAME/g' ${rootfs_path}/etc/sysconfig/network-scripts/ifcfg-eth0
 ./tunnelssh.sh $name $cid
+cp $rootfs_path/usr/share/zoneinfo/Europe/Berlin $rootfs_path/etc/localtime

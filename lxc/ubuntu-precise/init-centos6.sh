@@ -2,7 +2,7 @@
 
 # this will do the initial installation of the lxc template etc
 
-cp -f templates/centos-* /usr/lib/lxc/templates/
+cp -f templates/lxc-centos* /usr/lib/lxc/templates/
 
 # This will create a master lxc template, that will be cloned for new machines
 mkdir -p /usr/local/lbs/shared/centos6/base/packages
