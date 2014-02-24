@@ -8,14 +8,11 @@ class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
-    # nothing at the moment
-    self.init=True
+    self.output = ""
+    self.container = None
 
-  def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    # TODO pick up github url from database
-    lbsproject='https://github.com/tpokorra/lbs-' + projectname + '/' + packagename
-      
-    container = lxc.Container(buildmachine)
+  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
+    self.container = lxc.Container(buildmachine)
     output = ''
     # create lxc container with specified OS
     #if container.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
@@ -31,21 +28,28 @@ class LightBuildServer:
         sys.stdout.flush()
     streamdata = child.communicate();
     output += streamdata[1].decode("utf-8");
-    if not child.returncode:
+    self.output += output
+    return (not child.returncode)
+  
+  def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+    self.output = ""
+    # TODO pick up github url from database
+    lbsproject='https://github.com/tpokorra/lbs-' + projectname + '/' + packagename
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
       # TODO for each build slot, create a cache mount, depending on the OS. /var/cache contains yum and apt caches
       #         /var/lib/lbs/cache
       # TODO for each project, create a repo mount, depending on the OS
       #         /var/lib/lbs/repos
-      container.start()
+      self.container.start()
       # TODO prepare container, install packages that the build requires
       # TODO get the sources
       # TODO do the actual build
       # TODO on failure, show errors
       # TODO on success, create repo for download, and display success
       # TODO destroy the container
-      container.stop();
-      container.destroy();
-      output += "\nSuccess!"
+      self.container.stop();
+      self.container.destroy();
+      self.output += "\nSuccess!"
     else:
-      output += "\nThere is a problem with creating the container!"
-    return output
+      self.output += "\nThere is a problem with creating the container!"
+    return self.output
