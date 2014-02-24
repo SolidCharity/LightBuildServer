@@ -3,7 +3,8 @@
 <body>
 	<h2>Build Result</h2>
 	<pre>
-	{{buildresult}}
+{{buildresult}}
 	</pre>
+	<a href="/">back to main page</a>	
 </body>
 </html>

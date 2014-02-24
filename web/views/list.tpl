@@ -3,7 +3,7 @@
 <body>
 	<h2>Projects</h2>
 	<ul>
-		<li><a href="/build/testpackage">Build testpackage</a></li>
+		<li><a href="/build/mono-opt/debian/wheezy/amd64">Build testpackage</a></li>
 	</ul>
 </body>
 </html>
