@@ -62,7 +62,7 @@ class LightBuildServer:
         return self.output
       if not self.run("apt-get -y upgrade"):
         return self.output
-      if not self.run("apt-get -y install wget build-essential ca-certificates"):
+      if not self.run("apt-get -y install wget build-essential ca-certificates locales"):
         return self.output
       if not self.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
         return self.output
