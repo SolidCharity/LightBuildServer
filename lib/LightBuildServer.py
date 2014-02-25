@@ -28,16 +28,24 @@ class LightBuildServer:
     self.output = ""
     self.container = None
 
+  def getoutput(self):
+    return self.output + "\n" + self.container.output
+
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     self.container = LXCContainer(buildmachine)
     result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch)
     self.output += self.container.output
     return result
+
+  def run(self, command):
+    result = self.container.execute(command)
+    self.output += self.container.output
+    return result
   
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    self.output = ""
+    self.output = " * Preparing the machine...\n"
     # TODO pick up github url from database
-    lbsproject='https://github.com/tpokorra/lbs-' + projectname + '/' + packagename
+    lbsproject='https://github.com/tpokorra/lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
 
       # install a mount for the project repo
@@ -47,15 +55,17 @@ class LightBuildServer:
         print("container has been started successfully")
       
       # TODO prepare container, install packages that the build requires
-      result = self.container.execute("pwd");
-      self.output += self.container.output
-      if not result:
+      if not self.run("apt-get update"):
         return self.output
-      result = self.container.execute("apt-get update");
-      result = self.container.execute("apt-get upgrade");
-      result = self.container.execute("apt-get -y install git-core");
-      self.output += self.container.output
-      if not result:
+      if not self.run("apt-get -y upgrade"):
+        return self.output
+      if not self.run("apt-get -y install wget build-essential ca-certificates"):
+        return self.output
+      if not self.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
+        return self.output
+      if not self.run ("tar xzf master.tar.gz"):
+        return self.output
+      if not self.run("cd lbs-" + projectname + "-master/" + packagename + " && ./debian.build"):
         return self.output
       # TODO get the sources
       # TODO do the actual build

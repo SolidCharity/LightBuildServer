@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import sys
-from subprocess import Popen, PIPE
-from io import StringIO
 import bottle
 import os
 from bottle import route, run, template, static_file, request, response
@@ -9,62 +7,76 @@ import lxc
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from LightBuildServer import LightBuildServer
+from threading import Thread
 
-def check_login(username, password):
-    return True;
+class LightBuildServerWeb:
+    def __init__(self):
+        self.lbs = None
 
-@route('/login')
-def login():
-    return '''
-        <form action="/login" method="post">
+    def check_login(self, username, password):
+        # TODO
+        return True;
+
+    def login(self):
+        return '''
+        <form action="/do_login" method="post">
             Username: <input name="username" type="text" />
             Password: <input name="password" type="password" />
             <input value="Login" type="submit" />
         </form>
-    '''
+        '''
 
-@route('/login', method='POST')
-def do_login():
-    username = request.forms.get('username')
-    password = request.forms.get('password')
-    if check_login(username, password):
-        response.set_cookie("account", username, secret='some-secret-key')
-        return template("<p>Welcome {{name}}! You are now logged in.</p><br/><a href='/'>Back to main page</a>", name=username)
-    else:
-        return "<p>Login failed.</p>"
+    def do_login(self):
+        username = request.forms.get('username')
+        password = request.forms.get('password')
+        if self.check_login(username, password):
+           response.set_cookie("account", username, secret='some-secret-key')
+           return template("<p>Welcome {{name}}! You are now logged in.</p><br/><a href='/'>Back to main page</a>", name=username)
+        else:
+           return "<p>Login failed.</p>"
 
-@route('/logout')
-def logout():
-    username = request.get_cookie("account", secret='some-secret-key')
-    if not username:
-        return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
-    response.delete_cookie("account")
-    return list();
+    def logout(self):
+        username = request.get_cookie("account", secret='some-secret-key')
+        if not username:
+            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+        response.delete_cookie("account")
+        return self.list();
 
-@route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')
-def buildproject(projectname, lxcdistro, lxcrelease, lxcarch):
-    # TODO calculate dependancies between packages inside the project, and build in correct order
-    return list();
+    def buildproject(self, projectname, lxcdistro, lxcrelease, lxcarch):
+        # TODO calculate dependancies between packages inside the project, and build in correct order
+        return self.list();
 
-@route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')
-def build(projectname, packagename, lxcdistro, lxcrelease, lxcarch):
-    username = request.get_cookie("account", secret='some-secret-key')
-    if not username:
-        return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+    def build(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        username = request.get_cookie("account", secret='some-secret-key')
+        if not username:
+            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
-    buildmachine='mybuild01'
-    lbs=LightBuildServer()
-    output = lbs.buildpackage(projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine) 
-    return template('buildresult', buildresult=output)
+        buildmachine='mybuild01'
 
-@route('/')
-@route('/list')
-def list():
-  return template('list')
+        if not self.lbs:
+          self.lbs=LightBuildServer()
+          thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
+          thread.start()
+          # TODO after thread has finished, destroy the lbs cookie
 
-@route ('/repos/<filepath:path>')
-def repo(filepath):
-  return static_file(filepath, root='/var/www/repos')
+        output = self.lbs.getoutput()
 
+        return template('buildresult', buildresult=output)
+
+    def list(self):
+      return template('list')
+
+    def repo(self, filepath):
+      return static_file(filepath, root='/var/www/repos')
+
+myApp=LightBuildServerWeb()
+bottle.route('/login')(myApp.login)
+bottle.route('/do_login', method="POST")(myApp.do_login)
+bottle.route('/logout')(myApp.logout)
+bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
+bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.build)
+bottle.route('/')(myApp.list)
+bottle.route('/list')(myApp.list)
+bottle.route('/repos/<filepath:path>')(myApp.repo)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
-run(host=ipaddress, port=80, debug=False) 
+bottle.run(host=ipaddress, port=80, debug=False) 
