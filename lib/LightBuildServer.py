@@ -39,10 +39,10 @@ class LightBuildServer:
     # TODO pick up github url from database
     lbsproject='https://github.com/tpokorra/lbs-' + projectname + '/' + packagename
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
-      # TODO for each build slot, create a cache mount, depending on the OS. /var/cache contains yum and apt caches
-      #         /var/lib/lbs/cache
-      # TODO for each project, create a repo mount, depending on the OS
-      #         /var/lib/lbs/repos
+
+      # install a mount for the project repo
+      self.container.installmount("/root/repo", "/var/www/repos/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
+
       if self.container.startmachine():
         print("container has been started successfully")
       
@@ -52,6 +52,8 @@ class LightBuildServer:
       if not result:
         return self.output
       result = self.container.execute("apt-get update");
+      result = self.container.execute("apt-get upgrade");
+      result = self.container.execute("apt-get -y install git-core");
       self.output += self.container.output
       if not result:
         return self.output

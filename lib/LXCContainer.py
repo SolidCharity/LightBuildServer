@@ -31,6 +31,11 @@ class LXCContainer(lxc.Container):
   def __init__(self, containername):
     lxc.Container.__init__(self, name = containername)
     self.output = ""
+    # we are reusing the slots, for caches etc
+    self.slot = containername
+    self.distro = ""
+    self.release = ""
+    self.arch = ""
     self.LBSHOME_PATH = "/var/lib/lbs/"
     self.LXCHOME_PATH = "/var/lib/lxc/"
 
@@ -55,6 +60,9 @@ class LXCContainer(lxc.Container):
   def createmachine(self, lxcdistro, lxcrelease, lxcarch):
     # create lxc container with specified OS
     self.output = ""
+    self.distro = lxcdistro
+    self.release = lxcrelease
+    self.arch = lxcarch
     #if self.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
     result = self.executeshell("lxc-create -t download --name " + self.name +
 	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)
@@ -63,6 +71,12 @@ class LXCContainer(lxc.Container):
       if not os.path.exists(self.LBSHOME_PATH + "ssh/container_rsa"):
         self.create_sshkeys()
       self.install_sshkey()
+
+      # for each build slot, create a cache mount, depending on the OS. /var/cache contains yum and apt caches
+      if lxcdistro == "debian" or lxcdistro == "ubuntu":
+        self.installmount("/var/cache/apt")
+      if lxcdistro == "fedora" or lxcdistro == "centos":
+        self.installmount("/var/cache/yum")
     return result
 
   def startmachine(self):
@@ -91,6 +105,11 @@ class LXCContainer(lxc.Container):
       print ("   keypair generation failed")
       return False
 
+  def getrootfs(self):
+    # does not seem to work, Invalid configuration key
+    return self.get_config_item('lxc.rootfs')
+    #return self.LXCHOME_PATH + self.name + "/rootfs/"
+    
   def install_sshkey(self):
     """Update ssh key in LXC container"""
     print (" * Updating keys...")
@@ -98,9 +117,7 @@ class LXCContainer(lxc.Container):
     pkey = open(self.LBSHOME_PATH + "ssh/container_rsa.pub", "r")
     pkeydata = pkey.read()
     pkey.close()
-    # does not seem to work, Invalid configuration key
-    #root_fs = self.get_config_item('lxc.rootfs')
-    root_fs = self.LXCHOME_PATH + self.name + "/rootfs/"
+    root_fs=self.getrootfs()
     if not os.path.exists(root_fs + "/root/.ssh"):
       os.makedirs(root_fs + "/root/.ssh")
     # append public key to authorized_keys in container
@@ -136,3 +153,24 @@ class LXCContainer(lxc.Container):
       # sleep for half a second
       time.sleep(0.5)
     return False
+
+  def installmount(self, localpath, hostpath = None):
+      containerpath = self.getrootfs() + localpath
+      if hostpath is None:
+        hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
+      if os.path.exists(containerpath):
+        if not os.path.exists(hostpath):
+          # eg /var/cache/apt after installing first machine
+          self.executeshell("mkdir -p " + hostpath)
+          self.executeshell("rm -Rf " + hostpath)
+          self.executeshell("mv " + containerpath + " " + hostpath)
+        else:
+          self.executeshell("rm -Rf " + containerpath)
+      else:
+        if not os.path.exists(hostpath):
+          self.executeshell("mkdir -p " + hostpath)
+      self.executeshell("mkdir -p " + containerpath)
+      fout = open(self.LXCHOME_PATH + self.name + "/config", "a+")
+      line = "lxc.mount.entry = " + hostpath + " " + containerpath + " none defaults,bind 0 0"
+      fout.write(line)
+      fout.close()
