@@ -6,8 +6,7 @@ function timedRefresh(timeoutPeriod) {
 }
 </script>
 </head>
-<!-- refresh every 2 seconds -->
-<body onload="JavaScript:timedRefresh(2000);">
+<body onload="JavaScript:timedRefresh({{timeoutInSeconds}}*1000);">
 	<h2>Build Result</h2>
 	<pre>
 {{buildresult}}

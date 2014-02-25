@@ -27,9 +27,12 @@ class LightBuildServer:
   def __init__(self):
     self.output = ""
     self.container = None
+    self.finished = False
 
-  def getoutput(self):
-    return self.output + "\n" + self.container.output
+  def getoutput(self, limit=None):
+    if limit is None:
+      return self.output + "\n" + self.container.output
+    return (self.output + "\n" + self.container.output)[-1*limit:]
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     self.container = LXCContainer(buildmachine)
@@ -78,4 +81,5 @@ class LightBuildServer:
     else:
       self.output += self.container.output
       self.output += "\nThere is a problem with creating the container!"
+    self.finished = True
     return self.output

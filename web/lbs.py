@@ -59,9 +59,14 @@ class LightBuildServerWeb:
           thread.start()
           # TODO after thread has finished, destroy the lbs cookie
 
-        output = self.lbs.getoutput()
+        if self.lbs.finished:
+          output = self.lbs.getoutput()
+          timeout=60
+        else:
+          output = self.lbs.getoutput(4000)
+          timeout = 2
 
-        return template('buildresult', buildresult=output)
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
 
     def list(self):
       return template('list')

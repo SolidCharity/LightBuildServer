@@ -42,19 +42,21 @@ class LXCContainer(lxc.Container):
   def executeshell(self, command):
     print(command)
     cmdlist = shlex.split(command)
-    child = Popen(cmdlist, stdout=PIPE, stderr=PIPE)
+    child = Popen(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     while True:
-      out = child.stdout.read(1).decode("utf-8")
-      if (out == '') and child.poll() != None:
+      out = child.stdout.read(1)
+      #errors = child.stderr.read(10)
+      errors=''
+      if (out == '') and (errors == '') and child.poll() != None:
         break
       if (out != ''):
-        sys.stdout.write(out)
         self.output += out
+        sys.stdout.write(out)
         sys.stdout.flush()
-    streamdata = child.communicate();
-    sys.stdout.write(streamdata[1].decode("utf-8"))
-    sys.stdout.flush()
-    self.output += streamdata[1].decode("utf-8")
+      if (errors != ''):
+        self.output += errors
+        sys.stdout.write(errors)
+        sys.stdout.flush()
     return (not child.returncode)
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch):
@@ -146,8 +148,10 @@ class LXCContainer(lxc.Container):
       #client.load_system_host_keys()
       #client.connect(self.getIP(), username="root", pkey=key)
       #stdin, stdout, stderr = client.exec_command(command)
-      #result = not stdout.channel.recv_exit_status() 
-      result = self.executeshell('ssh -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.getIP() + " " + command)
+      #result = not stdout.channel.recv_exit_status()
+      ip = self.getIP()
+      result = self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + ip)
+      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"" + command + " 2>&1\"")
       if result:
         return True
       # sleep for half a second
@@ -171,6 +175,6 @@ class LXCContainer(lxc.Container):
           self.executeshell("mkdir -p " + hostpath)
       self.executeshell("mkdir -p " + containerpath)
       fout = open(self.LXCHOME_PATH + self.name + "/config", "a+")
-      line = "lxc.mount.entry = " + hostpath + " " + containerpath + " none defaults,bind 0 0"
+      line = "lxc.mount.entry = " + hostpath + " " + containerpath + " none defaults,bind 0 0\n"
       fout.write(line)
       fout.close()
