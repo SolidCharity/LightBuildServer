@@ -26,11 +26,12 @@ import time
 import shlex
 #from paramiko import SSHClient
 from subprocess import Popen, PIPE
+from Logger import Logger
 
 class LXCContainer(lxc.Container):
-  def __init__(self, containername):
+  def __init__(self, containername, logger):
     lxc.Container.__init__(self, name = containername)
-    self.output = ""
+    self.logger = logger
     # we are reusing the slots, for caches etc
     self.slot = containername
     self.distro = ""
@@ -50,18 +51,13 @@ class LXCContainer(lxc.Container):
       if (out == '') and (errors == '') and child.poll() != None:
         break
       if (out != ''):
-        self.output += out
-        sys.stdout.write(out)
-        sys.stdout.flush()
+        self.logger.print(out)
       if (errors != ''):
-        self.output += errors
-        sys.stdout.write(errors)
-        sys.stdout.flush()
+        self.logger.print(errors)
     return (not child.returncode)
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch):
     # create lxc container with specified OS
-    self.output = ""
     self.distro = lxcdistro
     self.release = lxcrelease
     self.arch = lxcarch
@@ -137,7 +133,6 @@ class LXCContainer(lxc.Container):
 
   def execute(self, command):
     """Execute a command in a container via SSH"""
-    self.output = ""
     print (" * Executing '%s' in %s..." % (command,
                                              self.name))
     # wait until ssh server is running

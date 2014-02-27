@@ -6,6 +6,7 @@
 		<li>Project LightBuildServer
                 <ul>
 			<li><a href="/build/lbs/lxc/debian/wheezy/amd64">Build lxc</a></li>
+			<li><a href="/build/lbs/python-bottle/debian/wheezy/amd64">Build python-bottle</a></li>
 			<li><a href="/build/lbs/lbs/debian/wheezy/amd64">Build lbs</a></li>
 		</ul>
 		</li>

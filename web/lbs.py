@@ -7,6 +7,7 @@ import lxc
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from LightBuildServer import LightBuildServer
+from Logger import Logger
 from threading import Thread
 
 class LightBuildServerWeb:
@@ -54,16 +55,18 @@ class LightBuildServerWeb:
         buildmachine='mybuild01'
 
         if not self.lbs:
-          self.lbs=LightBuildServer()
+          self.logger = Logger()
+          self.lbs=LightBuildServer(self.logger)
           thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
           thread.start()
-          # TODO after thread has finished, destroy the lbs cookie
 
         if self.lbs.finished:
-          output = self.lbs.getoutput()
-          timeout=60
+          output = self.lbs.logger.get()
+          # TODO stop refreshing
+          timeout=600000
+          self.lbs = None
         else:
-          output = self.lbs.getoutput(4000)
+          output = self.lbs.logger.get(4000)
           timeout = 2
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout)

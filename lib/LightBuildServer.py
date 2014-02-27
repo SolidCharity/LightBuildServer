@@ -20,33 +20,24 @@
 #
 
 from LXCContainer import LXCContainer
+from BuildHelper import BuildHelper
+from BuildHelperFactory import BuildHelperFactory
 
 class LightBuildServer:
   'light build server based on lxc and git'
 
-  def __init__(self):
-    self.output = ""
+  def __init__(self, logger):
+    self.logger = logger
     self.container = None
     self.finished = False
 
-  def getoutput(self, limit=None):
-    if limit is None:
-      return self.output + "\n" + self.container.output
-    return (self.output + "\n" + self.container.output)[-1*limit:]
-
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    self.container = LXCContainer(buildmachine)
+    self.container = LXCContainer(buildmachine, self.logger)
     result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch)
-    self.output += self.container.output
     return result
 
-  def run(self, command):
-    result = self.container.execute(command)
-    self.output += self.container.output
-    return result
-  
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    self.output = " * Preparing the machine...\n"
+    self.logger.print(" * Preparing the machine...");
     # TODO pick up github url from database
     lbsproject='https://github.com/tpokorra/lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
@@ -55,31 +46,25 @@ class LightBuildServer:
       self.container.installmount("/root/repo", "/var/www/repos/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
 
       if self.container.startmachine():
-        print("container has been started successfully")
+        self.logger.print("container has been started successfully")
       
-      # TODO prepare container, install packages that the build requires
-      if not self.run("apt-get update"):
-        return self.output
-      if not self.run("apt-get -y upgrade"):
-        return self.output
-      if not self.run("apt-get -y install wget build-essential ca-certificates locales"):
-        return self.output
-      if not self.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
-        return self.output
-      if not self.run ("tar xzf master.tar.gz"):
-        return self.output
-      if not self.run("cd lbs-" + projectname + "-master/" + packagename + " && ./debian.build"):
-        return self.output
-      # TODO get the sources
-      # TODO do the actual build
-      # TODO on failure, show errors
-      # TODO on success, create repo for download, and display success
-      # TODO destroy the container
+      # prepare container, install packages that the build requires; this is specific to the distro
+      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
+      self.buildHelper.PrepareForBuilding()
+
+      # get the sources of the packaging instructions
+      if not self.buildHelper.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
+        return self.logger.get()
+      if not self.buildHelper.run ("tar xzf master.tar.gz"):
+        return self.logger.get()
+      self.buildHelper.InstallRequiredPackages()
+      self.buildHelper.DownloadSources()
+      self.buildHelper.BuildPackage()
+      # destroy the container
       self.container.stop();
       self.container.destroy();
-      self.output += "\nSuccess!"
+      self.logger.print("Success!")
     else:
-      self.output += self.container.output
-      self.output += "\nThere is a problem with creating the container!"
+      self.logger.print("There is a problem with creating the container!")
     self.finished = True
-    return self.output
+    return self.logger.get()
