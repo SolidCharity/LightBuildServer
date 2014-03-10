@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BuildHelper for Debian: knows how to build packages for Debian"""
+"""BuildHelper for CentOS: knows how to build packages for CentOS"""
 
 # Copyright (c) 2014 Timotheus Pokorra
 
@@ -20,23 +20,20 @@
 #
 from BuildHelper import BuildHelper;
 
-class BuildHelperDebian(BuildHelper):
-  'build packages for Debian'
+class BuildHelperCentos(BuildHelper):
+  'build packages for CentOS'
 
   def PrepareForBuilding(self):
-    if not self.run("apt-get update"):
+    if not self.run("yum -y update"):
       return self.output
-    if not self.run("apt-get -y upgrade"):
-      return self.output
-    if not self.run("apt-get -y install wget build-essential ca-certificates locales"):
+    if not self.run("yum -y install wget"):
       return self.output
 
   def InstallRequiredPackages(self):
-    print("Debian: InstallRequiredPackages not implemented yet") 
+    print("Centos: InstallRequiredPackages not implemented yet") 
 
   def BuildPackage(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./debian.build"):
-      return self.output
+    print("Centos: BuildPackages not implemented yet") 
 
   def InstallTestEnvironment(self):
     if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./setup.sh"):

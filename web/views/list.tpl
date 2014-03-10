@@ -16,6 +16,12 @@
 			<li><a href="/build/mono/monodevelop-opt/debian/wheezy/amd64">Build monodevelop-opt</a></li>
                 </ul>
 		</li>
+		<li>Project Kolab: Run Tests
+		<ul>
+			<li><a href="/test/kolab/kolab-test/centos/6/amd64">Test Kolab on CentOS</a></li>
+			<li><a href="/test/kolab/kolab-test/debian/wheezy/amd64">Test Kolab on Wheezy</a></li>
+		</ul>
+		</li>
 	</ul>
 </body>
 </html>

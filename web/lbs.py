@@ -71,6 +71,30 @@ class LightBuildServerWeb:
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
 
+    def test(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        username = request.get_cookie("account", secret='some-secret-key')
+        if not username:
+            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+
+        buildmachine='mybuild01'
+
+        if not self.lbs:
+          self.logger = Logger()
+          self.lbs=LightBuildServer(self.logger)
+          thread = Thread(target = self.lbs.runtests, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
+          thread.start()
+
+        if self.lbs.finished:
+          output = self.lbs.logger.get()
+          # TODO stop refreshing
+          timeout=600000
+          self.lbs = None
+        else:
+          output = self.lbs.logger.get(4000)
+          timeout = 2
+
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
+
     def list(self):
       return template('list')
 
@@ -83,6 +107,7 @@ bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.build)
+bottle.route('/test/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.test)
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)
 bottle.route('/repos/<filepath:path>')(myApp.repo)

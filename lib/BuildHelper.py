@@ -47,3 +47,8 @@ class BuildHelper:
   def BuildPackage(self):
     print("not implemented")
 
+  def InstallTestEnvironment(self):
+    print("not implemented")
+
+  def RunTests(self):
+    print("not implemented")

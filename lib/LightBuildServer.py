@@ -68,3 +68,34 @@ class LightBuildServer:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
     return self.logger.get()
+
+  def runtests(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+    self.logger.print(" * Preparing the machine...");
+    # TODO pick up github url from database
+    lbsproject='https://github.com/tpokorra/lbs-' + projectname
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
+
+      if self.container.startmachine():
+        self.logger.print("container has been started successfully")
+      
+      # prepare container, install packages that the build requires; this is specific to the distro
+      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
+      self.buildHelper.PrepareForBuilding()
+
+      # get instructions for the test
+      if not self.buildHelper.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
+        return self.logger.get()
+      if not self.buildHelper.run ("tar xzf master.tar.gz"):
+        return self.logger.get()
+
+      self.buildHelper.InstallTestEnvironment()
+      self.buildHelper.RunTests()
+
+      # destroy the container
+      self.container.stop();
+      self.container.destroy();
+      self.logger.print("Success!")
+    else:
+      self.logger.print("There is a problem with creating the container!")
+    self.finished = True
+    return self.logger.get()

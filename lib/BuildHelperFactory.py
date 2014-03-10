@@ -20,6 +20,7 @@
 #
 
 from BuildHelperDebian import BuildHelperDebian
+from BuildHelperCentos import BuildHelperCentos
 
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
@@ -27,3 +28,5 @@ class BuildHelperFactory:
   def GetBuildHelper(distro, container, pathInsideContainer, projectname, packagename):
     if distro == "debian":
       return BuildHelperDebian(container, pathInsideContainer, projectname, packagename)
+    if distro == "centos":
+      return BuildHelperCentos(container, pathInsideContainer, projectname, packagename)
