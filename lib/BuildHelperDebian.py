@@ -28,7 +28,7 @@ class BuildHelperDebian(BuildHelper):
       return self.output
     if not self.run("apt-get -y upgrade"):
       return self.output
-    if not self.run("apt-get -y install wget build-essential ca-certificates locales bzip2"):
+    if not self.run("apt-get -y install wget build-essential ca-certificates locales"):
       return self.output
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")

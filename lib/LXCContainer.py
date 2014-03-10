@@ -42,18 +42,18 @@ class LXCContainer(lxc.Container):
 
   def executeshell(self, command):
     self.logger.print("now running: " + command)
+
+    # see http://stackoverflow.com/questions/14858059/detecting-the-end-of-the-stream-on-popen-stdout-readline
+    # problem is that subprocesses are started, and the pipe is still open???
     cmdlist = shlex.split(command)
     child = Popen(cmdlist, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
     processFinished = False
-    while True:
-      read = child.stdout.readline()
-      self.logger.print(read)
-      if (len(read) == 0) and processFinished:
+    for line in iter(child.stdout.readline,''):
+      if ((len(line) == 0) and processFinished) or ("LBSScriptFinished" in line):
         break;
-      if child.poll() != None:
+      self.logger.print(line)
+      if child.poll() is not None:
         processFinished = True
-    #catch the remaining output
-    #self.logger.print(child.communicate()[0])
     return (not child.returncode)
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch):
