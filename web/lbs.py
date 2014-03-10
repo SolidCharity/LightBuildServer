@@ -52,7 +52,8 @@ class LightBuildServerWeb:
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
-        buildmachine='mybuild01'
+        # TODO get name of available slot
+        buildmachine='mybuild01.lbs.solidcharity.com'
 
         if not self.lbs:
           self.logger = Logger()
@@ -76,7 +77,8 @@ class LightBuildServerWeb:
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
-        buildmachine='mybuild01'
+        # TODO get name of available slot
+        buildmachine='mybuild01.lbs.solidcharity.com'
 
         if not self.lbs:
           self.logger = Logger()

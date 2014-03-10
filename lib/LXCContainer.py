@@ -25,7 +25,7 @@ import os
 import time
 import shlex
 #from paramiko import SSHClient
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
 
 class LXCContainer(lxc.Container):
@@ -41,19 +41,19 @@ class LXCContainer(lxc.Container):
     self.LXCHOME_PATH = "/var/lib/lxc/"
 
   def executeshell(self, command):
-    print(command)
+    self.logger.print("now running: " + command)
     cmdlist = shlex.split(command)
-    child = Popen(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    child = Popen(cmdlist, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+    processFinished = False
     while True:
-      out = child.stdout.read(1)
-      #errors = child.stderr.read(10)
-      errors=''
-      if (out == '') and (errors == '') and child.poll() != None:
-        break
-      if (out != ''):
-        self.logger.print(out)
-      if (errors != ''):
-        self.logger.print(errors)
+      read = child.stdout.readline()
+      self.logger.print(read)
+      if (len(read) == 0) and processFinished:
+        break;
+      if child.poll() != None:
+        processFinished = True
+    #catch the remaining output
+    #self.logger.print(child.communicate()[0])
     return (not child.returncode)
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch):
@@ -82,6 +82,8 @@ class LXCContainer(lxc.Container):
       # wait until ip can be detected
       for x in range(0, 19):
         if not self.getIP() == None:
+          ip = self.getIP()
+          result = self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + ip)
           return True
         # sleep for half a second
         time.sleep(0.5)
@@ -91,16 +93,16 @@ class LXCContainer(lxc.Container):
     """Create SSH keys to access containers with"""
     # m2crypto hasn't been ported to python3 yet
     # so for now we do it via shell
-    print (" * Generating ssh keypair...")
+    self.logger.print (" * Generating ssh keypair...")
     directory = os.path.dirname(self.LBSHOME_PATH + "ssh/")
     if not os.path.exists(directory):
       os.makedirs(directory)
     if self.executeshell(("ssh-keygen -f %sssh/container_rsa -N ''"
                 % (self.LBSHOME_PATH))):
-      print ("   keypair generated" )
+      self.logger.print ("   keypair generated" )
       return True
     else:
-      print ("   keypair generation failed")
+      self.logger.print ("   keypair generation failed")
       return False
 
   def getrootfs(self):
@@ -110,7 +112,7 @@ class LXCContainer(lxc.Container):
     
   def install_sshkey(self):
     """Update ssh key in LXC container"""
-    print (" * Updating keys...")
+    self.logger.print (" * Updating keys...")
     # read public key file:
     pkey = open(self.LBSHOME_PATH + "ssh/container_rsa.pub", "r")
     pkeydata = pkey.read()
@@ -124,6 +126,7 @@ class LXCContainer(lxc.Container):
     fout.close()
     self.executeshell("chmod -R 600 " + root_fs + "/root/.ssh")
     self.executeshell("chmod -R 600 " + self.LBSHOME_PATH + "ssh/container_rsa")
+    self.logger.print (" Done with Updating keys...")
 
   def getIP(self):
     ipaddress = self.get_ips(family="inet", interface="eth0")
@@ -145,7 +148,6 @@ class LXCContainer(lxc.Container):
       #stdin, stdout, stderr = client.exec_command(command)
       #result = not stdout.channel.recv_exit_status()
       ip = self.getIP()
-      result = self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + ip)
       result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"LANG=C " + command + " 2>&1\"")
       if result:
         return True

@@ -19,25 +19,28 @@
 # USA
 #
 import sys
+import time
 
 class Logger:
   'collect all the output'
 
   def __init__(self):
+    self.starttime = time.time()
     self.output = "";
     self.buffer = "";
 
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
       self.buffer += newOutput
-    else:
+    elif len(newOutput) > 0:
       if len(self.buffer) > 0:
         newOutput = self.buffer + newOutput
         self.buffer = ""
-      self.output += newOutput
-      if self.output[-1:] != "\n":
-        self.output += "\n"
-      sys.stdout.write(newOutput)
+      if newOutput[-1:] != "\n":
+        newOutput += "\n"
+      timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
+      self.output += timeprefix + newOutput
+      sys.stdout.write(timeprefix + newOutput)
       sys.stdout.flush()
 
   def get(self, limit=None):
