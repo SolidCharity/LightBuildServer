@@ -94,7 +94,7 @@ class LightBuildServer:
 
       # destroy the container
       self.container.stop();
-      self.container.destroy();
+#      self.container.destroy();
       self.logger.print("Success!")
     else:
       self.logger.print("There is a problem with creating the container!")

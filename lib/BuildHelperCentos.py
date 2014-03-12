@@ -36,6 +36,7 @@ class BuildHelperCentos(BuildHelper):
     self.container.executeshell("echo \"NETMASK=255.255.255.0\" >> " + networkfile)
     self.container.executeshell("echo \"NETWORK=10.0.3.0\" >> " + networkfile)
     self.container.executeshell("echo \"nameserver 10.0.3.1\" > " + rootfs + "/etc/resolv.conf")
+    self.container.executeshell("echo \"lxc.network.ipv4="+self.container.staticIP + "/24\" >> " + rootfs + "/../config")
     # setup tmpfs /dev/shm
     self.container.executeshell("echo \"lxc.mount.entry = tmpfs " + rootfs + "/dev/shm tmpfs defaults 0 0\" >> " + rootfs + "/../config")
     # configure timezone
