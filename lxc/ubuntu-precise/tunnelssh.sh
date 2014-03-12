@@ -1,3 +1,9 @@
+if [ -z $1 ]; then
+  echo "call: $0 containername cid"
+  echo "eg: $0 mybuild03.lbs.solidcharity.com 3"
+  exit
+fi
+
 HostIP=`ifconfig eth0 | grep "inet addr" | awk '{ print $2 }' | awk -F ':' '{ print $2 }'`
 if [ "$1" == "" ]; then exit; fi
 name=$1
@@ -14,10 +20,10 @@ if [ -z "$cid" ]; then
 fi
 
 
-iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 2${cid} -i eth0 -j DNAT --to-destination ${guestip}:22
-iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 8${cid} -i eth0 -j DNAT --to-destination ${guestip}:80
-iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 4${cid} -i eth0 -j DNAT --to-destination ${guestip}:443
-echo "forwarding ${HostIP}:2${cid} => ${guestip}:22"
-echo "forwarding ${HostIP}:4${cid} => ${guestip}:443"
-echo "forwarding ${HostIP}:8${cid} => ${guestip}:80"
+iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport $((2000 + $cid)) -i eth0 -j DNAT --to-destination ${guestip}:22
+iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport $((8000 + $cid)) -i eth0 -j DNAT --to-destination ${guestip}:80
+iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport $((4000 + $cid)) -i eth0 -j DNAT --to-destination ${guestip}:443
+echo "forwarding ${HostIP}:$((2000 + $cid)) => ${guestip}:22"
+echo "forwarding ${HostIP}:$((4000 + $cid)) => ${guestip}:443"
+echo "forwarding ${HostIP}:$((8000 + $cid)) => ${guestip}:80"
 
