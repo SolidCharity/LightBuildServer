@@ -69,6 +69,8 @@ class LXCContainer(lxc.Container):
     self.release = lxcrelease
     self.arch = lxcarch
     self.staticIP = staticIP
+    lxc.Container.__init__(self, self.name)
+    self.destroy();
     #if self.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
     result = self.executeshell("lxc-create -t download --name " + self.name +
 	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)
