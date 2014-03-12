@@ -15,5 +15,9 @@ fi
 
 
 iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 2${cid} -i eth0 -j DNAT --to-destination ${guestip}:22
+iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 8${cid} -i eth0 -j DNAT --to-destination ${guestip}:80
+iptables -t nat -A PREROUTING -p tcp -d ${HostIP} --dport 4${cid} -i eth0 -j DNAT --to-destination ${guestip}:443
 echo "forwarding ${HostIP}:2${cid} => ${guestip}:22"
+echo "forwarding ${HostIP}:4${cid} => ${guestip}:443"
+echo "forwarding ${HostIP}:8${cid} => ${guestip}:80"
 
