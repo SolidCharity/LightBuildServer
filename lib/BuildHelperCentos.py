@@ -38,6 +38,8 @@ class BuildHelperCentos(BuildHelper):
     self.container.executeshell("echo \"nameserver 10.0.3.1\" > " + rootfs + "/etc/resolv.conf")
     # setup tmpfs /dev/shm
     self.container.executeshell("echo \"lxc.mount.entry = tmpfs " + rootfs + "/dev/shm tmpfs defaults 0 0\" >> " + rootfs + "/../config")
+    # configure timezone
+    self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
 
   def PrepareForBuilding(self):
     if not self.run("yum -y update"):
