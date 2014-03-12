@@ -23,10 +23,25 @@ from BuildHelper import BuildHelper;
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
+  def PrepareMachineBeforeStart(self):
+    rootfs=self.container.getrootfs()
+    # clear the root password, since it is expired anyway, and no ssh access would be possible
+    if not self.container.executeshell("chroot " + rootfs + " passwd -d root"):
+      return self.output
+    # setup a static IP address, to speed up the startup
+    networkfile = rootfs+"/etc/sysconfig/network-scripts/ifcfg-eth0"
+    self.container.executeshell("sed -i 's/^BOOTPROTO=dhcp/BOOTPROTO=static/g' "+networkfile)
+    self.container.executeshell("echo \"IPADDR=" + self.container.staticIP +"\" >> " + networkfile)
+    self.container.executeshell("echo \"GATEWAY=10.0.3.1\" >> " + networkfile)
+    self.container.executeshell("echo \"NETMASK=255.255.255.0\" >> " + networkfile)
+    self.container.executeshell("echo \"NETWORK=10.0.3.0\" >> " + networkfile)
+    self.container.executeshell("echo \"nameserver 10.0.3.1\" > " + rootfs + "/etc/resolv.conf")
+    # TODO setup tmpfs /dev/shm
+
   def PrepareForBuilding(self):
     if not self.run("yum -y update"):
       return self.output
-    if not self.run("yum -y install wget"):
+    if not self.run("yum -y install wget tar"):
       return self.output
 
   def InstallRequiredPackages(self):

@@ -23,7 +23,6 @@ import lxc
 import sys
 import os
 import time
-import shlex
 #from paramiko import SSHClient
 from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
@@ -37,6 +36,7 @@ class LXCContainer(lxc.Container):
     self.distro = ""
     self.release = ""
     self.arch = ""
+    self.staticIP = ""
     self.LBSHOME_PATH = "/var/lib/lbs/"
     self.LXCHOME_PATH = "/var/lib/lxc/"
 
@@ -45,22 +45,30 @@ class LXCContainer(lxc.Container):
 
     # see http://stackoverflow.com/questions/14858059/detecting-the-end-of-the-stream-on-popen-stdout-readline
     # problem is that subprocesses are started, and the pipe is still open???
-    cmdlist = shlex.split(command)
-    child = Popen(cmdlist, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+    child = Popen(command, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
     processFinished = False
-    for line in iter(child.stdout.readline,''):
+    returncode=None
+    #for line in iter(child.stdout.readline,''):
+    while True:
+      line=child.stdout.readline()
       if ((len(line) == 0) and processFinished) or ("LBSScriptFinished" in line):
+        if not processFinished and ("LBSScriptFinished" in line):
+          returncode = child.poll()
+          if returncode is None:
+            returncode = 0
         break;
       self.logger.print(line)
-      if child.poll() is not None:
+      returncode = child.poll()
+      if not processFinished and returncode is not None:
         processFinished = True
-    return (not child.returncode)
+    return (not returncode)
 
-  def createmachine(self, lxcdistro, lxcrelease, lxcarch):
+  def createmachine(self, lxcdistro, lxcrelease, lxcarch, staticIP):
     # create lxc container with specified OS
     self.distro = lxcdistro
     self.release = lxcrelease
     self.arch = lxcarch
+    self.staticIP = staticIP
     #if self.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
     result = self.executeshell("lxc-create -t download --name " + self.name +
 	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)

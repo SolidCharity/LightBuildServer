@@ -33,6 +33,9 @@ class BuildHelper:
     # we do not handle self.container.output here
     return result
 
+  def PrepareMachineBeforeStart(self):
+    print("not implemented")
+
   def PrepareForBuilding(self):
     print("not implemented")
 

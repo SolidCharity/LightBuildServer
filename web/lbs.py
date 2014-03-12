@@ -54,11 +54,12 @@ class LightBuildServerWeb:
 
         # TODO get name of available slot
         buildmachine='mybuild01.lbs.solidcharity.com'
+        staticIP='10.0.3.2'
 
         if not self.lbs:
           self.logger = Logger()
           self.lbs=LightBuildServer(self.logger)
-          thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
+          thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
           thread.start()
 
         if self.lbs.finished:
@@ -78,12 +79,13 @@ class LightBuildServerWeb:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
         # TODO get name of available slot
-        buildmachine='mybuild01.lbs.solidcharity.com'
+        buildmachine='mytest02.lbs.solidcharity.com'
+        staticIP='10.0.3.3'
 
         if not self.lbs:
           self.logger = Logger()
           self.lbs=LightBuildServer(self.logger)
-          thread = Thread(target = self.lbs.runtests, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
+          thread = Thread(target = self.lbs.runtests, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
           thread.start()
 
         if self.lbs.finished:

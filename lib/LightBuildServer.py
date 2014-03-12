@@ -31,25 +31,25 @@ class LightBuildServer:
     self.container = None
     self.finished = False
 
-  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.container = LXCContainer(buildmachine, self.logger)
-    result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch)
+    result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
     return result
 
-  def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.logger.print(" * Preparing the machine...");
     # TODO pick up github url from database
     lbsproject='https://github.com/tpokorra/lbs-' + projectname
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # install a mount for the project repo
       self.container.installmount("/root/repo", "/var/www/repos/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
-
-      if self.container.startmachine():
-        self.logger.print("container has been started successfully")
       
       # prepare container, install packages that the build requires; this is specific to the distro
       self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
+      self.buildHelper.PrepareMachineBeforeStart() 
+      if self.container.startmachine():
+        self.logger.print("container has been started successfully")
       self.buildHelper.PrepareForBuilding()
 
       # get the sources of the packaging instructions
@@ -69,17 +69,18 @@ class LightBuildServer:
     self.finished = True
     return self.logger.get()
 
-  def runtests(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def runtests(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.logger.print(" * Preparing the machine...");
     # TODO pick up github url from database
     lbsproject='https://github.com/tpokorra/lbs-' + projectname
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
+      # prepare container, install packages that the build requires; this is specific to the distro
+      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
+      self.buildHelper.PrepareMachineBeforeStart() 
       if self.container.startmachine():
         self.logger.print("container has been started successfully")
       
-      # prepare container, install packages that the build requires; this is specific to the distro
-      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
       self.buildHelper.PrepareForBuilding()
 
       # get instructions for the test

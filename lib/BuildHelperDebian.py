@@ -23,6 +23,9 @@ from BuildHelper import BuildHelper;
 class BuildHelperDebian(BuildHelper):
   'build packages for Debian'
 
+  def PrepareMachineBeforeStart(self):
+    print("not implemented")
+
   def PrepareForBuilding(self):
     if not self.run("apt-get update"):
       return self.output
