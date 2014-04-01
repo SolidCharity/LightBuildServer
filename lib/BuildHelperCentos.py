@@ -19,6 +19,8 @@
 # USA
 #
 from BuildHelper import BuildHelper;
+import os
+import yaml
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -47,12 +49,32 @@ class BuildHelperCentos(BuildHelper):
       return self.output
     if not self.run("yum -y install wget tar"):
       return self.output
+    self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}");
 
   def InstallRequiredPackages(self):
-    print("Centos: InstallRequiredPackages not implemented yet") 
+    rootfs=self.container.getrootfs()
+
+    # first install required repos
+    configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
+    stream = open(configfile, 'r')
+    config = yaml.load(stream)
+    repos = config['lbs']['centos']['repos']
+    for repo in repos:
+      self.run("cd /etc/yum.repos.d/; wget " + repo);
+
+    # now install required packages
+    for line in open(rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"):
+      if line.startswith("BuildRequires: "):
+        if not self.run("yum -y install rpm-build " + line[len("BuildRequires: "):]):
+          return self.output
 
   def BuildPackage(self):
-    print("Centos: BuildPackages not implemented yet") 
+    self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
+    self.run("mv sources/* rpmbuild/SOURCES")
+    # TODO: build counter for automatically increasing the release number?
+    self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+    if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
+      return self.output
 
   def InstallTestEnvironment(self):
     if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./setup.sh"):

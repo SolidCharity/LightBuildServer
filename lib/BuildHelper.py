@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
+import yaml;
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
@@ -42,7 +43,13 @@ class BuildHelper:
   def DownloadSources(self):
     # TODO parse config.yml file, download the sources, and untar, move to the right place
     #      or does this depend on the distro?
-    print("DownloadSources not implemented yet")
+    rootfs=self.container.getrootfs()
+    file = rootfs + "/root/lbs-" + self.projectname + "-master/" + self.packagename + "/config.yml"
+    stream = open(file, 'r')
+    config = yaml.load(stream)
+    url = config['lbs']['source']['download']
+    print (url)
+    self.run("mkdir sources; cd sources; wget " + url);
 
   def InstallRequiredPackages(self):
     print("not implemented")
