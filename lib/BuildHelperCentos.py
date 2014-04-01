@@ -70,6 +70,7 @@ class BuildHelperCentos(BuildHelper):
 
   def BuildPackage(self):
     self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
+    self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/*.patch rpmbuild/SOURCES")
     self.run("mv sources/* rpmbuild/SOURCES")
     # TODO: build counter for automatically increasing the release number?
     self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
