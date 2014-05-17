@@ -21,6 +21,8 @@
 import sys
 import time
 import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 class Logger:
   'collect all the output'
@@ -51,16 +53,13 @@ class Logger:
 
   def email(self, fromAddress, toAddress, subject):
     SERVER = "localhost"
-    FROM = fromAddress
-    TO = [toAddress] # must be a list
-    message = """\
-    From: %s
-    To: %s
-    Subject: %s
-
-    %s
-    """ % (FROM, ", ".join(TO), subject, self.output)
+    msg = MIMEMultipart()
+    msg['From'] = fromAddress
+    msg['To'] = toAddress
+    msg['Subject'] = subject
+    msg.attach(MIMEText(self.output.encode('utf-8'), 'plain','utf-8'))
     # Send the mail
     server = smtplib.SMTP(SERVER)
-    server.sendmail(FROM, TO, message)
+    TO = [toAddress] # must be a list
+    server.sendmail(fromAddress, TO, msg.as_string())
     server.quit()
