@@ -40,12 +40,12 @@ class BuildHelperDebian(BuildHelper):
     print("Debian: InstallRequiredPackages not implemented yet") 
 
   def BuildPackage(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./debian.build"):
-      return self.output
-
-  def InstallTestEnvironment(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./setup.sh"):
-      return self.output
+    rootfs=self.container.getrootfs()
+    buildfile="lbs-" + self.projectname + "-master/" + self.packagename + "/debian.build"
+    buildfileWithRoot=rootfs + "/root/" + setupfile
+    if os.path.isfile(buildfileWithRoot):
+      if not self.run("cd `dirname " + buildfile + "`; ./debian.build"):
+        return self.output
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./runtests.sh"):

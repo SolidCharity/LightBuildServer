@@ -63,28 +63,29 @@ class BuildHelperCentos(BuildHelper):
       self.run("cd /etc/yum.repos.d/; wget " + repo);
 
     # now install required packages
-    for line in open(rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"):
-      if line.startswith("BuildRequires: "):
-        if not self.run("yum -y install rpm-build " + line[len("BuildRequires: "):]):
-          return self.output
+    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"
+    if os.path.isfile(specfile):
+      for line in open(specfile):
+        if line.startswith("BuildRequires: "):
+          if not self.run("yum -y install rpm-build " + line[len("BuildRequires: "):]):
+            return self.output
 
   def BuildPackage(self):
-    self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
+    rootfs=self.container.getrootfs()
+    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"
+    if os.path.isfile(specfile):
+      self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
 
-    # copy patches, and other files (eg. env.sh for mono-opt)
-    self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/* rpmbuild/SOURCES")
+      # copy patches, and other files (eg. env.sh for mono-opt)
+      self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/* rpmbuild/SOURCES")
 
-    # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
-    self.run("mv sources/* rpmbuild/SOURCES")
+      # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
+      self.run("mv sources/* rpmbuild/SOURCES")
 
-    # TODO: build counter for automatically increasing the release number?
-    self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
-    if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
-      return self.output
-
-  def InstallTestEnvironment(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./setup.sh"):
-      return self.output
+      # TODO: build counter for automatically increasing the release number?
+      self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+      if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
+        return self.output
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./runtests.sh"):

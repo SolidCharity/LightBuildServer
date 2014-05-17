@@ -18,7 +18,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
-import yaml;
+import yaml
+import os.path
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
@@ -45,11 +46,12 @@ class BuildHelper:
     #      or does this depend on the distro?
     rootfs=self.container.getrootfs()
     file = rootfs + "/root/lbs-" + self.projectname + "-master/" + self.packagename + "/config.yml"
-    stream = open(file, 'r')
-    config = yaml.load(stream)
-    url = config['lbs']['source']['download']
-    print (url)
-    self.run("mkdir sources; cd sources; wget " + url);
+    if os.path.isfile(file):
+      stream = open(file, 'r')
+      config = yaml.load(stream)
+      url = config['lbs']['source']['download']
+      print (url)
+      self.run("mkdir sources; cd sources; wget " + url);
 
   def InstallRequiredPackages(self):
     print("not implemented")
@@ -57,8 +59,13 @@ class BuildHelper:
   def BuildPackage(self):
     print("not implemented")
 
-  def InstallTestEnvironment(self):
-    print("not implemented")
+  def SetupEnvironment(self):
+    rootfs=self.container.getrootfs()
+    setupfile="lbs-" + self.projectname + "-master/" + self.packagename + "/setup.sh"
+    setupfileWithRoot=rootfs + "/root/" + setupfile
+    if os.path.isfile(setupfileWithRoot):
+      if not self.run("cd `dirname " + setupfile + "`; ./setup.sh"):
+        return self.output
 
   def RunTests(self):
     print("not implemented")

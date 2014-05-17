@@ -12,6 +12,7 @@
 		</li>
 		<li>Project Mono
 		<ul>
+			<li><a href="/build/mono/mono-opt-nightly/centos/6/amd64">Build mono-opt on CentOS, also builds the tarball</a></li>
 			<li><a href="/build/mono/mono-opt/debian/wheezy/amd64">Build mono-opt on Debian</a></li>
 			<li><a href="/build/mono/mono-opt/centos/6/amd64">Build mono-opt on CentOS</a></li>
 			<li><a href="/build/mono/monodevelop-opt/debian/wheezy/amd64">Build monodevelop-opt</a></li>

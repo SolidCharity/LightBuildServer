@@ -59,6 +59,7 @@ class LightBuildServer:
         return self.logger.get()
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
+      self.buildHelper.SetupEnvironment()
       self.buildHelper.BuildPackage()
       # destroy the container
       self.container.stop();
@@ -89,7 +90,7 @@ class LightBuildServer:
       if not self.buildHelper.run ("tar xzf master.tar.gz"):
         return self.logger.get()
 
-      self.buildHelper.InstallTestEnvironment()
+      self.buildHelper.SetupEnvironment()
       self.buildHelper.RunTests()
 
       # destroy the container
