@@ -22,6 +22,7 @@
 from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
+import yaml
 
 class LightBuildServer:
   'light build server based on lxc and git'
@@ -30,6 +31,9 @@ class LightBuildServer:
     self.logger = logger
     self.container = None
     self.finished = False
+    configfile="../config.yml"
+    stream = open(configfile, 'r')
+    self.config = yaml.load(stream)
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.container = LXCContainer(buildmachine, self.logger)
@@ -38,8 +42,7 @@ class LightBuildServer:
 
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.logger.print(" * Preparing the machine...");
-    # TODO pick up github url from database
-    lbsproject='https://github.com/tpokorra/lbs-' + projectname
+    lbsproject=self.config['lbs']['GitURL'] + 'lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # install a mount for the project repo
@@ -68,12 +71,12 @@ class LightBuildServer:
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
+    self.logger.email(self.config['lbs']['EmailFromAddress'], self.config['lbs']['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename)
     return self.logger.get()
 
   def runtests(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.logger.print(" * Preparing the machine...");
-    # TODO pick up github url from database
-    lbsproject='https://github.com/tpokorra/lbs-' + projectname
+    lbsproject=self.config['lbs']['GitURL'] + 'lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # prepare container, install packages that the build requires; this is specific to the distro
@@ -100,4 +103,5 @@ class LightBuildServer:
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
+    self.logger.email(self.config['lbs']['EmailFromAddress'], self.config['lbs']['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename)
     return self.logger.get()

@@ -20,6 +20,7 @@
 #
 import sys
 import time
+import smtplib
 
 class Logger:
   'collect all the output'
@@ -48,3 +49,18 @@ class Logger:
       return self.output
     return self.output[-1*limit:]
 
+  def email(self, fromAddress, toAddress, subject):
+    SERVER = "localhost"
+    FROM = fromAddress
+    TO = [toAddress] # must be a list
+    message = """\
+    From: %s
+    To: %s
+    Subject: %s
+
+    %s
+    """ % (FROM, ", ".join(TO), subject, self.output)
+    # Send the mail
+    server = smtplib.SMTP(SERVER)
+    server.sendmail(FROM, TO, message)
+    server.quit()

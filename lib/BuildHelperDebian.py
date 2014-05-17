@@ -19,6 +19,8 @@
 # USA
 #
 from BuildHelper import BuildHelper;
+import os
+import yaml
 
 class BuildHelperDebian(BuildHelper):
   'build packages for Debian'
@@ -42,7 +44,7 @@ class BuildHelperDebian(BuildHelper):
   def BuildPackage(self):
     rootfs=self.container.getrootfs()
     buildfile="lbs-" + self.projectname + "-master/" + self.packagename + "/debian.build"
-    buildfileWithRoot=rootfs + "/root/" + setupfile
+    buildfileWithRoot=rootfs + "/root/" + buildfile
     if os.path.isfile(buildfileWithRoot):
       if not self.run("cd `dirname " + buildfile + "`; ./debian.build"):
         return self.output
