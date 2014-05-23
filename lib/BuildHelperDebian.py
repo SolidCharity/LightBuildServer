@@ -39,7 +39,18 @@ class BuildHelperDebian(BuildHelper):
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
 
   def InstallRequiredPackages(self):
-    print("Debian: InstallRequiredPackages not implemented yet") 
+    rootfs=self.container.getrootfs()
+
+    # first install required repos
+    configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
+    stream = open(configfile, 'r')
+    config = yaml.load(stream)
+    repos = config['lbs']['debian'][self.container.release]['repos']
+    for repo in repos:
+      self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
+    self.run("apt-get update")
+
+    # TODO now install required packages
 
   def BuildPackage(self):
     rootfs=self.container.getrootfs()

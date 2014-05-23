@@ -105,6 +105,9 @@ class LightBuildServerWeb:
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
 
+    def tarball(self, filepath):
+      return static_file(filepath, root='/var/www/tarballs')
+
 myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
@@ -115,5 +118,6 @@ bottle.route('/test/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarc
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
+bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
 bottle.run(host=ipaddress, port=80, debug=False) 

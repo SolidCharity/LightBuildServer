@@ -47,6 +47,7 @@ class LightBuildServer:
 
       # install a mount for the project repo
       self.container.installmount("/root/repo", "/var/www/repos/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
+      self.container.installmount("/root/tarball", "/var/www/tarballs/" + projectname)
       
       # prepare container, install packages that the build requires; this is specific to the distro
       self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)

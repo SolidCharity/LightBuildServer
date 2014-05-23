@@ -16,6 +16,7 @@
 			<li><a href="/build/mono/mono-opt-nightly-branch/centos/6/amd64">Build mono-opt-nightly-branch on CentOS, also builds the tarball</a></li>
 			<li><a href="/build/mono/mono-opt/debian/wheezy/amd64">Build mono-opt on Debian</a></li>
 			<li><a href="/build/mono/mono-opt/centos/6/amd64">Build mono-opt on CentOS</a></li>
+			<li><a href="/build/mono/monodevelop-opt/centos/6/amd64">Build monodevelop-opt on CentOS</a></li>
 			<li><a href="/build/mono/monodevelop-opt/debian/wheezy/amd64">Build monodevelop-opt</a></li>
                 </ul>
 		</li>
