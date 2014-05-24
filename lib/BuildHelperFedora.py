@@ -49,4 +49,3 @@ class BuildHelperFedora(BuildHelperCentos):
     # configure timezone
     self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
 
-  def PrepareForBuilding(self):
