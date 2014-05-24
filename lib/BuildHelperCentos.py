@@ -25,6 +25,10 @@ import yaml
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
+  def __init__(self, container, pathInsideContainer, projectname, packagename):
+    self.dist='centos'
+    BuildHelper.__init__(self, container, pathInsideContainer, projectname, packagename)
+
   def PrepareMachineBeforeStart(self):
     rootfs=self.container.getrootfs()
     # clear the root password, since it is expired anyway, and no ssh access would be possible
@@ -58,7 +62,7 @@ class BuildHelperCentos(BuildHelper):
     configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
     stream = open(configfile, 'r')
     config = yaml.load(stream)
-    repos = config['lbs']['centos']['repos']
+    repos = config['lbs'][self.dist][self.container.release]['repos']
     for repo in repos:
       self.run("cd /etc/yum.repos.d/; wget " + repo);
 

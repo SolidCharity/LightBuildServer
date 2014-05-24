@@ -21,6 +21,7 @@
 
 from BuildHelperDebian import BuildHelperDebian
 from BuildHelperCentos import BuildHelperCentos
+from BuildHelperFedora import BuildHelperFedora
 
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
@@ -30,3 +31,5 @@ class BuildHelperFactory:
       return BuildHelperDebian(container, pathInsideContainer, projectname, packagename)
     if distro == "centos":
       return BuildHelperCentos(container, pathInsideContainer, projectname, packagename)
+    if distro == "fedora":
+      return BuildHelperFedora(container, pathInsideContainer, projectname, packagename)
