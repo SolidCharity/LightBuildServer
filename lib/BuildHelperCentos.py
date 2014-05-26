@@ -71,8 +71,19 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(specfile):
       for line in open(specfile):
         if line.startswith("BuildRequires: "):
-          # TODO filter >= 3.0, only use package names
-          if not self.run("yum -y install rpm-build " + line[len("BuildRequires: "):]):
+          packagesWithVersions=line[len("BuildRequires: "):].split()
+          packages=[]
+          ignoreNext=False
+          for word in packagesWithVersions:
+            if not ignoreNext:
+              # filter >= 3.0, only use package names
+              if word[0] == '>' or word[0] == '<' or word[0] == '=':
+                ignoreNext=True
+              else:
+                packages.append(word)
+            else:
+              ignoreNext=False
+          if not self.run("yum -y install rpm-build " + " ".join(packages)):
             return self.output
 
   def BuildPackage(self):
