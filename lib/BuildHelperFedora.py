@@ -44,6 +44,8 @@ class BuildHelperFedora(BuildHelperCentos):
     self.container.executeshell("echo \"NETWORK=10.0.3.0\" >> " + networkfile)
     self.container.executeshell("echo \"nameserver 10.0.3.1\" > " + rootfs + "/etc/resolv.conf")
     self.container.executeshell("echo \"lxc.network.ipv4="+self.container.staticIP + "/24\" >> " + rootfs + "/../config")
+    # fix a problem with AppArmor. otherwise you get a SEGV
+    self.container.executeshell("echo \"lxc.aa_profile = unconfined\" >> " + rootfs + "/../config")
     # setup tmpfs /dev/shm
     #not needed for Fedora??? self.container.executeshell("echo \"lxc.mount.entry = tmpfs " + rootfs + "/dev/shm tmpfs defaults 0 0\" >> " + rootfs + "/../config")
     # configure timezone
