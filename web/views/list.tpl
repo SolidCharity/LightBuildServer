@@ -19,6 +19,7 @@
 			<li><a href="/build/mono/monodevelop-opt/centos/6/amd64">Build monodevelop-opt on CentOS</a></li>
 			<li><a href="/build/mono/monodevelop-tarball/debian/wheezy/amd64">Build monodevelop tarball on Debian</a></li>
 			<li><a href="/build/mono/monodevelop-tarball/fedora/20/amd64">Build monodevelop tarball on Fedora</a></li>
+			<li><a href="/build/mono/monodevelop-nightly/fedora/20/amd64">Build monodevelop nightly on Fedora</a></li>
                 </ul>
 		</li>
 		<li>Project Kolab: Run Tests
