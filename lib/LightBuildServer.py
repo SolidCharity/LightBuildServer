@@ -76,34 +76,3 @@ class LightBuildServer:
     self.logger.email(self.config['lbs']['EmailFromAddress'], self.userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename)
     return self.logger.get()
 
-  def runtests(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
-    self.logger.print(" * Preparing the machine...");
-    lbsproject=self.userconfig['GitURL'] + 'lbs-' + projectname
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
-
-      # prepare container, install packages that the build requires; this is specific to the distro
-      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)
-      self.buildHelper.PrepareMachineBeforeStart() 
-      if self.container.startmachine():
-        self.logger.print("container has been started successfully")
-      
-      self.buildHelper.PrepareForBuilding()
-
-      # get instructions for the test
-      if not self.buildHelper.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
-        return self.logger.get()
-      if not self.buildHelper.run ("tar xzf master.tar.gz"):
-        return self.logger.get()
-
-      self.buildHelper.SetupEnvironment()
-      self.buildHelper.RunTests()
-
-      # destroy the container
-      self.container.stop();
-      # self.container.destroy();
-      self.logger.print("Success!")
-    else:
-      self.logger.print("There is a problem with creating the container!")
-    self.finished = True
-    self.logger.email(self.config['lbs']['EmailFromAddress'], self.userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename)
-    return self.logger.get()

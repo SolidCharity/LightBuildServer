@@ -5,3 +5,8 @@ lbs:
        Password: demo
        GitURL: https://github.com/myusername/
        EmailToAddress: firstname.lastname@example.org
+       Projects:
+         # mono will resolve automatically to https://github.com/myusername/lbs-mono
+         mono:
+           monodevelop-tarball:
+             Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]

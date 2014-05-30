@@ -13,12 +13,12 @@ import yaml
 
 class LightBuildServerWeb:
     def __init__(self):
-        self.lbs = None
-
-    def check_login(self, username, password):
         configfile="../config.yml"
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
+        self.lbs = None
+
+    def check_login(self, username, password):
         if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
           return True
         return False;
@@ -78,34 +78,16 @@ class LightBuildServerWeb:
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
 
-    def test(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
-        username = request.get_cookie("account", secret='some-secret-key')
-        if not username:
-            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
-
-        # TODO get name of available slot
-        buildmachine='mytest02.lbs.solidcharity.com'
-        staticIP='10.0.3.3'
-
-        if not self.lbs:
-          self.logger = Logger()
-          self.lbs=LightBuildServer(self.logger, username)
-          thread = Thread(target = self.lbs.runtests, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
-          thread.start()
-
-        if self.lbs.finished:
-          output = self.lbs.logger.get()
-          # TODO stop refreshing
-          timeout=600000
-          self.lbs = None
-        else:
-          output = self.lbs.logger.get(4000)
-          timeout = 2
-
-        return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
-
     def list(self):
-      return template('list')
+      # TODO support several users
+      for user in self.config['lbs']['Users']:
+        userconfig=self.config['lbs']['Users'][user]
+        for project in userconfig['Projects']:
+          projectconfig=userconfig['Projects'][project]
+          for package in projectconfig:
+            projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
+            projectconfig[package]["giturl"] = userconfig['GitURL']+"lbs-" + project + "/tree/master/" + package
+        return template('list', projects = self.config['lbs']['Users'][user]['Projects'])
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
@@ -119,7 +101,6 @@ bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.build)
-bottle.route('/test/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.test)
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
