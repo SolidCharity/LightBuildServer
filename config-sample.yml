@@ -1,4 +1,7 @@
 lbs:
-   GitURL: https://github.com/myusername/
    EmailFromAddress: lbs@example.org
-   EmailToAddress: firstname.lastname@example.org
+   Users:
+     demo:
+       Password: demo
+       GitURL: https://github.com/myusername/
+       EmailToAddress: firstname.lastname@example.org

@@ -9,14 +9,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from LightBuildServer import LightBuildServer
 from Logger import Logger
 from threading import Thread
+import yaml
 
 class LightBuildServerWeb:
     def __init__(self):
         self.lbs = None
 
     def check_login(self, username, password):
-        # TODO
-        return True;
+        configfile="../config.yml"
+        stream = open(configfile, 'r')
+        self.config = yaml.load(stream)
+        if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
+          return True
+        return False;
 
     def login(self):
         return '''
@@ -58,7 +63,7 @@ class LightBuildServerWeb:
 
         if not self.lbs:
           self.logger = Logger()
-          self.lbs=LightBuildServer(self.logger)
+          self.lbs=LightBuildServer(self.logger, username)
           thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
           thread.start()
 
@@ -84,7 +89,7 @@ class LightBuildServerWeb:
 
         if not self.lbs:
           self.logger = Logger()
-          self.lbs=LightBuildServer(self.logger)
+          self.lbs=LightBuildServer(self.logger, username)
           thread = Thread(target = self.lbs.runtests, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
           thread.start()
 
