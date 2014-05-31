@@ -21,8 +21,10 @@
 import sys
 import time
 import smtplib
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from collections import OrderedDict
 
 class Logger:
   'collect all the output'
@@ -31,6 +33,7 @@ class Logger:
     self.starttime = time.time()
     self.output = "";
     self.buffer = "";
+    self.logspath = "/var/www/logs"
 
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
@@ -51,15 +54,48 @@ class Logger:
       return self.output
     return self.output[-1*limit:]
 
-  def email(self, fromAddress, toAddress, subject):
+  def email(self, fromAddress, toAddress, subject, logurl):
     SERVER = "localhost"
     msg = MIMEMultipart()
     msg['From'] = fromAddress
     msg['To'] = toAddress
     msg['Subject'] = subject
-    msg.attach(MIMEText(self.output.encode('utf-8'), 'plain','utf-8'))
+    link="For details, see " + logurl + "\n"
+    msg.attach(MIMEText((link+self.get(4000)).encode('utf-8'), 'plain','utf-8'))
     # Send the mail
     server = smtplib.SMTP(SERVER)
     TO = [toAddress] # must be a list
     server.sendmail(fromAddress, TO, msg.as_string())
     server.quit()
+
+  def store(self, DeleteLogAfterDays, LogPath):
+    LogPath = self.logspath + "/" + LogPath
+    if not os.path.exists(LogPath):
+      os.makedirs( LogPath )
+    buildnumber=0
+    MaximumAgeInSeconds=time.time() - (DeleteLogAfterDays*24*60*60)
+    for file in os.listdir(LogPath):
+      if file.endswith(".log"):
+        oldnumber=int(file[6:-4])
+        if oldnumber >= buildnumber:
+          buildnumber = oldnumber + 1
+        # delete older logs, depending on DeleteLogAfterDays
+        if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
+          os.unlink(LogPath + "/" + file)
+    with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'a') as f:
+      f.write(self.get())
+    return buildnumber 
+
+  def getLog(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
+    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+    with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'r') as content_file:
+        return content_file.read() 
+
+  def getBuildNumbers(self, username, projectname, packagename, buildtarget):
+    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + buildtarget
+    result={}
+    for file in os.listdir(LogPath):
+      if file.endswith(".log"):
+        number=int(file[6:-4])
+        result[str(number)] = time.ctime( os.path.getmtime(LogPath + "/" + file))
+    return OrderedDict(reversed(sorted(result.items()))) 

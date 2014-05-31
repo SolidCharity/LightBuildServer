@@ -1,5 +1,7 @@
 lbs:
    EmailFromAddress: lbs@example.org
+   DeleteLogAfterDays: 20
+   LBSUrl: http://lbs.example.org
    Users:
      demo:
        Password: demo

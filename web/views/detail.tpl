@@ -10,7 +10,11 @@
 			<ul>
                 		<li><a href="{{package['buildurl']}}/{{buildtarget}}">Trigger build</a></li>
 				<li>TODO view current build</li>
-				<li>TODO build history</li>
+				<li>Build history and logs:<ul>
+					% for buildnumber in package['logs'][buildtarget]:
+					<li><a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget][buildnumber]}}</li>
+					% end	
+				</ul></li>
 				<li>TODO Install instructions</li>
 			</ul>
               	% end

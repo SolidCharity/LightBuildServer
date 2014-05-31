@@ -22,6 +22,7 @@
 from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
+from time import gmtime, strftime
 import yaml
 
 class LightBuildServer:
@@ -34,6 +35,7 @@ class LightBuildServer:
     configfile="../config.yml"
     stream = open(configfile, 'r')
     self.config = yaml.load(stream)
+    self.username=username
     self.userconfig = self.config['lbs']['Users'][username]
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
@@ -42,6 +44,7 @@ class LightBuildServer:
     return result
 
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
+    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"));
     self.logger.print(" * Preparing the machine...");
     lbsproject=self.userconfig['GitURL'] + 'lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
@@ -73,6 +76,8 @@ class LightBuildServer:
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
-    self.logger.email(self.config['lbs']['EmailFromAddress'], self.userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename)
+    logpath=self.username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+    buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], logpath)
+    self.logger.email(self.config['lbs']['EmailFromAddress'], self.userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
     return self.logger.get()
 

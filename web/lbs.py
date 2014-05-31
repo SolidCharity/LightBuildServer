@@ -17,6 +17,7 @@ class LightBuildServerWeb:
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
         self.lbs = None
+        self.logger = Logger()
 
     def check_login(self, username, password):
         if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
@@ -62,7 +63,6 @@ class LightBuildServerWeb:
         staticIP='10.0.3.2'
 
         if not self.lbs:
-          self.logger = Logger()
           self.lbs=LightBuildServer(self.logger, username)
           thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
           thread.start()
@@ -95,7 +95,14 @@ class LightBuildServerWeb:
         package=project[packagename]
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/build/" + projectname + "/" + packagename
+        package["logs"] = {}
+        for buildtarget in package['Distros']:
+          package["logs"][buildtarget] = self.logger.getBuildNumbers(username, projectname, packagename, buildtarget)
         return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
+
+    def logs(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
+      content = self.logger.getLog(username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber)
+      return template('buildresult', buildresult=content, timeoutInSeconds=4000)
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
@@ -112,6 +119,7 @@ bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcar
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)
+bottle.route('/logs/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
 bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
