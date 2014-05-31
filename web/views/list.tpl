@@ -7,7 +7,7 @@
 		<li>Project {{project}}
                 <ul>
                    % for package in projects[project]:
-                        <li><a href="{{projects[project][package]['giturl']}}" target="_blank">Package {{package}}</a>: Build on: 
+                        <li><a href="{{projects[project][package]['detailurl']}}">Package {{package}}</a>: Build on: 
                         % for buildtarget in projects[project][package]['Distros']:
                              <a href="{{projects[project][package]['buildurl']}}/{{buildtarget}}">{{buildtarget}}</a> 
                         % end

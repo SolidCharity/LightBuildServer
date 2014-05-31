@@ -79,15 +79,23 @@ class LightBuildServerWeb:
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
 
     def list(self):
-      # TODO support several users
+      # TODO support several users ???
       for user in self.config['lbs']['Users']:
         userconfig=self.config['lbs']['Users'][user]
         for project in userconfig['Projects']:
           projectconfig=userconfig['Projects'][project]
           for package in projectconfig:
+            projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
-            projectconfig[package]["giturl"] = userconfig['GitURL']+"lbs-" + project + "/tree/master/" + package
         return template('list', projects = self.config['lbs']['Users'][user]['Projects'])
+
+    def detail(self, username, projectname, packagename):
+        user=self.config['lbs']['Users'][username]
+        project=user['Projects'][projectname]
+        package=project[packagename]
+        package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
+        package["buildurl"] = "/build/" + projectname + "/" + packagename
+        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
@@ -101,6 +109,7 @@ bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.build)
+bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
