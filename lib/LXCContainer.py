@@ -72,8 +72,11 @@ class LXCContainer(lxc.Container):
     lxc.Container.__init__(self, self.name)
     self.destroy();
     #if self.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
-    result = self.executeshell("lxc-create -t download --name " + self.name +
-	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)
+    #result = self.executeshell("lxc-create -t download --name " + self.name +
+    #	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)
+    # in case that https://jenkins.linuxcontainers.org/ is down and -t download does not work
+    result = self.executeshell("lxc-create --name " + self.name + 
+	" -t " + lxcdistro + " -- --release=" + lxcrelease + " --arch=" + lxcarch)
     if result:
       lxc.Container.__init__(self, self.name)
       if not os.path.exists(self.LBSHOME_PATH + "ssh/container_rsa"):
