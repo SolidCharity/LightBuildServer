@@ -94,6 +94,8 @@ class Logger:
   def getBuildNumbers(self, username, projectname, packagename, buildtarget):
     LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + buildtarget
     result={}
+    if not os.path.exists(LogPath):
+      return result
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
         number=int(file[6:-4])
