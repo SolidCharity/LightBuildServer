@@ -8,7 +8,7 @@ function timedRefresh(timeoutPeriod) {
 </head>
 <body onload="JavaScript:timedRefresh({{timeoutInSeconds}}*1000);">
 	<h2>Build Result</h2>
-	<pre>
+	<pre style="white-space:pre-wrap;">
 {{buildresult}}
 	</pre>
 	<a href="/">back to main page</a>	
