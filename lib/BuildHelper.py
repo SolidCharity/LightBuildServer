@@ -49,9 +49,8 @@ class BuildHelper:
     if os.path.isfile(file):
       stream = open(file, 'r')
       config = yaml.load(stream)
-      url = config['lbs']['source']['download']
-      print (url)
-      self.run("mkdir sources; cd sources; wget " + url);
+      for url in config['lbs']['source']['download']:
+        self.run("mkdir -p sources; cd sources; wget -O `basename " + url + "` " + url);
 
   def InstallRequiredPackages(self):
     print("not implemented")
