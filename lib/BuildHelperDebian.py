@@ -43,12 +43,13 @@ class BuildHelperDebian(BuildHelper):
 
     # first install required repos
     configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
-    stream = open(configfile, 'r')
-    config = yaml.load(stream)
-    repos = config['lbs']['debian'][self.container.release]['repos']
-    for repo in repos:
-      self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
-    self.run("apt-get update")
+    if os.path.isfile(configfile):
+      stream = open(configfile, 'r')
+      config = yaml.load(stream)
+      repos = config['lbs']['debian'][self.container.release]['repos']
+      for repo in repos:
+        self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
+      self.run("apt-get update")
 
     # TODO now install required packages
 

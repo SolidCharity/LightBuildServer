@@ -60,11 +60,12 @@ class BuildHelperCentos(BuildHelper):
 
     # first install required repos
     configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
-    stream = open(configfile, 'r')
-    config = yaml.load(stream)
-    repos = config['lbs'][self.dist][str(self.container.release)]['repos']
-    for repo in repos:
-      self.run("cd /etc/yum.repos.d/; wget " + repo);
+    if os.path.isfile(configfile):
+      stream = open(configfile, 'r')
+      config = yaml.load(stream)
+      repos = config['lbs'][self.dist][str(self.container.release)]['repos']
+      for repo in repos:
+        self.run("cd /etc/yum.repos.d/; wget " + repo);
 
     # now install required packages
     specfile=rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"
