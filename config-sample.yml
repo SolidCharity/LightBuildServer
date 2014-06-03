@@ -6,6 +6,7 @@ lbs:
      demo:
        Password: demo
        GitURL: https://github.com/myusername/
+       # GitURL: /home/myuser/lbs/
        EmailToAddress: firstname.lastname@example.org
        Projects:
          # mono will resolve automatically to https://github.com/myusername/lbs-mono

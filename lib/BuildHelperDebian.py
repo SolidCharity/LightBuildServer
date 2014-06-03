@@ -42,7 +42,7 @@ class BuildHelperDebian(BuildHelper):
     rootfs=self.container.getrootfs()
 
     # first install required repos
-    configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
+    configfile=rootfs + "/root/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
@@ -55,12 +55,12 @@ class BuildHelperDebian(BuildHelper):
 
   def BuildPackage(self):
     rootfs=self.container.getrootfs()
-    buildfile="lbs-" + self.projectname + "-master/" + self.packagename + "/debian.build"
+    buildfile="lbs-" + self.projectname + "/" + self.packagename + "/debian.build"
     buildfileWithRoot=rootfs + "/root/" + buildfile
     if os.path.isfile(buildfileWithRoot):
       if not self.run("cd `dirname " + buildfile + "`; ./debian.build"):
         return self.output
 
   def RunTests(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./runtests.sh"):
+    if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
       return self.output

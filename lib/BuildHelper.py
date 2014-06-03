@@ -45,7 +45,7 @@ class BuildHelper:
     # TODO parse config.yml file, download the sources, and untar, move to the right place
     #      or does this depend on the distro?
     rootfs=self.container.getrootfs()
-    file = rootfs + "/root/lbs-" + self.projectname + "-master/" + self.packagename + "/config.yml"
+    file = rootfs + "/root/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
       config = yaml.load(stream)
@@ -60,7 +60,7 @@ class BuildHelper:
 
   def SetupEnvironment(self):
     rootfs=self.container.getrootfs()
-    setupfile="lbs-" + self.projectname + "-master/" + self.packagename + "/setup.sh"
+    setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
     setupfileWithRoot=rootfs + "/root/" + setupfile
     if os.path.isfile(setupfileWithRoot):
       if not self.run("cd `dirname " + setupfile + "`; ./setup.sh"):

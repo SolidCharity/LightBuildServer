@@ -63,7 +63,7 @@ class BuildHelperCentos(BuildHelper):
     rootfs=self.container.getrootfs()
 
     # first install required repos
-    configfile=rootfs + "/root/lbs-" + self.projectname + "-master/config.yml"
+    configfile=rootfs + "/root/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
@@ -72,7 +72,7 @@ class BuildHelperCentos(BuildHelper):
         self.run("cd /etc/yum.repos.d/; wget " + repo);
 
     # now install required packages
-    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"
+    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
     if os.path.isfile(specfile):
       for line in open(specfile):
         if line.startswith("BuildRequires: "):
@@ -93,12 +93,12 @@ class BuildHelperCentos(BuildHelper):
 
   def BuildPackage(self):
     rootfs=self.container.getrootfs()
-    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec"
+    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
     if os.path.isfile(specfile):
-      self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
+      self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
 
       # copy patches, and other files (eg. env.sh for mono-opt)
-      self.run("cp lbs-" + self.projectname + "-master/" + self.packagename + "/* rpmbuild/SOURCES")
+      self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/* rpmbuild/SOURCES")
 
       # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
       self.run("mv sources/* rpmbuild/SOURCES")
@@ -109,5 +109,5 @@ class BuildHelperCentos(BuildHelper):
         return self.output
 
   def RunTests(self):
-    if not self.run("cd lbs-" + self.projectname + "-master/" + self.packagename + " && ./runtests.sh"):
+    if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
       return self.output

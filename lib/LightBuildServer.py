@@ -24,6 +24,8 @@ from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from time import gmtime, strftime
 import yaml
+import os
+import shutil
 
 class LightBuildServer:
   'light build server based on lxc and git'
@@ -46,7 +48,6 @@ class LightBuildServer:
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"));
     self.logger.print(" * Preparing the machine...");
-    lbsproject=self.userconfig['GitURL'] + 'lbs-' + projectname
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # install a mount for the project repo
@@ -61,10 +62,19 @@ class LightBuildServer:
       self.buildHelper.PrepareForBuilding()
 
       # get the sources of the packaging instructions
-      if not self.buildHelper.run("wget -O master.tar.gz " + lbsproject + "/archive/master.tar.gz"):
+      lbsproject=self.userconfig['GitURL'] + 'lbs-' + projectname
+      pathSrc="/var/lib/lbs/src/"+self.username+"/"
+      os.makedirs(pathSrc, exist_ok=True)
+      if os.path.isdir(pathSrc+'lbs-'+projectname):
+        #we want a clean clone
+        shutil.rmtree(pathSrc+'lbs-'+projectname)
+      self.container.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
+      if not os.path.isdir(pathSrc+'lbs-'+projectname):
+        self.logger.print("Problem with cloning the git repo")
         return self.logger.get()
-      if not self.buildHelper.run ("tar xzf master.tar.gz"):
-        return self.logger.get()
+      # copy the repo to the container
+      shutil.copytree(pathSrc+'lbs-'+projectname, self.container.getrootfs() + "/root/lbs-"+projectname)
+
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
       self.buildHelper.SetupEnvironment()
