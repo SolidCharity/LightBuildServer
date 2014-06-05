@@ -37,10 +37,17 @@ class BuildHelperDebian(BuildHelper):
       return self.output
     if not self.run("apt-get -y upgrade"):
       return self.output
-    if not self.run("apt-get -y install ca-certificates"):
+    if not self.run("apt-get -y install build-essential ca-certificates"):
       return self.output
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
+
+  def GetDscFilename(self):
+    rootfs=self.container.getrootfs()
+    for file in os.listdir(rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename):
+      if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
+        return file
+    return self.packagename + ".dsc"
 
   def InstallRequiredPackages(self):
     rootfs=self.container.getrootfs()
@@ -56,7 +63,8 @@ class BuildHelperDebian(BuildHelper):
       self.run("apt-get update")
 
     # now install required packages
-    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc"
+    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    self.run("echo " + dscfile)
     if os.path.isfile(dscfile):
       for line in open(dscfile):
         if line.startswith("Build-Depends: "):
@@ -70,7 +78,7 @@ class BuildHelperDebian(BuildHelper):
 
   def BuildPackage(self):
     rootfs=self.container.getrootfs()
-    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc"
+    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
