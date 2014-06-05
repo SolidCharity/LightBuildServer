@@ -46,8 +46,9 @@ class LightBuildServer:
     return result
 
   def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
-    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"));
-    self.logger.print(" * Preparing the machine...");
+    self.logger.startTimer()
+    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
+    self.logger.print(" * Preparing the machine...")
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # install a mount for the project repo

@@ -35,6 +35,9 @@ class Logger:
     self.buffer = "";
     self.logspath = "/var/www/logs"
 
+  def startTimer(self):
+    self.starttime = time.time()
+
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
       self.buffer += newOutput
