@@ -27,7 +27,6 @@ class BuildHelperDebian(BuildHelper):
 
   def __init__(self, container, pathInsideContainer, projectname, packagename):
     self.dist='debian'
-    self.locale="export LANGUAGE=en_US.UTF-8; export LANG=en_US.UTF-8; export LC_ALL=en_US.UTF-8; "
     BuildHelper.__init__(self, container, pathInsideContainer, projectname, packagename)
 
   def PrepareMachineBeforeStart(self):
@@ -38,10 +37,8 @@ class BuildHelperDebian(BuildHelper):
       return self.output
     if not self.run("apt-get -y upgrade"):
       return self.output
-    if not self.run("apt-get -y install build-essential ca-certificates locales"):
+    if not self.run("apt-get -y install ca-certificates"):
       return self.output
-    # fix problem: Perl warning Setting locale failed
-    self.run(self.locale + " locale-gen en_US.UTF-8")
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
 
@@ -96,13 +93,13 @@ class BuildHelperDebian(BuildHelper):
           self.run("mv sources/" + file + " lbs-" + self.projectname + "/" + self.packagename)
 
       # TODO: build counter for automatically increasing the release number?
-      if not self.run(self.locale + " cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
+      if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
         return self.output
 
       # add result to repo
       self.run("mkdir -p ~/repo/binary")
       self.run("cp lbs-" + self.projectname + "/*.deb repo/binary")
-      if not self.run(self.locale + " cd repo && dpkg-scanpackages binary  /dev/null | gzip -9c > binary/Packages.gz"):
+      if not self.run("cd repo && dpkg-scanpackages binary  /dev/null | gzip -9c > binary/Packages.gz"):
         return self.output
 
   def RunTests(self):

@@ -161,7 +161,7 @@ class LXCContainer(lxc.Container):
       #stdin, stdout, stderr = client.exec_command(command)
       #result = not stdout.channel.recv_exit_status()
       ip = self.getIP()
-      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"LANG=C " + command + " 2>&1\"")
+      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"export LANG=C; " + command + " 2>&1\"")
       if result:
         return True
       # sleep for half a second
