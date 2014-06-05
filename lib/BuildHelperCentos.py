@@ -49,10 +49,10 @@ class BuildHelperCentos(BuildHelper):
     self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
 
   def PrepareForBuilding(self):
-    self.run("yum clean all")
+    #self.run("yum clean all")
     if not self.run("yum -y update"):
       return self.output
-    if not self.run("yum -y install wget tar"):
+    if not self.run("yum -y install tar"):
       return self.output
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.container.release == "5":

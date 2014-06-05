@@ -42,15 +42,16 @@ class BuildHelper:
     print("not implemented")
 
   def DownloadSources(self):
-    # TODO parse config.yml file, download the sources, and untar, move to the right place
-    #      or does this depend on the distro?
+    # parse config.yml file and download the sources
+    # unpacking and moving to the right place depends on the distro
     rootfs=self.container.getrootfs()
     file = rootfs + "/root/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
       config = yaml.load(stream)
       for url in config['lbs']['source']['download']:
-        self.run("mkdir -p sources; cd sources; wget -O `basename " + url + "` " + url);
+        self.container.executeshell("mkdir -p " + rootfs + "/root/sources")
+        self.container.executeshell("wget -O " + rootfs + "/root/sources/`basename " + url + "` " + url)
 
   def InstallRequiredPackages(self):
     print("not implemented")
