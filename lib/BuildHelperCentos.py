@@ -67,9 +67,10 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
-      repos = config['lbs'][self.dist][str(self.container.release)]['repos']
-      for repo in repos:
-        self.run("cd /etc/yum.repos.d/; wget " + repo);
+      if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
+        repos = config['lbs'][self.dist][str(self.container.release)]['repos']
+        for repo in repos:
+          self.run("cd /etc/yum.repos.d/; wget " + repo);
 
     # now install required packages
     specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
