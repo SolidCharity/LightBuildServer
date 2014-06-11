@@ -69,3 +69,6 @@ class BuildHelper:
 
   def RunTests(self):
     print("not implemented")
+
+  def GetRepoInstructions(self, config, buildtarget, username, projectname, packagename):
+    print("not implemented")

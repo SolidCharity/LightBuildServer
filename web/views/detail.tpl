@@ -15,7 +15,9 @@
 					<li><a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget][buildnumber]}}</li>
 					% end	
 				</ul></li>
-				<li>TODO Install instructions</li>
+				<li>Installation instructions:
+				<pre>{{package['repoinstructions'][buildtarget]}}</pre>
+				</li>
 			</ul>
               	% end
 	</ul>

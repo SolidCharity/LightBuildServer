@@ -52,8 +52,8 @@ class LightBuildServer:
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
 
       # install a mount for the project repo
-      self.container.installmount("/root/repo", "/var/www/repos/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
-      self.container.installmount("/root/tarball", "/var/www/tarballs/" + projectname)
+      self.container.installmount("/root/repo", "/var/www/repos/" + self.username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch)
+      self.container.installmount("/root/tarball", "/var/www/tarballs/" + self.username + "/" + projectname)
       
       # prepare container, install packages that the build requires; this is specific to the distro
       self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", projectname, packagename)

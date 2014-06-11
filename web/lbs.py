@@ -7,6 +7,8 @@ import lxc
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from LightBuildServer import LightBuildServer
+from BuildHelper import BuildHelper
+from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
 from threading import Thread
 import yaml
@@ -96,8 +98,11 @@ class LightBuildServerWeb:
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/build/" + projectname + "/" + packagename
         package["logs"] = {}
+        package["repoinstructions"] = {}
         for buildtarget in package['Distros']:
           package["logs"][buildtarget] = self.logger.getBuildNumbers(username, projectname, packagename, buildtarget)
+          buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", "", "")
+          package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, buildtarget, username, projectname, packagename)
         return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
 
     def logs(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
