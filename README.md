@@ -3,6 +3,8 @@ LightBuildServer
 
 LightBuildServer for building rpm and deb packages, using linux containers
 
+LightBuildServer is developed as Open Source software under the LGPL v2.1 or later.
+
 This is still work in progress!
 
 Goals
