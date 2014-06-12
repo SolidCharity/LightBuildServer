@@ -11,12 +11,12 @@
 	</div>
 	<h2>Projects</h2>
 	<ul>
-             % for project in projects:
+             % for project in sorted(projects):
 		<li>Project {{project}}
                 <ul>
-                   % for package in projects[project]:
+                   % for package in sorted(projects[project]):
                         <li><a href="{{projects[project][package]['detailurl']}}">Package {{package}}</a>: Build on: 
-                        % for buildtarget in projects[project][package]['Distros']:
+                        % for buildtarget in sorted(projects[project][package]['Distros']):
                              <a href="{{projects[project][package]['buildurl']}}/{{buildtarget}}">{{buildtarget}}</a> 
                         % end
                         </li>
@@ -27,7 +27,7 @@
 	</ul>
         <h2>Build Machines</h2>
         <ul>
-            % for buildmachine in buildmachines:
+            % for buildmachine in sorted(buildmachines):
               <li>Container {{buildmachine}}: {{buildmachines[buildmachine]}} <br/>
 		&nbsp; &nbsp; Action: <ul>
 			<li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>

@@ -5,7 +5,7 @@
 	<h2>Details for {{username}}:{{projectname}}:{{packagename}}</h2>
 	<ul>
 		<li><a href="{{package['giturl']}}" target="_blank">Project sources</a></li>
-		% for buildtarget in package['Distros']:
+		% for buildtarget in sorted(package['Distros']):
 			<h4>{{buildtarget}}</h4>
 			<ul>
                 		<li><a href="{{package['buildurl']}}/{{buildtarget}}">Trigger build</a></li>

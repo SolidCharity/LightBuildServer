@@ -104,7 +104,7 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
-        return template('list', projects = self.config['lbs']['Users'][user]['Projects'], buildmachines=buildmachines, username=username)
+        return template('list', projects = userconfig['Projects'], buildmachines=buildmachines, username=username)
 
     def detail(self, username, projectname, packagename):
         user=self.config['lbs']['Users'][username]
