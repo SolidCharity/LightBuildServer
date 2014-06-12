@@ -101,8 +101,8 @@ class LightBuildServerWeb:
         package["repoinstructions"] = {}
         for buildtarget in package['Distros']:
           package["logs"][buildtarget] = self.logger.getBuildNumbers(username, projectname, packagename, buildtarget)
-          buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", "", "")
-          package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, buildtarget, username, projectname, packagename)
+          buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
+          package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, buildtarget)
         return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
 
     def logs(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):

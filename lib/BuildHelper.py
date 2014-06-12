@@ -24,9 +24,10 @@ import os.path
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
-  def __init__(self, container, pathInsideContainer, projectname, packagename):
+  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     self.container = container
     self.pathInsideContainer = pathInsideContainer
+    self.username = username
     self.projectname = projectname
     self.packagename = packagename
 
@@ -70,5 +71,5 @@ class BuildHelper:
   def RunTests(self):
     print("not implemented")
 
-  def GetRepoInstructions(self, config, buildtarget, username, projectname, packagename):
+  def GetRepoInstructions(self, config, buildtarget):
     print("not implemented")

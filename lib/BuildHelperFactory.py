@@ -26,10 +26,10 @@ from BuildHelperFedora import BuildHelperFedora
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
 
-  def GetBuildHelper(distro, container, pathInsideContainer, projectname, packagename):
+  def GetBuildHelper(distro, container, pathInsideContainer, username, projectname, packagename):
     if distro == "debian":
-      return BuildHelperDebian(container, pathInsideContainer, projectname, packagename)
+      return BuildHelperDebian(container, pathInsideContainer, username, projectname, packagename)
     if distro == "centos":
-      return BuildHelperCentos(container, pathInsideContainer, projectname, packagename)
+      return BuildHelperCentos(container, pathInsideContainer, username, projectname, packagename)
     if distro == "fedora":
-      return BuildHelperFedora(container, pathInsideContainer, projectname, packagename)
+      return BuildHelperFedora(container, pathInsideContainer, username, projectname, packagename)

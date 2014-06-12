@@ -25,9 +25,9 @@ import yaml
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
-  def __init__(self, container, pathInsideContainer, projectname, packagename):
+  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     self.dist='centos'
-    BuildHelper.__init__(self, container, pathInsideContainer, projectname, packagename)
+    BuildHelper.__init__(self, container, pathInsideContainer, username, projectname, packagename)
 
   def PrepareMachineBeforeStart(self):
     rootfs=self.container.getrootfs()

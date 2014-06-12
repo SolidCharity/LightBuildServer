@@ -25,9 +25,9 @@ import yaml
 class BuildHelperDebian(BuildHelper):
   'build packages for Debian'
 
-  def __init__(self, container, pathInsideContainer, projectname, packagename):
+  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     self.dist='debian'
-    BuildHelper.__init__(self, container, pathInsideContainer, projectname, packagename)
+    BuildHelper.__init__(self, container, pathInsideContainer, username, projectname, packagename)
 
   def PrepareMachineBeforeStart(self):
     print("not implemented")
@@ -43,8 +43,8 @@ class BuildHelperDebian(BuildHelper):
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
 
   def GetDscFilename(self):
-    rootfs=self.container.getrootfs()
-    for file in os.listdir(rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename):
+    pathSrc="/var/lib/lbs/src/"+self.username
+    for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
       if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
         return file
     return self.packagename + ".dsc"
@@ -106,18 +106,19 @@ class BuildHelperDebian(BuildHelper):
         return self.output
 
       # add result to repo
-      self.run("mkdir -p ~/repo/binary")
-      self.run("cp lbs-" + self.projectname + "/*.deb repo/binary")
-      if not self.run("cd repo && dpkg-scanpackages binary  /dev/null | gzip -9c > binary/Packages.gz"):
+      self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
+      self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
+      if not self.run("cd repo && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"):
         return self.output
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
       return self.output
 
-  def GetRepoInstructions(self, config, buildtarget, username, projectname, packagename):
+  def GetRepoInstructions(self, config, buildtarget):
     buildtarget = buildtarget.split("/")
-    result = "echo 'deb " + config["lbs"]["LBSUrl"] + "/repos/" + username + "/" + projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
+    result = "echo 'deb " + config["lbs"]["LBSUrl"] + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
-    result += "apt-get install " + packagename
+    # packagename: name of dsc file, without .dsc at the end
+    result += "apt-get install " + self.GetDscFilename()[:-4]
     return result
