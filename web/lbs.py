@@ -72,6 +72,17 @@ class LightBuildServerWeb:
           self.buildqueue.append((username, projectname, packagename, lxcdistro, lxcrelease, lxcarch))
         bottle.redirect("/livelog/"+username+"/"+projectname+"/"+packagename+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
 
+    def triggerbuildwithpwd(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, username, password):
+      if self.check_login(username, password):
+        lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+        if not lbsName in self.lbsList:
+          self.ToBuild.append(lbsName)
+          self.buildqueue.append((username, projectname, packagename, lxcdistro, lxcrelease, lxcarch))
+          return template("<p>Build for {{lbsName}} has been triggered.</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
+        else:
+          return template("<p>{{lbsName}} is already in the build queue.</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
+      return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
+
     def buildqueuethread(self):
       while True:
         if len(self.buildqueue) > 0:
@@ -179,6 +190,7 @@ bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
+bottle.route('/triggerbuildwithpwd/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)
