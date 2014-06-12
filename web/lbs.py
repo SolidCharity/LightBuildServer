@@ -2,6 +2,7 @@
 import sys
 import bottle
 import os
+import time
 from bottle import route, run, template, static_file, request, response
 import lxc
 import socket
@@ -12,6 +13,7 @@ from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
 from threading import Thread
 import yaml
+from collections import deque
 
 class LightBuildServerWeb:
     def __init__(self):
@@ -19,6 +21,10 @@ class LightBuildServerWeb:
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
         self.lbsList = {}
+        self.buildqueue = deque()
+        self.ToBuild = deque()
+        thread = Thread(target = self.buildqueuethread, args=())
+        thread.start()
 
     def check_login(self, username, password):
         if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
@@ -54,37 +60,64 @@ class LightBuildServerWeb:
         # TODO calculate dependancies between packages inside the project, and build in correct order
         return self.list();
 
-    def build(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+    def triggerbuild(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
         response.set_header('Cache-Control', 'no-cache')
         username = request.get_cookie("account", secret='some-secret-key')
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
         lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-        if lbsName in self.lbsList:
-          lbs = self.lbsList[lbsName]
-        else:
+        if not lbsName in self.lbsList:
+          self.ToBuild.append(lbsName)
+          self.buildqueue.append((username, projectname, packagename, lxcdistro, lxcrelease, lxcarch))
+        bottle.redirect("/livelog/"+username+"/"+projectname+"/"+packagename+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+
+    def buildqueuethread(self):
+      while True:
+        if len(self.buildqueue) > 0:
+          # peek at the leftmost item
+          item = self.buildqueue[0]
+          username = item[0]
+          projectname = item[1]
+          packagename = item[2]
+          lxcdistro = item[3]
+          lxcrelease = item[4]
+          lxcarch = item[5]
+          lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
           lbs=LightBuildServer(Logger())
           # get name of available slot
-          buildmachine=lbs.GetAvailableBuildMachine()
-          if buildmachine == None:
-            # TODO put jobs into a queue
-            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10)
-          else:
+          buildmachine=lbs.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+          if not buildmachine == None:
             self.lbsList[lbsName] = lbs
             thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
             thread.start()
+            self.ToBuild.remove(lbsName)
+            self.buildqueue.remove(item)
+        # sleep two seconds before looping through buildqueue again
+        time.sleep(2)
+
+    def livelog(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        response.set_header('Cache-Control', 'no-cache')
+
+        lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+        if lbsName in self.lbsList:
+          lbs = self.lbsList[lbsName]
+        else:
+          if lbsName in self.ToBuild: 
+            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename)
+          else:
+            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename)
 
         if lbs.finished:
           output = lbs.logger.get()
-          # TODO stop refreshing
-          timeout=600000
+          # stop refreshing
+          timeout=-1
           self.lbsList[lbsName] = None
         else:
           output = lbs.logger.get(4000)
           timeout = 2
 
-        return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename)
 
     def list(self):
       response.set_header('Cache-Control', 'no-cache')
@@ -103,7 +136,7 @@ class LightBuildServerWeb:
           projectconfig=userconfig['Projects'][project]
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
-            projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
+            projectconfig[package]["buildurl"] = "/triggerbuild/" + project + "/" + package
         return template('list', projects = userconfig['Projects'], buildmachines=buildmachines, username=username)
 
     def detail(self, username, projectname, packagename):
@@ -111,7 +144,7 @@ class LightBuildServerWeb:
         project=user['Projects'][projectname]
         package=project[packagename]
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
-        package["buildurl"] = "/build/" + projectname + "/" + packagename
+        package["buildurl"] = "/triggerbuild/" + projectname + "/" + packagename
         package["logs"] = {}
         package["repoinstructions"] = {}
         for buildtarget in package['Distros']:
@@ -145,7 +178,8 @@ bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
-bottle.route('/build/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.build)
+bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
+bottle.route('/livelog/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)
 bottle.route('/list')(myApp.list)

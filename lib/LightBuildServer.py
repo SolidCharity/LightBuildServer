@@ -45,7 +45,7 @@ class LightBuildServer:
     result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
     return result
 
-  def GetAvailableBuildMachine(self):
+  def GetAvailableBuildMachine(self, buildjob):
     for buildmachine in self.config['lbs']['Machines']:
       if not os.path.exists(self.MachineAvailabilityPath + "/" + buildmachine):
         # init the machine
@@ -53,7 +53,8 @@ class LightBuildServer:
         open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
       if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
         os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/available")
-        open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a').close()
+        with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a') as f:
+          f.write(buildjob)
         return buildmachine
     return None
 
@@ -65,7 +66,9 @@ class LightBuildServer:
 
   def GetBuildMachineState(self, buildmachine):
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
-      return "building"
+      with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", "r") as f:
+        buildjob = f.read()
+      return ("building", buildjob)
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
       return "available"
     return "undefined"

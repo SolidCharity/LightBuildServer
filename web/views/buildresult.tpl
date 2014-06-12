@@ -2,7 +2,9 @@
 <head><title>Build Result</title>
 <script type="text/JavaScript">
 function timedRefresh(timeoutPeriod) {
-	setTimeout("location.reload(true);",timeoutPeriod);
+        if (timeoutPeriod > 0) {
+		setTimeout("location.reload(true);",timeoutPeriod);
+	}
 }
 </script>
 </head>
@@ -11,6 +13,6 @@ function timedRefresh(timeoutPeriod) {
 	<pre style="white-space:pre-wrap;">
 {{buildresult}}
 	</pre>
-	<a href="/">back to main page</a>	
+	<a href="/detail/{{username}}/{{projectname}}/{{packagename}}">back to package page</a>
 </body>
 </html>
