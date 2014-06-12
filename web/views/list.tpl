@@ -17,5 +17,16 @@
 		</li>
              % end
 	</ul>
+        <h2>Build Machines</h2>
+        <ul>
+            % for buildmachine in buildmachines:
+              <li>Container {{buildmachine}}: {{buildmachines[buildmachine]}} <br/>
+		&nbsp; &nbsp; Action: <ul>
+			<li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
+		</ul>
+                <br/>
+              </li>
+           % end
+        </ul>
 </body>
 </html>

@@ -18,8 +18,7 @@ class LightBuildServerWeb:
         configfile="../config.yml"
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
-        self.lbs = None
-        self.logger = Logger()
+        self.lbsList = {}
 
     def check_login(self, username, password):
         if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
@@ -56,31 +55,44 @@ class LightBuildServerWeb:
         return self.list();
 
     def build(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        response.set_header('Cache-Control', 'no-cache')
         username = request.get_cookie("account", secret='some-secret-key')
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
-        # TODO get name of available slot
-        buildmachine='mybuild01.lbs.solidcharity.com'
-        staticIP='10.0.3.2'
+        lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+        if lbsName in self.lbsList:
+          lbs = self.lbsList[lbsName]
+        else:
+          lbs=LightBuildServer(Logger())
+          # get name of available slot
+          buildmachine=lbs.GetAvailableBuildMachine()
+          if buildmachine == None:
+            # TODO put jobs into a queue
+            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10)
+          else:
+            self.lbsList[lbsName] = lbs
+            thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
+            thread.start()
 
-        if not self.lbs:
-          self.lbs=LightBuildServer(self.logger, username)
-          thread = Thread(target = self.lbs.buildpackage, args = (projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP))
-          thread.start()
-
-        if self.lbs.finished:
-          output = self.lbs.logger.get()
+        if lbs.finished:
+          output = lbs.logger.get()
           # TODO stop refreshing
           timeout=600000
-          self.lbs = None
+          self.lbsList[lbsName] = None
         else:
-          output = self.lbs.logger.get(4000)
+          output = lbs.logger.get(4000)
           timeout = 2
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout)
 
     def list(self):
+      response.set_header('Cache-Control', 'no-cache')
+      buildmachines={}
+      lbs = LightBuildServer(Logger())
+      for buildmachine in self.config['lbs']['Machines']:
+        buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
+
       # TODO support several users ???
       for user in self.config['lbs']['Users']:
         userconfig=self.config['lbs']['Users'][user]
@@ -89,7 +101,7 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
-        return template('list', projects = self.config['lbs']['Users'][user]['Projects'])
+        return template('list', projects = self.config['lbs']['Users'][user]['Projects'], buildmachines=buildmachines)
 
     def detail(self, username, projectname, packagename):
         user=self.config['lbs']['Users'][username]
@@ -100,13 +112,13 @@ class LightBuildServerWeb:
         package["logs"] = {}
         package["repoinstructions"] = {}
         for buildtarget in package['Distros']:
-          package["logs"][buildtarget] = self.logger.getBuildNumbers(username, projectname, packagename, buildtarget)
+          package["logs"][buildtarget] = Logger().getBuildNumbers(username, projectname, packagename, buildtarget)
           buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
           package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, buildtarget)
         return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
 
     def logs(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
-      content = self.logger.getLog(username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber)
+      content = Logger().getLog(username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber)
       return template('buildresult', buildresult=content, timeoutInSeconds=4000)
 
     def repo(self, filepath):
@@ -114,6 +126,16 @@ class LightBuildServerWeb:
 
     def tarball(self, filepath):
       return static_file(filepath, root='/var/www/tarballs')
+
+    def manageBuildMachines(self, action, buildmachine):
+      response.set_header('Cache-Control', 'no-cache')
+      # TODO: need admin status to manage machines?
+      username = request.get_cookie("account", secret='some-secret-key')
+      if not username:
+        return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+      if action == "reset":
+        LightBuildServer(Logger()).ReleaseMachine(buildmachine)
+      return template("<p>The machine {{buildmachine}} should now be available.</p><br/><a href='/'>Back to main page</a>", buildmachine=buildmachine)
 
 myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
@@ -127,5 +149,6 @@ bottle.route('/list')(myApp.list)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
 bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
+bottle.route('/machines/<action>/<buildmachine>')(myApp.manageBuildMachines)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
 bottle.run(host=ipaddress, port=80, debug=False) 

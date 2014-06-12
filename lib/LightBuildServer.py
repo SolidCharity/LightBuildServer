@@ -30,41 +30,67 @@ import shutil
 class LightBuildServer:
   'light build server based on lxc and git'
 
-  def __init__(self, logger, username):
+  def __init__(self, logger):
     self.logger = logger
     self.container = None
     self.finished = False
+    self.MachineAvailabilityPath="/var/lib/lbs/machines"
     configfile="../config.yml"
     stream = open(configfile, 'r')
     self.config = yaml.load(stream)
-    self.username=username
-    self.userconfig = self.config['lbs']['Users'][username]
 
-  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
+  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     self.container = LXCContainer(buildmachine, self.logger)
+    staticIP = self.config['lbs']['Machines'][buildmachine]
     result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
     return result
 
-  def buildpackage(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
+  def GetAvailableBuildMachine(self):
+    for buildmachine in self.config['lbs']['Machines']:
+      if not os.path.exists(self.MachineAvailabilityPath + "/" + buildmachine):
+        # init the machine
+        os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
+        open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
+      if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
+        os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/available")
+        open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a').close()
+        return buildmachine
+    return None
+
+  def ReleaseMachine(self, buildmachine):
+    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
+      LXCContainer(buildmachine, self.logger).stop()
+      os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
+    open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
+
+  def GetBuildMachineState(self, buildmachine):
+    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
+      return "building"
+    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
+      return "available"
+    return "undefined"
+
+  def buildpackage(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+    userconfig = self.config['lbs']['Users'][username]
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
     self.logger.print(" * Preparing the machine...")
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, staticIP):
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
 
       # install a mount for the project repo
-      self.container.installmount("/root/repo", "/var/www/repos/" + self.username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
-      self.container.installmount("/root/tarball", "/var/www/tarballs/" + self.username + "/" + projectname)
+      self.container.installmount("/root/repo", "/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
+      self.container.installmount("/root/tarball", "/var/www/tarballs/" + username + "/" + projectname)
       
       # prepare container, install packages that the build requires; this is specific to the distro
-      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", self.username, projectname, packagename)
+      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
       self.buildHelper.PrepareMachineBeforeStart() 
       if self.container.startmachine():
         self.logger.print("container has been started successfully")
       self.buildHelper.PrepareForBuilding()
 
       # get the sources of the packaging instructions
-      lbsproject=self.userconfig['GitURL'] + 'lbs-' + projectname
-      pathSrc="/var/lib/lbs/src/"+self.username+"/"
+      lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
+      pathSrc="/var/lib/lbs/src/"+username+"/"
       os.makedirs(pathSrc, exist_ok=True)
       if os.path.isdir(pathSrc+'lbs-'+projectname):
         #we want a clean clone
@@ -81,14 +107,15 @@ class LightBuildServer:
       self.buildHelper.SetupEnvironment()
       self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl'])
       # destroy the container
-      self.container.stop();
-      # self.container.destroy();
+      self.container.stop()
+      # self.container.destroy()
+      self.ReleaseMachine(buildmachine)
       self.logger.print("Success!")
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
-    logpath=self.username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+    logpath=username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], logpath)
-    self.logger.email(self.config['lbs']['EmailFromAddress'], self.userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+    self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
     return self.logger.get()
 

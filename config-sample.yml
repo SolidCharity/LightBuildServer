@@ -13,3 +13,7 @@ lbs:
          mono:
            monodevelop-tarball:
              Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]
+   Machines:
+       mybuild01.lbs.example.org: 10.0.3.2
+       mybuild02.lbs.example.org: 10.0.3.3
+
