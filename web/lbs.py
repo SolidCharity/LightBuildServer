@@ -111,7 +111,7 @@ class LightBuildServerWeb:
         response.set_header('Cache-Control', 'no-cache')
 
         lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-        if lbsName in self.lbsList:
+        if lbsName in self.lbsList and not self.lbsList[lbsName] == None:
           lbs = self.lbsList[lbsName]
         else:
           if lbsName in self.ToBuild: 
@@ -166,7 +166,7 @@ class LightBuildServerWeb:
 
     def logs(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
       content = Logger().getLog(username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber)
-      return template('buildresult', buildresult=content, timeoutInSeconds=4000)
+      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename)
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
