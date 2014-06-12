@@ -30,13 +30,13 @@ class Logger:
   'collect all the output'
 
   def __init__(self):
-    self.starttime = time.time()
-    self.output = "";
-    self.buffer = "";
     self.logspath = "/var/www/logs"
+    self.startTimer()
 
   def startTimer(self):
     self.starttime = time.time()
+    self.output = "";
+    self.buffer = "";
 
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
