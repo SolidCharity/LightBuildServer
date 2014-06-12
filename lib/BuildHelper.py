@@ -57,7 +57,7 @@ class BuildHelper:
   def InstallRequiredPackages(self):
     print("not implemented")
 
-  def BuildPackage(self):
+  def BuildPackage(self, LBSUrl):
     print("not implemented")
 
   def SetupEnvironment(self):

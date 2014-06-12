@@ -77,7 +77,7 @@ class BuildHelperDebian(BuildHelper):
           if not self.run("apt-get install -y " + " ".join(packages)):
             return self.output
 
-  def BuildPackage(self):
+  def BuildPackage(self, LBSUrl):
     rootfs=self.container.getrootfs()
     dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):

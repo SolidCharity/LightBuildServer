@@ -26,8 +26,8 @@ import yaml
 class BuildHelperFedora(BuildHelperCentos):
   'build packages for Fedora'
 
-  def __init__(self, container, pathInsideContainer, projectname, packagename):
-    BuildHelperCentos.__init__(self, container, pathInsideContainer, projectname, packagename)
+  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
+    BuildHelperCentos.__init__(self, container, pathInsideContainer, username, projectname, packagename)
     self.dist='fedora'
 
   def PrepareMachineBeforeStart(self):
@@ -50,4 +50,6 @@ class BuildHelperFedora(BuildHelperCentos):
     #not needed for Fedora??? self.container.executeshell("echo \"lxc.mount.entry = tmpfs " + rootfs + "/dev/shm tmpfs defaults 0 0\" >> " + rootfs + "/../config")
     # configure timezone
     self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
+    # yum: keep the cache
+    self.container.executeshell("sed -i 's/^keepcache=0/keepcache=1/g' " + rootfs + "/etc/yum.conf")
 

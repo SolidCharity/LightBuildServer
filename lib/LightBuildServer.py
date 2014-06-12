@@ -79,7 +79,7 @@ class LightBuildServer:
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
       self.buildHelper.SetupEnvironment()
-      self.buildHelper.BuildPackage()
+      self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl'])
       # destroy the container
       self.container.stop();
       # self.container.destroy();
