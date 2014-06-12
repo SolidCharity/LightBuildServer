@@ -48,7 +48,7 @@ class LightBuildServerWeb:
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
         response.delete_cookie("account")
-        return self.list();
+        return template("<p>{{name}}, you are now logged out!</p><br/><a href='/'>Back to main page</a>", name=username);
 
     def buildproject(self, projectname, lxcdistro, lxcrelease, lxcarch):
         # TODO calculate dependancies between packages inside the project, and build in correct order
@@ -93,6 +93,9 @@ class LightBuildServerWeb:
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
 
+      # for displaying the logout link
+      username = request.get_cookie("account", secret='some-secret-key')
+
       # TODO support several users ???
       for user in self.config['lbs']['Users']:
         userconfig=self.config['lbs']['Users'][user]
@@ -101,7 +104,7 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/build/" + project + "/" + package
-        return template('list', projects = self.config['lbs']['Users'][user]['Projects'], buildmachines=buildmachines)
+        return template('list', projects = self.config['lbs']['Users'][user]['Projects'], buildmachines=buildmachines, username=username)
 
     def detail(self, username, projectname, packagename):
         user=self.config['lbs']['Users'][username]

@@ -1,6 +1,14 @@
 <html>
 <head><title>List available projects</title>
 <body>
+	<div style="text-align:center">
+        % if username == None:
+           <a href="/login">Login</a>
+        % end
+        % if not username == None:
+           <a href="/logout">Logout</a>
+        % end
+	</div>
 	<h2>Projects</h2>
 	<ul>
              % for project in projects:
