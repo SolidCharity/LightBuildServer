@@ -68,7 +68,8 @@ class LightBuildServerWeb:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
         lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-        del self.recentlyFinishedLbsList[lbsName] 
+        if lbsName in self.recentlyFinishedLbsList:
+          del self.recentlyFinishedLbsList[lbsName]
         if not lbsName in self.lbsList:
           self.ToBuild.append(lbsName)
           self.buildqueue.append((username, projectname, packagename, lxcdistro, lxcrelease, lxcarch))
