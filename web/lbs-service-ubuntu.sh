@@ -27,8 +27,15 @@ start() {
 
 stop() {
     log_daemon_msg "Stopping LightBuildServer"
-    kill `pgrep -f "python3 ./lbs.py"`
-    status=$?
+    pid=`pgrep -f "python3 ./lbs.py"`
+    if [[ -z $pid ]]
+    then
+      #echo "LightBuildServer is not running"
+      status=1
+    else
+      kill $pid
+      status=$?
+    fi
     log_end_msg $status
 }
 
@@ -39,8 +46,12 @@ case "$1" in
     stop)
         stop
         ;;
+    restart)
+        stop
+        start
+        ;;
     *)
-        echo "Usage: $0 {start|stop}"
+        echo "Usage: $0 {start|stop|restart}"
         exit 1
         ;;
 esac
