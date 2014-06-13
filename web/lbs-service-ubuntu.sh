@@ -1,7 +1,9 @@
 #!/bin/bash
 #
 # description: Starts and stops the LightBuildServer, running with Python pyBottle
-# to install: ln -s /root/lightbuildserver/web/lbs-service-ubuntu.sh /etc/init.d/lbs
+# to install:
+#    ln -s /root/lightbuildserver/web/lbs-service-ubuntu.sh /etc/init.d/lbs
+#    update-rc.d lbs defaults
 #
 ### BEGIN INIT INFO
 # Provides:             lbs
