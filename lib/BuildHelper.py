@@ -60,12 +60,12 @@ class BuildHelper:
   def BuildPackage(self, LBSUrl):
     print("not implemented")
 
-  def SetupEnvironment(self):
+  def SetupEnvironment(self, branchname):
     rootfs=self.container.getrootfs()
     setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
     setupfileWithRoot=rootfs + "/root/" + setupfile
     if os.path.isfile(setupfileWithRoot):
-      if not self.run("cd `dirname " + setupfile + "` && ./setup.sh"):
+      if not self.run("export BRANCH=\"" + branchname + "\"; cd `dirname " + setupfile + "` && ./setup.sh"):
         return False
     return True
 

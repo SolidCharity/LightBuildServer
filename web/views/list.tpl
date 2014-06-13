@@ -15,11 +15,7 @@
 		<li>Project {{project}}
                 <ul>
                    % for package in sorted(projects[project]):
-                        <li><a href="{{projects[project][package]['detailurl']}}">Package {{package}}</a>: Build on: 
-                        % for buildtarget in sorted(projects[project][package]['Distros']):
-                             <a href="{{projects[project][package]['buildurl']}}/{{buildtarget}}">{{buildtarget}}</a> 
-                        % end
-                        </li>
+                        <li><a href="{{projects[project][package]['detailurl']}}">Package {{package}}</a></li>
                    % end
                 </ul>
 		</li>

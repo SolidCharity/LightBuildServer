@@ -73,7 +73,7 @@ class LightBuildServer:
       return "available"
     return "undefined"
 
-  def buildpackage(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def buildpackage(self, username, projectname, packagename, branch, lxcdistro, lxcrelease, lxcarch, buildmachine):
     userconfig = self.config['lbs']['Users'][username]
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
@@ -107,7 +107,7 @@ class LightBuildServer:
 
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
-      if self.buildHelper.SetupEnvironment():
+      if self.buildHelper.SetupEnvironment(branch):
         if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
           self.logger.print("LBSERROR: Problem with building the package")
         else:

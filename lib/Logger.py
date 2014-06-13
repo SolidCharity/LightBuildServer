@@ -97,13 +97,13 @@ class Logger:
       f.write(self.get())
     return buildnumber 
 
-  def getLog(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+  def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
+    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
     with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'r') as content_file:
         return content_file.read() 
 
-  def getBuildNumbers(self, username, projectname, packagename, buildtarget):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + buildtarget
+  def getBuildNumbers(self, username, projectname, packagename, branchname, buildtarget):
+    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
     result={}
     if not os.path.exists(LogPath):
       return result

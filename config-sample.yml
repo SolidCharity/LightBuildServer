@@ -11,8 +11,13 @@ lbs:
        Projects:
          # mono will resolve automatically to https://github.com/myusername/lbs-mono
          mono:
+           monodevelop-opt:
+             Distros: ["centos/6/amd64"]
            monodevelop-tarball:
              Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]
+           monodevelop-nightly:
+             Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
+             Distros: ["fedora/20/amd64"]
    Machines:
        mybuild01.lbs.example.org: 10.0.3.2
        mybuild02.lbs.example.org: 10.0.3.3
