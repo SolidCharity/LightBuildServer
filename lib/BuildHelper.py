@@ -65,8 +65,9 @@ class BuildHelper:
     setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
     setupfileWithRoot=rootfs + "/root/" + setupfile
     if os.path.isfile(setupfileWithRoot):
-      if not self.run("cd `dirname " + setupfile + "`; ./setup.sh"):
-        return self.output
+      if not self.run("cd `dirname " + setupfile + "` && ./setup.sh"):
+        return False
+    return True
 
   def RunTests(self):
     print("not implemented")

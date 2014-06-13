@@ -35,8 +35,9 @@ class Logger:
 
   def startTimer(self):
     self.starttime = time.time()
-    self.output = "";
-    self.buffer = "";
+    self.output = ""
+    self.buffer = ""
+    self.error = False
 
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
@@ -48,9 +49,14 @@ class Logger:
       if newOutput[-1:] != "\n":
         newOutput += "\n"
       timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
+      if "LBSERROR" in newOutput:
+        self.error = True
       self.output += timeprefix + newOutput
       sys.stdout.write(timeprefix + newOutput)
       sys.stdout.flush()
+
+  def hasLBSERROR(self):
+    return self.error
 
   def get(self, limit=None):
     if limit is None:
@@ -59,6 +65,8 @@ class Logger:
 
   def email(self, fromAddress, toAddress, subject, logurl):
     SERVER = "localhost"
+    if self.hasLBSERROR():
+      subject = "[ERROR] " + subject
     msg = MIMEMultipart()
     msg['From'] = fromAddress
     msg['To'] = toAddress

@@ -103,13 +103,14 @@ class BuildHelperDebian(BuildHelper):
 
       # TODO: build counter for automatically increasing the release number?
       if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
-        return self.output
+        return False
 
       # add result to repo
       self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
       self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
       if not self.run("cd repo && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"):
-        return self.output
+        return False
+    return True
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):

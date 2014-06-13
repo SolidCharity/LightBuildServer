@@ -107,13 +107,17 @@ class LightBuildServer:
 
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
-      self.buildHelper.SetupEnvironment()
-      self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl'])
+      if self.buildHelper.SetupEnvironment():
+        if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
+          self.logger.print("LBSERROR: Problem with building the package")
+        else:
+          self.logger.print("Success!")
+      else:
+        self.logger.print("LBSERROR: Setup script did not succeed")
       # destroy the container
       self.container.stop()
       # self.container.destroy()
       self.ReleaseMachine(buildmachine)
-      self.logger.print("Success!")
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True

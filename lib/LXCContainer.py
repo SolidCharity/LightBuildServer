@@ -51,8 +51,10 @@ class LXCContainer(lxc.Container):
     #for line in iter(child.stdout.readline,''):
     while True:
       line=child.stdout.readline()
-      if ((len(line) == 0) and processFinished) or ("LBSScriptFinished" in line):
-        if not processFinished and ("LBSScriptFinished" in line):
+      if "LBSERROR" in line:
+        self.logger.print(line)
+      if ((len(line) == 0) and processFinished) or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
+        if not processFinished and ("LBSScriptFinished" in line or "LBSERROR" in line):
           returncode = child.poll()
           if returncode is None:
             returncode = 0
@@ -168,6 +170,8 @@ class LXCContainer(lxc.Container):
       ip = self.getIP()
       result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"export LANG=C; " + command + " 2>&1\"")
       if result:
+        if self.logger.hasLBSERROR():
+          return False
         return True
       # sleep for half a second
       time.sleep(0.5)

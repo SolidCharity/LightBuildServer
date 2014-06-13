@@ -120,7 +120,7 @@ class BuildHelperCentos(BuildHelper):
       # TODO: build counter for automatically increasing the release number?
       self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
-        return self.output
+        return False
 
       # add result to repo
       self.run("mkdir -p ~/repo/src")
@@ -134,8 +134,9 @@ class BuildHelperCentos(BuildHelper):
       with open(rootfs + "/root/lbs-"+self.username + "-"+self.projectname +".repo", 'w') as f:
         f.write(repoFileContent)
       if not self.run("cd repo && createrepo ."):
-        return self.output
+        return False
       self.run("cp /root/lbs-"+self.username + "-"+self.projectname +".repo repo")
+    return True
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
