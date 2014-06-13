@@ -21,10 +21,12 @@
 import sys
 import time
 import smtplib
+from smtplib import SMTP_SSL
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from collections import OrderedDict
+import yaml
 
 class Logger:
   'collect all the output'
@@ -32,6 +34,13 @@ class Logger:
   def __init__(self):
     self.logspath = "/var/www/logs"
     self.startTimer()
+    configfile="../config.yml"
+    stream = open(configfile, 'r')
+    config = yaml.load(stream)
+    self.emailserver = config['lbs']['EmailServer']
+    self.emailport = config['lbs']['EmailPort']
+    self.emailuser = config['lbs']['EmailUser']
+    self.emailpassword = config['lbs']['EmailPassword']
 
   def startTimer(self):
     self.starttime = time.time()
@@ -64,20 +73,21 @@ class Logger:
     return self.output[-1*limit:]
 
   def email(self, fromAddress, toAddress, subject, logurl):
-    SERVER = "localhost"
     if self.hasLBSERROR():
       subject = "ERROR " + subject
-    msg = MIMEMultipart()
+    link="For details, see " + logurl + "\n"
+    msg = MIMEText((link+self.get(4000)).encode('utf-8'), 'plain','utf-8')
     msg['From'] = fromAddress
     msg['To'] = toAddress
     msg['Subject'] = subject
-    link="For details, see " + logurl + "\n"
-    msg.attach(MIMEText((link+self.get(4000)).encode('utf-8'), 'plain','utf-8'))
     # Send the mail
-    server = smtplib.SMTP(SERVER)
+    server = smtplib.SMTP_SSL(host=self.emailserver, port=self.emailport, timeout=10)
     TO = [toAddress] # must be a list
-    server.sendmail(fromAddress, TO, msg.as_string())
-    server.quit()
+    try:
+      server.login(self.emailuser, self.emailpassword)
+      server.sendmail(fromAddress, TO, msg.as_string())
+    finally:
+      server.quit()
 
   def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
      return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch

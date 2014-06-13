@@ -1,5 +1,9 @@
 lbs:
    EmailFromAddress: lbs@example.org
+   EmailServer: smtp.gmail.com
+   EmailPort: 465
+   EmailUser: myuser@gmail.com
+   EmailPassword: secret
    DeleteLogAfterDays: 20
    LBSUrl: http://lbs.example.org
    Users:
