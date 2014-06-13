@@ -21,6 +21,7 @@ class LightBuildServerWeb:
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
         self.lbsList = {}
+        self.recentlyFinishedLbsList = {}
         self.buildqueue = deque()
         self.ToBuild = deque()
         thread = Thread(target = self.buildqueuethread, args=())
@@ -67,6 +68,7 @@ class LightBuildServerWeb:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
 
         lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+        del self.recentlyFinishedLbsList[lbsName] 
         if not lbsName in self.lbsList:
           self.ToBuild.append(lbsName)
           self.buildqueue.append((username, projectname, packagename, lxcdistro, lxcrelease, lxcarch))
@@ -82,6 +84,11 @@ class LightBuildServerWeb:
         else:
           return template("<p>{{lbsName}} is already in the build queue.</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
       return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
+
+    def WaitForBuildJobFinish(self, thread, lbsName):
+      thread.join()
+      self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName] 
+      del self.lbsList[lbsName]
 
     def buildqueuethread(self):
       while True:
@@ -102,6 +109,8 @@ class LightBuildServerWeb:
             self.lbsList[lbsName] = lbs
             thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, buildmachine))
             thread.start()
+            threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
+            threadWait.start()
             self.ToBuild.remove(lbsName)
             self.buildqueue.remove(item)
         # sleep two seconds before looping through buildqueue again
@@ -111,7 +120,9 @@ class LightBuildServerWeb:
         response.set_header('Cache-Control', 'no-cache')
 
         lbsName="lbs-"+username+"-"+projectname+"-"+packagename+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-        if lbsName in self.lbsList and not self.lbsList[lbsName] == None:
+        if lbsName in self.recentlyFinishedLbsList:
+          lbs = self.recentlyFinishedLbsList[lbsName] 
+        elif lbsName in self.lbsList:
           lbs = self.lbsList[lbsName]
         else:
           if lbsName in self.ToBuild: 
@@ -123,7 +134,6 @@ class LightBuildServerWeb:
           output = lbs.logger.get()
           # stop refreshing
           timeout=-1
-          self.lbsList[lbsName] = None
         else:
           output = lbs.logger.get(4000)
           timeout = 2
