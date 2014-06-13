@@ -44,9 +44,10 @@ class BuildHelperDebian(BuildHelper):
 
   def GetDscFilename(self):
     pathSrc="/var/lib/lbs/src/"+self.username
-    for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
-        return file
+    if os.path.isdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+      for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+        if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
+          return file
     return self.packagename + ".dsc"
 
   def InstallRequiredPackages(self):

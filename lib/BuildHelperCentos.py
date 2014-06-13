@@ -64,9 +64,10 @@ class BuildHelperCentos(BuildHelper):
 
   def GetSpecFilename(self):
     pathSrc="/var/lib/lbs/src/"+self.username
-    for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      if file.endswith(".spec") and self.packagename.startswith(file.split('.')[0]):
-        return file
+    if os.path.isdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+      for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+        if file.endswith(".spec") and self.packagename.startswith(file.split('.')[0]):
+          return file
     return self.packagename + ".spec"
 
   def InstallRequiredPackages(self):
