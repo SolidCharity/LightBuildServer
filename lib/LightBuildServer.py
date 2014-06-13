@@ -73,7 +73,7 @@ class LightBuildServer:
       return "available"
     return "undefined"
 
-  def buildpackage(self, username, projectname, packagename, branch, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):
     userconfig = self.config['lbs']['Users'][username]
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
@@ -107,7 +107,7 @@ class LightBuildServer:
 
       self.buildHelper.InstallRequiredPackages()
       self.buildHelper.DownloadSources()
-      if self.buildHelper.SetupEnvironment(branch):
+      if self.buildHelper.SetupEnvironment(branchname):
         if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
           self.logger.print("LBSERROR: Problem with building the package")
         else:
@@ -121,7 +121,7 @@ class LightBuildServer:
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True
-    logpath=username + "/" + projectname + "/" + packagename + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+    logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], logpath)
     self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
     return self.logger.get()

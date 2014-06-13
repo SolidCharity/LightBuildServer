@@ -62,9 +62,12 @@ class LightBuildServerWeb:
         return self.list();
 
     def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-        return "lbs-"+username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+        return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
 
-    def triggerbuild(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+    def triggerbuild(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        return self.triggerbuildwithbranch(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch)
+
+    def triggerbuildwithbranch(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         username = request.get_cookie("account", secret='some-secret-key')
         if not username:
             return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
@@ -77,7 +80,9 @@ class LightBuildServerWeb:
           self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
         bottle.redirect("/livelog/"+username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
 
-    def triggerbuildwithpwd(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, username, password):
+    def triggerbuildwithpwd(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, username, password):
+      return self.triggerbuildwithbranchandpwd(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch, username, password)
+    def triggerbuildwithbranchandpwd(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, username, password):
       if self.check_login(username, password):
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if not lbsName in self.lbsList:
@@ -203,8 +208,10 @@ bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
-bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
-bottle.route('/triggerbuildwithpwd/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithpwd)
+bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
+bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
+bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithpwd)
+bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithbranchandpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)

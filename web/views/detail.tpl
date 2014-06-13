@@ -18,7 +18,7 @@
 				<li><a href="/livelog/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}">view current build</a></li>
 				<li>Build history and logs:<ul>
 					% for buildnumber in package['logs'][buildtarget+"-"+branchname]:
-					<li><a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget][buildnumber]}}</li>
+					<li><a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget+"-"+branchname][buildnumber]}}</li>
 					% end	
 				</ul></li>
 				<li>Installation instructions:

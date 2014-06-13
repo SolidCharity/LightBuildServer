@@ -79,8 +79,11 @@ class Logger:
     server.sendmail(fromAddress, TO, msg.as_string())
     server.quit()
 
-  def store(self, DeleteLogAfterDays, LogPath):
-    LogPath = self.logspath + "/" + LogPath
+  def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+     return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+
+  def store(self, DeleteLogAfterDays, logpath):
+    LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
       os.makedirs( LogPath )
     buildnumber=0
@@ -98,7 +101,7 @@ class Logger:
     return buildnumber 
 
   def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+    LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
     with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'r') as content_file:
         return content_file.read() 
 
