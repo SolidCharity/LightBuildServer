@@ -57,7 +57,7 @@ class BuildHelper:
         self.container.executeshell("wget -O " + rootfs + "/root/sources/`basename " + url + "` " + url)
     return True
 
-  def InstallRequiredPackages(self):
+  def InstallRequiredPackages(self, config):
     print("not implemented")
     return True
 

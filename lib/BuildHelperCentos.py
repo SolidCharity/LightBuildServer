@@ -72,7 +72,7 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
-  def InstallRequiredPackages(self):
+  def InstallRequiredPackages(self, config):
     rootfs=self.container.getrootfs()
 
     # first install required repos
@@ -83,7 +83,12 @@ class BuildHelperCentos(BuildHelper):
       if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
         repos = config['lbs'][self.dist][str(self.container.release)]['repos']
         for repo in repos:
-          self.container.executeshell("cd " + rootfs + "/etc/yum.repos.d/; wget " + repo);
+          self.container.executeshell("cd " + rootfs + "/etc/yum.repos.d/; wget " + repo)
+
+    # install own repo as well if it exists
+    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
+    if os.path.isfile(repofile):
+      self.container.executeshell("cp " + repofile + " " + rootfs + "/etc/yum.repos.d")
 
     # now install required packages
     specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()

@@ -52,7 +52,7 @@ class BuildHelperDebian(BuildHelper):
           return file
     return self.packagename + ".dsc"
 
-  def InstallRequiredPackages(self):
+  def InstallRequiredPackages(self, config):
     rootfs=self.container.getrootfs()
 
     # first install required repos
@@ -64,7 +64,15 @@ class BuildHelperDebian(BuildHelper):
         repos = config['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
           self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
-        self.run("apt-get update")
+
+    # install own repo as well if it exists
+    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
+    if os.path.isfile(repofile):
+      repopath=config["lbs"]["LBSUrl"] + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
+      self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
+
+    # update the repository information
+    self.run("apt-get update")
 
     # now install required packages
     dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
