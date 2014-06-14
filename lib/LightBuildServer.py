@@ -80,44 +80,48 @@ class LightBuildServer:
     self.logger.print(" * Preparing the machine...")
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
 
-      # install a mount for the project repo
-      self.container.installmount("/root/repo", "/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
-      self.container.installmount("/root/tarball", "/var/www/tarballs/" + username + "/" + projectname)
+      try:
+        # install a mount for the project repo
+        self.container.installmount("/root/repo", "/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
+        self.container.installmount("/root/tarball", "/var/www/tarballs/" + username + "/" + projectname)
       
-      # prepare container, install packages that the build requires; this is specific to the distro
-      self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
-      self.buildHelper.PrepareMachineBeforeStart() 
-      if self.container.startmachine():
-        self.logger.print("container has been started successfully")
-      self.buildHelper.PrepareForBuilding()
+        # prepare container, install packages that the build requires; this is specific to the distro
+        self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
+        self.buildHelper.PrepareMachineBeforeStart() 
+        if self.container.startmachine():
+          self.logger.print("container has been started successfully")
+        if not self.buildHelper.PrepareForBuilding():
+          raise Exception("Problem with PrepareForBuilding")
 
-      # get the sources of the packaging instructions
-      lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
-      pathSrc="/var/lib/lbs/src/"+username+"/"
-      os.makedirs(pathSrc, exist_ok=True)
-      if os.path.isdir(pathSrc+'lbs-'+projectname):
-        #we want a clean clone
-        shutil.rmtree(pathSrc+'lbs-'+projectname)
-      self.container.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
-      if not os.path.isdir(pathSrc+'lbs-'+projectname):
-        self.logger.print("Problem with cloning the git repo")
-        return self.logger.get()
-      # copy the repo to the container
-      shutil.copytree(pathSrc+'lbs-'+projectname, self.container.getrootfs() + "/root/lbs-"+projectname)
+        # get the sources of the packaging instructions
+        lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
+        pathSrc="/var/lib/lbs/src/"+username+"/"
+        os.makedirs(pathSrc, exist_ok=True)
+        if os.path.isdir(pathSrc+'lbs-'+projectname):
+          #we want a clean clone
+          shutil.rmtree(pathSrc+'lbs-'+projectname)
+        self.container.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
+        if not os.path.isdir(pathSrc+'lbs-'+projectname):
+          raise Exception("Problem with cloning the git repo")
+        # copy the repo to the container
+        shutil.copytree(pathSrc+'lbs-'+projectname, self.container.getrootfs() + "/root/lbs-"+projectname)
 
-      self.buildHelper.InstallRequiredPackages()
-      self.buildHelper.DownloadSources()
-      if self.buildHelper.SetupEnvironment(branchname):
+        if not self.buildHelper.InstallRequiredPackages():
+          raise Exception("Problem with InstallRequiredPackages")
+        if not self.buildHelper.DownloadSources():
+          raise Exception("Problem with DownloadSources")
+        if not self.buildHelper.SetupEnvironment(branchname):
+          raise Exception("Setup script did not succeed")
         if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
-          self.logger.print("LBSERROR: Problem with building the package")
-        else:
-          self.logger.print("Success!")
-      else:
-        self.logger.print("LBSERROR: Setup script did not succeed")
-      # destroy the container
-      self.container.stop()
-      # self.container.destroy()
-      self.ReleaseMachine(buildmachine)
+          raise Exception("Problem with building the package")
+        self.logger.print("Success!")
+      except Exception as e:
+        self.logger.print("LBSERROR: "+str(e))
+      finally:  
+        # destroy the container
+        self.container.stop()
+        # self.container.destroy()
+        self.ReleaseMachine(buildmachine)
     else:
       self.logger.print("There is a problem with creating the container!")
     self.finished = True

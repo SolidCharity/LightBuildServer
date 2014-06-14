@@ -34,13 +34,14 @@ class BuildHelperDebian(BuildHelper):
 
   def PrepareForBuilding(self):
     if not self.run("apt-get update"):
-      return self.output
+      return False
     if not self.run("apt-get -y upgrade"):
-      return self.output
+      return False
     if not self.run("apt-get -y install build-essential ca-certificates"):
-      return self.output
+      return False
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
+    return True
 
   def GetDscFilename(self):
     pathSrc="/var/lib/lbs/src/"+self.username
@@ -76,7 +77,8 @@ class BuildHelperDebian(BuildHelper):
               # only use package names, ignore space (>= 9)
               packages.append(word.split()[0])
           if not self.run("apt-get install -y " + " ".join(packages)):
-            return self.output
+            return False
+    return True
 
   def BuildPackage(self, LBSUrl):
     rootfs=self.container.getrootfs()
@@ -94,7 +96,7 @@ class BuildHelperDebian(BuildHelper):
             extractCmd="tar xjf"
           self.run("mkdir tmpSource")
           if not self.run("cd tmpSource && " + extractCmd + " ../sources/" + file):
-            return self.output
+            return False
           for dir in os.listdir(rootfs + "/root/tmpSource"):
             if os.path.isdir(rootfs + "/root/tmpSource/" + dir):
               self.run("mv tmpSource/" + dir + "/* lbs-" + self.projectname + "/" + self.packagename)
@@ -115,7 +117,8 @@ class BuildHelperDebian(BuildHelper):
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
-      return self.output
+      return False
+    return True
 
   def GetRepoInstructions(self, config, buildtarget):
     buildtarget = buildtarget.split("/")

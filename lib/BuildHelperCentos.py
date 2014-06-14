@@ -33,7 +33,7 @@ class BuildHelperCentos(BuildHelper):
     rootfs=self.container.getrootfs()
     # clear the root password, since it is expired anyway, and no ssh access would be possible
     if not self.container.executeshell("chroot " + rootfs + " passwd -d root"):
-      return self.output
+      return False
     # setup a static IP address, to speed up the startup
     networkfile = rootfs+"/etc/sysconfig/network-scripts/ifcfg-eth0"
     self.container.executeshell("sed -i 's/^BOOTPROTO=dhcp/BOOTPROTO=static/g' "+networkfile)
@@ -53,14 +53,15 @@ class BuildHelperCentos(BuildHelper):
   def PrepareForBuilding(self):
     #self.run("yum clean headers dbcache rpmdb")
     if not self.run("yum -y update"):
-      return self.output
+      return False
     if not self.run("yum -y install tar createrepo"):
-      return self.output
+      return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.container.release == "5":
       self.run("mkdir -p /usr/src/redhat; ln -s /usr/src/redhat rpmbuild")
       self.run("yum -y install make")
-    self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}");
+    self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}")
+    return True
 
   def GetSpecFilename(self):
     pathSrc="/var/lib/lbs/src/"+self.username
@@ -104,7 +105,8 @@ class BuildHelperCentos(BuildHelper):
             else:
               ignoreNext=False
           if not self.run("yum -y install rpm-build " + " ".join(packages)):
-            return self.output
+            return False
+    return True
 
   def BuildPackage(self, LBSUrl):
     rootfs=self.container.getrootfs()
@@ -141,7 +143,8 @@ class BuildHelperCentos(BuildHelper):
 
   def RunTests(self):
     if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
-      return self.output
+      return False
+    return True
 
   def GetRepoInstructions(self, config, buildtarget):
     buildtarget = buildtarget.split("/")
