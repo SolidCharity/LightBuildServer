@@ -106,7 +106,7 @@ class LightBuildServer:
         # copy the repo to the container
         shutil.copytree(pathSrc+'lbs-'+projectname, self.container.getrootfs() + "/root/lbs-"+projectname)
 
-        if not self.buildHelper.InstallRequiredPackages():
+        if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
           raise Exception("Problem with InstallRequiredPackages")
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")

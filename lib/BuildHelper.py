@@ -57,7 +57,7 @@ class BuildHelper:
         self.container.executeshell("wget -O " + rootfs + "/root/sources/`basename " + url + "` " + url)
     return True
 
-  def InstallRequiredPackages(self, config):
+  def InstallRequiredPackages(self, LBSUrl):
     print("not implemented")
     return True
 
@@ -78,5 +78,5 @@ class BuildHelper:
     print("not implemented")
     return True
 
-  def GetRepoInstructions(self, config, buildtarget):
+  def GetRepoInstructions(self, LBSUrl, buildtarget):
     return "not implemented"

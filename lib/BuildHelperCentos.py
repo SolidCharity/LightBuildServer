@@ -72,7 +72,7 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
-  def InstallRequiredPackages(self, config):
+  def InstallRequiredPackages(self, LBSUrl):
     rootfs=self.container.getrootfs()
 
     # first install required repos
@@ -152,10 +152,10 @@ class BuildHelperCentos(BuildHelper):
       return False
     return True
 
-  def GetRepoInstructions(self, config, buildtarget):
+  def GetRepoInstructions(self, LBSUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = "cd /etc/yum.repos.d/\n"
-    result += "wget " + config["lbs"]["LBSUrl"] + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
+    result += "wget " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
     result += "apt-get install " + self.GetSpecFilename()[:-5]
     return result
