@@ -123,7 +123,7 @@ class LightBuildServer:
         # self.container.destroy()
         self.ReleaseMachine(buildmachine)
     else:
-      self.logger.print("There is a problem with creating the container!")
+      self.logger.print("LBSERROR: There is a problem with creating the container!")
     self.finished = True
     logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], logpath)

@@ -49,6 +49,7 @@ class BuildHelperCentos(BuildHelper):
     self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
     # yum: keep the cache
     self.container.executeshell("sed -i 's/^keepcache=0/keepcache=1/g' " + rootfs + "/etc/yum.conf")
+    return True
 
   def PrepareForBuilding(self):
     #self.run("yum clean headers dbcache rpmdb")

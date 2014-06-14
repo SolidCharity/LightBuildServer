@@ -38,9 +38,11 @@ class BuildHelper:
 
   def PrepareMachineBeforeStart(self):
     print("not implemented")
+    return True
 
   def PrepareForBuilding(self):
     print("not implemented")
+    return True
 
   def DownloadSources(self):
     # parse config.yml file and download the sources
@@ -53,12 +55,15 @@ class BuildHelper:
       for url in config['lbs']['source']['download']:
         self.container.executeshell("mkdir -p " + rootfs + "/root/sources")
         self.container.executeshell("wget -O " + rootfs + "/root/sources/`basename " + url + "` " + url)
+    return True
 
   def InstallRequiredPackages(self):
     print("not implemented")
+    return True
 
   def BuildPackage(self, LBSUrl):
     print("not implemented")
+    return True
 
   def SetupEnvironment(self, branchname):
     rootfs=self.container.getrootfs()
@@ -71,6 +76,7 @@ class BuildHelper:
 
   def RunTests(self):
     print("not implemented")
+    return True
 
   def GetRepoInstructions(self, config, buildtarget):
-    print("not implemented")
+    return "not implemented"

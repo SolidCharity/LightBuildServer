@@ -31,6 +31,7 @@ class BuildHelperDebian(BuildHelper):
 
   def PrepareMachineBeforeStart(self):
     print("not implemented")
+    return True
 
   def PrepareForBuilding(self):
     if not self.run("apt-get update"):
