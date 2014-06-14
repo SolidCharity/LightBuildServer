@@ -94,7 +94,7 @@ class BuildHelperCentos(BuildHelper):
     specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       for line in open(specfile):
-        if line.startswith("BuildRequires: "):
+        if line.lower().startswith("buildrequires: "):
           if line.count(",") > 0:
             packagesWithVersions=line[len("BuildRequires: "):].split(",")
           else:
