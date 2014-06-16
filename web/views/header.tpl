@@ -28,7 +28,7 @@
             <li {{"class=active" if page == "machines" else ""}}><a href="/machines">Machines</a></li>
             <li><a href="http://www.lightbuildserver.org" target="_blank">About</a></li>
           </ul>
-          % if username == None:
+          % if auth_username == None:
           <form class="navbar-form navbar-right" role="form" action="/do_login" method="POST">
             <div class="form-group">
               <input type="text" placeholder="Username" name="username" class="form-control">
@@ -39,7 +39,7 @@
             <button type="submit" class="btn btn-success">Sign in</button>
           </form>
           % end
-          % if not username == None:
+          % if not auth_username == None:
           <form class="navbar-form navbar-right" role="form" action="/logout">
             <button type="submit" class="btn btn-success">Logout</button>
           </form>

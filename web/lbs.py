@@ -82,6 +82,7 @@ class LightBuildServerWeb:
 
     def triggerbuildwithpwd(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, username, password):
       return self.triggerbuildwithbranchandpwd(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch, username, password)
+
     def triggerbuildwithbranchandpwd(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, username, password):
       if self.check_login(username, password):
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
@@ -126,6 +127,9 @@ class LightBuildServerWeb:
         time.sleep(2)
 
     def livelog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+        # for displaying the logout link
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if lbsName in self.recentlyFinishedLbsList:
           lbs = self.recentlyFinishedLbsList[lbsName] 
@@ -133,9 +137,9 @@ class LightBuildServerWeb:
           lbs = self.lbsList[lbsName]
         else:
           if lbsName in self.ToBuild: 
-            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname)
+            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=username)
           else:
-            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname)
+            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=username)
 
         if lbs.finished:
           output = lbs.logger.get()
@@ -145,22 +149,22 @@ class LightBuildServerWeb:
           output = lbs.logger.get(4000)
           timeout = 2
 
-        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname)
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username)
 
     def listMachines(self):
       # for displaying the logout link
-      username = request.get_cookie("account", secret='some-secret-key')
+      auth_username = request.get_cookie("account", secret='some-secret-key')
 
       buildmachines={}
       lbs = LightBuildServer(Logger())
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
 
-      return template('machines', buildmachines=buildmachines, username=username)
+      return template('machines', buildmachines=buildmachines, auth_username=auth_username)
 
-    def list(self):
+    def listProjects(self):
       # for displaying the logout link
-      username = request.get_cookie("account", secret='some-secret-key')
+      auth_username = request.get_cookie("account", secret='some-secret-key')
 
       # TODO support several users ???
       for user in self.config['lbs']['Users']:
@@ -170,9 +174,12 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/triggerbuild/" + project + "/" + package
-        return template('projects', projects = userconfig['Projects'], username=username)
+        return template('projects', projects = userconfig['Projects'], auth_username=auth_username)
 
     def detail(self, username, projectname, packagename):
+        # for displaying the logout link
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+
         user=self.config['lbs']['Users'][username]
         project=user['Projects'][projectname]
         package=project[packagename]
@@ -188,11 +195,14 @@ class LightBuildServerWeb:
         for buildtarget in package['Distros']:
           buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
           package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config['lbs']['LBSUrl'], buildtarget)
-        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package)
+        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username)
 
     def logs(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
+      # for displaying the logout link
+      auth_username = request.get_cookie("account", secret='some-secret-key')
+
       content = Logger().getLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
-      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname)
+      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username)
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')
@@ -223,8 +233,8 @@ bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>
 bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithbranchandpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
-bottle.route('/')(myApp.list)
-bottle.route('/projects')(myApp.list)
+bottle.route('/')(myApp.listProjects)
+bottle.route('/projects')(myApp.listProjects)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
 bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
