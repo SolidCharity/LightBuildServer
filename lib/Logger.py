@@ -106,6 +106,7 @@ class Logger:
         # delete older logs, depending on DeleteLogAfterDays
         if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
           os.unlink(LogPath + "/" + file)
+    self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
     with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'a') as f:
       f.write(self.get())
     return buildnumber 
