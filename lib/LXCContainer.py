@@ -81,6 +81,11 @@ class LXCContainer(lxc.Container):
         lxcarch = "x86_64"
       result = self.executeshell("lxc-create --name " + self.name + 
          " -t " + lxcdistro + " -- --release=" + lxcrelease + " --arch=" + lxcarch)
+    elif lxcdistro=="fedora":
+      if lxcarch == "amd64":
+        lxcarch = "x86_64"
+      result = self.executeshell("lxc-create --name " + self.name + 
+         " -t " + lxcdistro + " -- --release=" + lxcrelease + " --arch=" + lxcarch)
     else:
       result = self.executeshell("lxc-create -t download --name " + self.name +
     	" -- -d " + lxcdistro + " -r " + lxcrelease + " -a " + lxcarch)
