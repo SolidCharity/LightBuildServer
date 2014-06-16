@@ -1,7 +1,6 @@
-<html>
-<head><title>LightBuildServer: {{username}}:{{projectname}}:{{packagename}} Details</title>
-<body>
-        <a href="/">Home</a>
+% include('header.tpl', title=username+":"+projectname+":"+packagename+" Details", page='package')
+    <div class="container">
+      <div class="row">
 	<h2>Details for {{username}}:{{projectname}}:{{packagename}}</h2>
 	<ul>
 		<li><a href="{{package['giturl']}}" target="_blank">Project sources</a></li>
@@ -32,5 +31,6 @@
 			%end
               	% end
 	</ul>
-</body>
-</html>
+      </div>
+    </div>
+% include('footer.tpl')

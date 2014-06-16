@@ -147,12 +147,18 @@ class LightBuildServerWeb:
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname)
 
-    def list(self):
+    def listMachines(self):
+      # for displaying the logout link
+      username = request.get_cookie("account", secret='some-secret-key')
+
       buildmachines={}
       lbs = LightBuildServer(Logger())
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
 
+      return template('machines', buildmachines=buildmachines, username=username)
+
+    def list(self):
       # for displaying the logout link
       username = request.get_cookie("account", secret='some-secret-key')
 
@@ -164,7 +170,7 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/triggerbuild/" + project + "/" + package
-        return template('list', projects = userconfig['Projects'], buildmachines=buildmachines, username=username)
+        return template('projects', projects = userconfig['Projects'], username=username)
 
     def detail(self, username, projectname, packagename):
         user=self.config['lbs']['Users'][username]
@@ -194,6 +200,9 @@ class LightBuildServerWeb:
     def tarball(self, filepath):
       return static_file(filepath, root='/var/www/tarballs')
 
+    def css(self, filename):
+      return static_file(filename, root=os.path.dirname(os.path.realpath(__file__)) + "/css/")
+
     def manageBuildMachines(self, action, buildmachine):
       # TODO: need admin status to manage machines?
       username = request.get_cookie("account", secret='some-secret-key')
@@ -215,10 +224,12 @@ bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.list)
-bottle.route('/list')(myApp.list)
+bottle.route('/projects')(myApp.list)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
 bottle.route('/repos/<filepath:path>')(myApp.repo)
 bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
+bottle.route('/machines')(myApp.listMachines)
 bottle.route('/machines/<action>/<buildmachine>')(myApp.manageBuildMachines)
+bottle.route('/css/<filename>')(myApp.css)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
 bottle.run(host=ipaddress, port=80, debug=False) 

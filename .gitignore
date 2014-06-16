@@ -1,2 +1,3 @@
 config.yml
 lib/__pycache__/
+web/nohup.out
