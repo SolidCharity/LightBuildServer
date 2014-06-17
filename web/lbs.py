@@ -41,16 +41,19 @@ class LightBuildServerWeb:
         password = request.forms.get('password')
         if self.check_login(username, password):
            response.set_cookie("account", username, secret='some-secret-key')
-           return template("<p>Welcome {{name}}! You are now logged in.</p><br/><a href='/'>Back to main page</a>", name=username)
+           return template("message", title="Welcome", message="Welcome " + username + "! You are now logged in.", redirect="/")
         else:
-           return "<p>Login failed.</p>"
+           return template("message", title="Login failed", message="Login failed. Please try again.", redirect="/login")
+
+    def pleaselogin(self):
+        return template("message", title="Please login", message="You are not logged in. Access denied. Please login!", redirect="/login")
 
     def logout(self):
         username = request.get_cookie("account", secret='some-secret-key')
         if not username:
-            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+            return self.pleaselogin()
         response.delete_cookie("account")
-        return template("<p>{{name}}, you are now logged out!</p><br/><a href='/'>Back to main page</a>", name=username);
+        return template("message", title="Logged out", message=username+" , you are now logged out!", redirect="/")
 
     def buildproject(self, projectname, lxcdistro, lxcrelease, lxcarch):
         # TODO calculate dependancies between packages inside the project, and build in correct order
@@ -65,7 +68,7 @@ class LightBuildServerWeb:
     def triggerbuildwithbranch(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         username = request.get_cookie("account", secret='some-secret-key')
         if not username:
-            return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+            return self.pleaselogin()
 
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if lbsName in self.recentlyFinishedLbsList:
@@ -79,6 +82,7 @@ class LightBuildServerWeb:
       return self.triggerbuildwithbranchandpwd(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch, username, password)
 
     def triggerbuildwithbranchandpwd(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, username, password):
+      # note: we are not using the template message, because this will be processed by scripts usually
       if self.check_login(username, password):
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if not lbsName in self.lbsList:
@@ -207,15 +211,17 @@ class LightBuildServerWeb:
 
     def css(self, filename):
       return static_file(filename, root=os.path.dirname(os.path.realpath(__file__)) + "/css/")
+    def ext(self, filepath):
+      return static_file(filepath, root=os.path.dirname(os.path.realpath(__file__)) + "/ext/")
 
     def manageBuildMachines(self, action, buildmachine):
       # TODO: need admin status to manage machines?
       username = request.get_cookie("account", secret='some-secret-key')
       if not username:
-        return "You are not logged in. Access denied. <br/><a href='/login'>Login</a>"
+        return self.pleaselogin()
       if action == "reset":
         LightBuildServer(Logger()).ReleaseMachine(buildmachine)
-      return template("<p>The machine {{buildmachine}} should now be available.</p><br/><a href='/'>Back to main page</a>", buildmachine=buildmachine)
+      return template("message", title="machine available", message="The machine "+buildmachine+" should now be available.", redirect="/machines")
 
 myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
@@ -236,5 +242,6 @@ bottle.route('/tarballs/<filepath:path>')(myApp.tarball)
 bottle.route('/machines')(myApp.listMachines)
 bottle.route('/machines/<action>/<buildmachine>')(myApp.manageBuildMachines)
 bottle.route('/css/<filename>')(myApp.css)
+bottle.route('/ext/<filepath:path>')(myApp.ext)
 ipaddress=socket.gethostbyname(socket.gethostname()) 
 bottle.run(host=ipaddress, port=80, debug=False) 
