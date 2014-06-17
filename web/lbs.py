@@ -33,13 +33,8 @@ class LightBuildServerWeb:
         return False;
 
     def login(self):
-        return '''
-        <form action="/do_login" method="post">
-            Username: <input name="username" type="text" />
-            Password: <input name="password" type="password" />
-            <input value="Login" type="submit" />
-        </form>
-        '''
+        username = request.get_cookie("account", secret='some-secret-key')
+        return template('login', auth_username=username, title="Login")
 
     def do_login(self):
         username = request.forms.get('username')

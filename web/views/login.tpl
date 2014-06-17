@@ -22,16 +22,15 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li {{"class=active" if page == "projects" else ""}}><a href="/projects">Projects</a></li>
-            % if page=="package":
-              <li class="active"><a href="/detail/{{username}}/{{projectname}}/{{packagename}}">Package {{username}}:{{projectname}}:{{packagename}}</a></li>
-            % end
-            <li {{"class=active" if page == "machines" else ""}}><a href="/machines">Machines</a></li>
-            <li><a href="http://www.lightbuildserver.org" target="_blank">About</a></li>
-          </ul>
           % if auth_username == None:
-          <form class="navbar-form navbar-right" role="form" action="/login">
-            <button type="submit" class="btn-xs btn-success">Login</button>
+          <form class="navbar-form navbar-right" role="form" action="/do_login" method="POST">
+            <div class="form-group">
+              <input type="text" placeholder="Username" name="username" class="form-control">
+            </div>
+            <div class="form-group">
+              <input type="password" placeholder="Password" name="password" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-success">Sign in</button>
           </form>
           % end
           % if not auth_username == None:
@@ -42,3 +41,5 @@
         </div><!--/.navbar-collapse -->
       </div>
     </div>
+</body>
+</html>
