@@ -87,9 +87,12 @@ class LightBuildServer:
       
         # prepare container, install packages that the build requires; this is specific to the distro
         self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
-        self.buildHelper.PrepareMachineBeforeStart() 
+        if not self.buildHelper.PrepareMachineBeforeStart():
+          raise Exception("Problem with PrepareMachineBeforeStart")
         if self.container.startmachine():
           self.logger.print("container has been started successfully")
+        if not self.buildHelper.PrepareMachineAfterStart():
+          raise Exception("Problem with PrepareMachineAfterStart")
         if not self.buildHelper.PrepareForBuilding():
           raise Exception("Problem with PrepareForBuilding")
 

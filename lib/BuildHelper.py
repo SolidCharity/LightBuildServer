@@ -40,6 +40,10 @@ class BuildHelper:
     print("not implemented")
     return True
 
+  def PrepareMachineAfterStart(self):
+    print("not implemented")
+    return True
+
   def PrepareForBuilding(self):
     print("not implemented")
     return True

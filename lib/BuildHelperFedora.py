@@ -52,4 +52,13 @@ class BuildHelperFedora(BuildHelperCentos):
     self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
     # yum: keep the cache
     self.container.executeshell("sed -i 's/^keepcache=0/keepcache=1/g' " + rootfs + "/etc/yum.conf")
+    return True
 
+  def PrepareMachineAfterStart(self):
+    if self.container.release == "rawhide":
+      self.run("yum install -y fedora-release-rawhide yum-utils")
+      self.run("yum-config-manager --disable fedora updates updates-testing")
+      self.run("yum-config-manager --enable rawhide")
+      self.run("yum update -y yum")
+      self.run("yum --releasever=rawhide -y distro-sync --nogpgcheck")
+    return True
