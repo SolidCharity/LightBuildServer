@@ -20,6 +20,7 @@
 #
 
 from BuildHelperDebian import BuildHelperDebian
+from BuildHelperUbuntu import BuildHelperUbuntu
 from BuildHelperCentos import BuildHelperCentos
 from BuildHelperFedora import BuildHelperFedora
 
@@ -29,6 +30,8 @@ class BuildHelperFactory:
   def GetBuildHelper(distro, container, pathInsideContainer, username, projectname, packagename):
     if distro == "debian":
       return BuildHelperDebian(container, pathInsideContainer, username, projectname, packagename)
+    if distro == "ubuntu":
+      return BuildHelperUbuntu(container, pathInsideContainer, username, projectname, packagename)
     if distro == "centos":
       return BuildHelperCentos(container, pathInsideContainer, username, projectname, packagename)
     if distro == "fedora":

@@ -22,6 +22,10 @@ lbs:
            monodevelop-nightly:
              Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
              Distros: ["fedora/20/amd64"]
+         test:
+           test:
+             Distros: ["centos/6/amd64", "debian/wheezy/amd64", "fedora/rawhide/amd64", "ubuntu/trusty/amd64"]
+
    Machines:
        mybuild01.lbs.example.org: 10.0.3.2
        mybuild02.lbs.example.org: 10.0.3.3
