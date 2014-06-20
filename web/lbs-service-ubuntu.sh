@@ -22,7 +22,7 @@
 start() {
     log_daemon_msg "Starting LightBuildServer"
     cd /root/lightbuildserver/web
-    nohup python3 ./lbs.py &
+    nohup python3 ./lbs.py &> /dev/null &
     status=0
     log_end_msg $status
 }
