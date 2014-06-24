@@ -58,7 +58,7 @@ class Logger:
       if newOutput[-1:] != "\n":
         newOutput += "\n"
       timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
-      if ("LBSERROR" in newOutput) or ("RPM build errors:" in newOutput) or ("dpkg-buildpackage: error:" in newOutput) or newOutput.startswith("error: "):
+      if ("LBSERROR" in newOutput) or ("RPM build errors:" in newOutput) or ("dpkg-buildpackage: error:" in newOutput) or newOutput.lower().startswith("error: "):
         self.error = True
       self.output += timeprefix + newOutput
       sys.stdout.write(timeprefix + newOutput)
