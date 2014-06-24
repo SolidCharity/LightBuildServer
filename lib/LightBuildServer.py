@@ -129,7 +129,7 @@ class LightBuildServer:
       self.logger.print("LBSERROR: There is a problem with creating the container!")
     self.finished = True
     logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], logpath)
+    buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
     self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
     return self.logger.get()
 

@@ -92,17 +92,23 @@ class Logger:
   def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
      return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
 
-  def store(self, DeleteLogAfterDays, logpath):
+  def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
       os.makedirs( LogPath )
     buildnumber=0
     MaximumAgeInSeconds=time.time() - (DeleteLogAfterDays*24*60*60)
+    logfiles=[] 
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
+        logfiles.append(file)
         oldnumber=int(file[6:-4])
         if oldnumber >= buildnumber:
           buildnumber = oldnumber + 1
+    logfiles=sorted(logfiles)
+    if len(logfiles) > KeepMinimumLogs:
+      for i in range(1, len(logfiles) - KeepMinimumLogs):
+        file=logfiles[i - 1]
         # delete older logs, depending on DeleteLogAfterDays
         if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
           os.unlink(LogPath + "/" + file)
