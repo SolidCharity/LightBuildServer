@@ -1,18 +1,20 @@
 % include('header.tpl', title='Projects', page='projects')
     <div class="container">
       <div class="row">
-	<h2>Projects</h2>
-	<ul>
-             % for project in sorted(projects):
-		<li>Project {{project}}
-                <ul>
-                   % for package in sorted(projects[project]):
-                        <li><a href="{{projects[project][package]['detailurl']}}">Package {{package}}</a></li>
-                   % end
-                </ul>
-		</li>
-             % end
-	</ul>
+        % for username in sorted(users):
+		<h2>Projects of user {{username}}</h2>
+		<ul>
+	             % for project in sorted(users[username]):
+			<li>Project {{project}}
+                	<ul>
+	                   % for package in sorted(users[username][project]):
+        	                <li><a href="{{users[username][project][package]['detailurl']}}">Package {{package}}</a></li>
+                	   % end
+	                </ul>
+			</li>
+	             % end
+		</ul>
+	% end
       </div>
     </div>
 % include('footer.tpl')

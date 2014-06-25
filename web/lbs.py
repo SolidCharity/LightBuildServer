@@ -165,7 +165,7 @@ class LightBuildServerWeb:
       # for displaying the logout link
       auth_username = request.get_cookie("account", secret='some-secret-key')
 
-      # TODO support several users ???
+      users={}
       for user in self.config['lbs']['Users']:
         userconfig=self.config['lbs']['Users'][user]
         for project in userconfig['Projects']:
@@ -173,7 +173,8 @@ class LightBuildServerWeb:
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/triggerbuild/" + project + "/" + package
-        return template('projects', projects = userconfig['Projects'], auth_username=auth_username)
+        users[user] = userconfig['Projects']
+      return template('projects', users = users, auth_username=auth_username)
 
     def detail(self, username, projectname, packagename):
         # for displaying the logout link
