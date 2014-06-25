@@ -62,13 +62,15 @@ class LightBuildServerWeb:
     def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
 
-    def triggerbuild(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
-        return self.triggerbuildwithbranch(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch)
+    def triggerbuild(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
+        return self.triggerbuildwithbranch(username, projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch)
 
-    def triggerbuildwithbranch(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-        username = request.get_cookie("account", secret='some-secret-key')
-        if not username:
+    def triggerbuildwithbranch(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+        if not auth_username:
             return self.pleaselogin()
+        if not auth_username == username:
+            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/detail/" + username + "/" + projectname + "/" + packagename)
 
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if lbsName in self.recentlyFinishedLbsList:
@@ -78,12 +80,12 @@ class LightBuildServerWeb:
           self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
         bottle.redirect("/livelog/"+username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
 
-    def triggerbuildwithpwd(self, projectname, packagename, lxcdistro, lxcrelease, lxcarch, username, password):
-      return self.triggerbuildwithbranchandpwd(projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch, username, password)
+    def triggerbuildwithpwd(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, auth_username, password):
+      return self.triggerbuildwithbranchandpwd(projectname, username, packagename, "master", lxcdistro, lxcrelease, lxcarch, auth_username, password)
 
-    def triggerbuildwithbranchandpwd(self, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, username, password):
+    def triggerbuildwithbranchandpwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
       # note: we are not using the template message, because this will be processed by scripts usually
-      if self.check_login(username, password):
+      if auth_username == username and self.check_login(auth_username, password):
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if not lbsName in self.lbsList:
           self.ToBuild.append(lbsName)
@@ -172,7 +174,7 @@ class LightBuildServerWeb:
           projectconfig=userconfig['Projects'][project]
           for package in projectconfig:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
-            projectconfig[package]["buildurl"] = "/triggerbuild/" + project + "/" + package
+            projectconfig[package]["buildurl"] = "/triggerbuild/" + user + "/" + project + "/" + package
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username)
 
@@ -184,7 +186,7 @@ class LightBuildServerWeb:
         project=user['Projects'][projectname]
         package=project[packagename]
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
-        package["buildurl"] = "/triggerbuild/" + projectname + "/" + packagename
+        package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
         package["logs"] = {}
         package["repoinstructions"] = {}
         if not "Branches" in package:
@@ -229,10 +231,10 @@ bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
-bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
-bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
-bottle.route('/triggerbuild/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithpwd)
-bottle.route('/triggerbuild/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<username>/<password>')(myApp.triggerbuildwithbranchandpwd)
+bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
+bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
+bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithpwd)
+bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithbranchandpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
 bottle.route('/')(myApp.listProjects)

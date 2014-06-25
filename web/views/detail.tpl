@@ -1,4 +1,4 @@
-% include('header.tpl', title=username+":"+projectname+":"+packagename+" Details", page='package')
+% include('header.tpl', title=username+":"+projectname+":"+packagename+" Details", page='package', username=username)
     <div class="container">
       <div class="row">
 	<h2>Details for {{username}}:{{projectname}}:{{packagename}}</h2>
