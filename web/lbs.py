@@ -53,7 +53,7 @@ class LightBuildServerWeb:
         if not username:
             return self.pleaselogin()
         response.delete_cookie("account")
-        return template("message", title="Logged out", message=username+" , you are now logged out!", redirect="/")
+        return template("message", title="Logged out", message=username+", you are now logged out!", redirect="/")
 
     def buildproject(self, projectname, lxcdistro, lxcrelease, lxcarch):
         # TODO calculate dependancies between packages inside the project, and build in correct order
