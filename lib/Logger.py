@@ -130,11 +130,11 @@ class Logger:
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
         number=int(file[6:-4])
-        result[str(number)] = {}
-        result[str(number)]["timefinished"] = time.ctime( os.path.getmtime(LogPath + "/" + file))
-        result[str(number)]["resultcode"] = "success"
+        result[number] = {}
+        result[number]["timefinished"] = time.ctime( os.path.getmtime(LogPath + "/" + file))
+        result[number]["resultcode"] = "success"
         with open(LogPath + "/" + file, 'r') as f:
           content = f.read()
           if content.find('LBSERROR') >= 0:
-            result[str(number)]["resultcode"] = "failure"
+            result[number]["resultcode"] = "failure"
     return OrderedDict(reversed(sorted(result.items()))) 
