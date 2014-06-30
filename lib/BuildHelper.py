@@ -58,7 +58,7 @@ class BuildHelper:
       config = yaml.load(stream)
       for url in config['lbs']['source']['download']:
         self.container.executeshell("mkdir -p " + rootfs + "/root/sources")
-        self.container.executeshell("wget -O " + rootfs + "/root/sources/`basename " + url + "` " + url)
+        self.container.executeshell("curl " + url + " > " + rootfs + "/root/sources/`basename " + url + "`")
     return True
 
   def InstallRequiredPackages(self, LBSUrl):
