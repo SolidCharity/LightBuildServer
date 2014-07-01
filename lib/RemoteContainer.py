@@ -42,24 +42,30 @@ class RemoteContainer(LXCContainer):
       return False
     result = False
     if lxcdistro == "centos":
-      result = self.executeremote("./scripts/initCentOS.sh " + self.name + " 1 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
     if lxcdistro == "fedora":
-      result = self.executeremote("./scripts/initFedora.sh " + self.name + " 1 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
     if lxcdistro == "debian":
-      result = self.executeremote("./scripts/initDebian.sh " + self.name + " 1 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
     if lxcdistro == "ubuntu":
-      result = self.executeremote("./scripts/initUbuntu.sh " + self.name + " 1 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
     if result == True:
-      result = self.executeremote("./scripts/tunnelssh.sh " + self.name + " 1 ")
+      result = self.executeremote("./scripts/tunnelssh.sh " + self.name + " 10 ")
+    sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
+    if result == True:
+      result = self.executeremote("mkdir -p " + sshpath)
+    if result == True:
+     result = self.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
+    if result == True:
+      result = self.executeremote("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
 
   def startmachine(self):
     if self.executeremote("lxc-start -d -n " + self.name):
+      self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
       # wait until ssh server is running
       result = self.execute('echo "container is running"')
-      if result == True:
-        result = self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.name)
-        return result
+      return result
     return False
 
   def getrootfs(self):
@@ -72,7 +78,7 @@ class RemoteContainer(LXCContainer):
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 19):
-      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o "Port 2001" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1\"")
+      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1\"")
       if result:
         if self.logger.hasLBSERROR():
           return False
