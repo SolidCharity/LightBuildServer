@@ -30,4 +30,6 @@ lbs:
    Machines:
        mybuild01.lbs.example.org: 10.0.3.2
        mybuild02.lbs.example.org: 10.0.3.3
+       # remote machines: IP is resolved through DNS
+       build03.lbs.example.org:
 

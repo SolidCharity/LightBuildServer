@@ -31,6 +31,8 @@ class BuildHelperCentos(BuildHelper):
 
   def PrepareMachineBeforeStart(self):
     rootfs=self.container.getrootfs()
+    if rootfs == "":
+      return True
     # clear the root password, since it is expired anyway, and no ssh access would be possible
     if not self.container.executeshell("chroot " + rootfs + " passwd -d root"):
       return False

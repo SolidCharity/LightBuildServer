@@ -20,6 +20,7 @@
 #
 
 from LXCContainer import LXCContainer
+from RemoteContainer import RemoteContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from time import gmtime, strftime
@@ -40,9 +41,14 @@ class LightBuildServer:
     self.config = yaml.load(stream)
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    self.container = LXCContainer(buildmachine, self.logger)
     staticIP = self.config['lbs']['Machines'][buildmachine]
-    result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
+    if not staticIP == None:
+      self.container = LXCContainer(buildmachine, self.logger)
+      result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
+    else:
+      # create a container on a remote machine
+      self.container = RemoteContainer(buildmachine, self.logger)
+      result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
     return result
 
   def GetAvailableBuildMachine(self, buildjob):
@@ -59,6 +65,7 @@ class LightBuildServer:
     return None
 
   def ReleaseMachine(self, buildmachine):
+    os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       LXCContainer(buildmachine, self.logger).stop()
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
