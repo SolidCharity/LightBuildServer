@@ -188,6 +188,9 @@ class LXCContainer(lxc.Container):
       time.sleep(0.5)
     return False
 
+  def copytree(self, src, dest):
+    shutil.copytree(src, self.container.getrootfs() + dest)
+
   def installmount(self, localpath, hostpath = None):
       containerpath = self.getrootfs() + localpath
       if hostpath is None:

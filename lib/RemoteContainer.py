@@ -62,6 +62,7 @@ class RemoteContainer(LXCContainer):
 
   def startmachine(self):
     if self.executeremote("lxc-start -d -n " + self.name):
+      # TODO also remove the ip address
       self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
       # wait until ssh server is running
       result = self.execute('echo "container is running"')
@@ -86,6 +87,15 @@ class RemoteContainer(LXCContainer):
       # sleep for half a second
       time.sleep(0.5)
     return False
+
+  def stop(self):
+    return self.executeremote("lxc-stop --name " + self.name) 
+
+  def copytree(self, src, dest):
+    # shutil.copytree(src, self.container.getrootfs() + dest)
+    dest = dest[:dest.rindex("/")]
+    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs'+ dest)
+    return result 
 
   def installmount(self, localpath, hostpath = None):
     # not implemented. need to do something for repo and tarballs

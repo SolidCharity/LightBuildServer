@@ -66,8 +66,12 @@ class LightBuildServer:
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
-    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
+    staticIP = self.config['lbs']['Machines'][buildmachine]
+    if not staticIP == None:
       LXCContainer(buildmachine, self.logger).stop()
+    else:
+      RemoteContainer(buildmachine, self.logger).stop()
+    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
     open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
 
@@ -114,7 +118,7 @@ class LightBuildServer:
         if not os.path.isdir(pathSrc+'lbs-'+projectname):
           raise Exception("Problem with cloning the git repo")
         # copy the repo to the container
-        shutil.copytree(pathSrc+'lbs-'+projectname, self.container.getrootfs() + "/root/lbs-"+projectname)
+        self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
 
         if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
           raise Exception("Problem with InstallRequiredPackages")
