@@ -51,14 +51,14 @@ class BuildHelper:
   def DownloadSources(self):
     # parse config.yml file and download the sources
     # unpacking and moving to the right place depends on the distro
-    rootfs=self.container.getrootfs()
-    file = rootfs + "/root/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
+    pathSrc="/var/lib/lbs/src/"+self.username
+    file = pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
       config = yaml.load(stream)
       for url in config['lbs']['source']['download']:
-        self.container.executeshell("mkdir -p " + rootfs + "/root/sources")
-        self.container.executeshell("curl " + url + " > " + rootfs + "/root/sources/`basename " + url + "`")
+        self.run("mkdir -p /root/sources")
+        self.run("curl " + url + " > /root/sources/`basename " + url + "`")
     return True
 
   def InstallRequiredPackages(self, LBSUrl):
@@ -70,10 +70,9 @@ class BuildHelper:
     return True
 
   def SetupEnvironment(self, branchname):
-    rootfs=self.container.getrootfs()
+    pathSrc="/var/lib/lbs/src/"+self.username
     setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
-    setupfileWithRoot=rootfs + "/root/" + setupfile
-    if os.path.isfile(setupfileWithRoot):
+    if os.path.isfile(pathSrc + "/" + setupfile):
       if not self.run("cd `dirname " + setupfile + "` && ./setup.sh \"" + branchname + "\""):
         return False
     return True

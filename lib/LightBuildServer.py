@@ -132,9 +132,6 @@ class LightBuildServer:
       except Exception as e:
         self.logger.print("LBSERROR: "+str(e))
       finally:  
-        # destroy the container
-        self.container.stop()
-        # self.container.destroy()
         self.ReleaseMachine(buildmachine)
     else:
       self.logger.print("LBSERROR: There is a problem with creating the container!")

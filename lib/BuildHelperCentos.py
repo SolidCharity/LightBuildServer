@@ -75,25 +75,24 @@ class BuildHelperCentos(BuildHelper):
     return self.packagename + ".spec"
 
   def InstallRequiredPackages(self, LBSUrl):
-    rootfs=self.container.getrootfs()
-
     # first install required repos
-    configfile=rootfs + "/root/lbs-" + self.projectname + "/config.yml"
+    pathSrc="/var/lib/lbs/src/"+self.username
+    configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
       if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
         repos = config['lbs'][self.dist][str(self.container.release)]['repos']
         for repo in repos:
-          self.container.executeshell("cd " + rootfs + "/etc/yum.repos.d/; wget " + repo)
+          self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
 
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
-      self.container.executeshell("cp " + repofile + " " + rootfs + "/etc/yum.repos.d")
+      self.container.copytree(repofile,"/etc/yum.repos.d/")
 
     # now install required packages
-    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       for line in open(specfile):
         if line.lower().startswith("buildrequires: "):
@@ -117,8 +116,8 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def BuildPackage(self, LBSUrl):
-    rootfs=self.container.getrootfs()
-    specfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    pathSrc="/var/lib/lbs/src/"+self.username
+    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
 
@@ -134,6 +133,9 @@ class BuildHelperCentos(BuildHelper):
         return False
 
       # add result to repo
+      # TODO
+      return True
+
       self.run("mkdir -p ~/repo/src")
       self.run("cp ~/rpmbuild/SRPMS/*.src.rpm ~/repo/src")
       self.run("cp -R ~/rpmbuild/RPMS/* ~/repo")
