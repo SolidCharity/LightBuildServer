@@ -42,13 +42,13 @@ class RemoteContainer(LXCContainer):
       return False
     result = False
     if lxcdistro == "centos":
-      result = self.executeremote("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "fedora":
-      result = self.executeremote("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "debian":
-      result = self.executeremote("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "ubuntu":
-      result = self.executeremote("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch)
+      result = self.executeremote("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if result == True:
       result = self.executeremote("./scripts/tunnelssh.sh " + self.name + " 10 ")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
