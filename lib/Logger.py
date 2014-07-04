@@ -47,6 +47,7 @@ class Logger:
     self.output = ""
     self.buffer = ""
     self.error = False
+    self.lastLine = ""
 
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
@@ -55,6 +56,7 @@ class Logger:
       if len(self.buffer) > 0:
         newOutput = self.buffer + newOutput
         self.buffer = ""
+      self.lastLine = newOutput
       if newOutput[-1:] != "\n":
         newOutput += "\n"
       timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
@@ -66,6 +68,9 @@ class Logger:
 
   def hasLBSERROR(self):
     return self.error
+
+  def getLastLine(self):
+    return self.lastLine.strip()
 
   def get(self, limit=None):
     if limit is None:

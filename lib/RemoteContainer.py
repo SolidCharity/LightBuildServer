@@ -23,6 +23,7 @@ import lxc
 import sys
 import os
 import time
+import socket
 #from paramiko import SSHClient
 from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
@@ -30,7 +31,8 @@ from LXCContainer import LXCContainer
 
 class RemoteContainer(LXCContainer):
   def executeremote(self, command):
-    return self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1\"")
+    self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
+    return self.logger.getLastLine() == "0"
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch, staticIP):
     # create lxc container with specified OS
@@ -38,7 +40,7 @@ class RemoteContainer(LXCContainer):
     self.release = lxcrelease
     self.arch = lxcarch
     self.staticIP = staticIP
-    if self.executeremote("lxc-destroy --name " + self.name) == False:
+    if self.executeremote("if [ -d /var/lib/lxc/" + self.name + " ]; then lxc-destroy --name " + self.name + "; fi") == False:
       return False
     result = False
     if lxcdistro == "centos":
@@ -62,8 +64,9 @@ class RemoteContainer(LXCContainer):
 
   def startmachine(self):
     if self.executeremote("lxc-start -d -n " + self.name):
-      # TODO also remove the ip address
       self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
+      # also remove the ip address
+      self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:2010')
       # wait until ssh server is running
       result = self.execute('echo "container is running"')
       return result
