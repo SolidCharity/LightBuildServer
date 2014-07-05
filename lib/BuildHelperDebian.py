@@ -53,10 +53,9 @@ class BuildHelperDebian(BuildHelper):
     return self.packagename + ".dsc"
 
   def InstallRequiredPackages(self, LBSUrl):
-    rootfs=self.container.getrootfs()
-
     # first install required repos
-    configfile=rootfs + "/root/lbs-" + self.projectname + "/config.yml"
+    pathSrc="/var/lib/lbs/src/"+self.username
+    configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
@@ -75,8 +74,7 @@ class BuildHelperDebian(BuildHelper):
     self.run("apt-get update")
 
     # now install required packages
-    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
-    self.run("echo " + dscfile)
+    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
       for line in open(dscfile):
         if line.startswith("Build-Depends: "):
@@ -90,28 +88,18 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def BuildPackage(self, LBSUrl):
-    rootfs=self.container.getrootfs()
-    dscfile=rootfs + "/root/" + "lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    pathSrc="/var/lib/lbs/src/"+self.username
+    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
-      SourcePath=rootfs + "/root/sources"
-      for file in os.listdir(SourcePath):
-        if file.endswith(".tar.xz") or file.endswith(".tar.gz") or file.endswith(".tar.bz2"):
-          extractCmd="tar xf"
-          if file.endswith(".tar.gz"):
-            extractCmd="tar xzf"
-          elif file.endswith(".tar.bz2"):
-            extractCmd="tar xjf"
-          self.run("mkdir tmpSource")
-          if not self.run("cd tmpSource && " + extractCmd + " ../sources/" + file):
-            return False
-          for dir in os.listdir(rootfs + "/root/tmpSource"):
-            if os.path.isdir(rootfs + "/root/tmpSource/" + dir):
-              self.run("mv tmpSource/" + dir + "/* lbs-" + self.projectname + "/" + self.packagename)
-          self.run("rm -Rf tmpSource")
-        else:
-          self.run("mv sources/" + file + " lbs-" + self.projectname + "/" + self.packagename)
+      self.run("cp sources/* lbs-" + self.projectname + "/" + self.packagename)
+      self.run("rm -Rf tmpSource && mkdir tmpSource")
+      self.run("for file in /root/sources/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file; fi; done")
+      self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file; fi; done")
+      self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; fi; done")
+      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
+      self.run("rm -Rf tmpSource")
 
       # TODO: build counter for automatically increasing the release number?
       if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
