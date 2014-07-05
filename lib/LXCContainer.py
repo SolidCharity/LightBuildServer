@@ -22,14 +22,14 @@
 import sys
 import os
 import time
-#from paramiko import SSHClient
-from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
+from Shell import Shell
 
 class LXCContainer():
   def __init__(self, containername, logger):
     self.name = containername
     self.logger = logger
+    self.shell = Shell(logger)
     # we are reusing the slots, for caches etc
     self.slot = containername
     self.distro = ""
@@ -40,29 +40,7 @@ class LXCContainer():
     self.LXCHOME_PATH = "/var/lib/lxc/"
 
   def executeshell(self, command):
-    self.logger.print("now running: " + command)
-
-    # see http://stackoverflow.com/questions/14858059/detecting-the-end-of-the-stream-on-popen-stdout-readline
-    # problem is that subprocesses are started, and the pipe is still open???
-    child = Popen(command, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
-    processFinished = False
-    returncode=None
-    #for line in iter(child.stdout.readline,''):
-    while True:
-      line=child.stdout.readline()
-      if "LBSERROR" in line:
-        self.logger.print(line)
-      if ((len(line) == 0) and processFinished): # or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
-        if not processFinished: # and ("LBSScriptFinished" in line or "LBSERROR" in line):
-          returncode = child.poll()
-          if returncode is None:
-            returncode = 0
-        break;
-      self.logger.print(line)
-      returncode = child.poll()
-      if not processFinished and returncode is not None:
-        processFinished = True
-    return (not returncode)
+    return self.shell.executeshell(command)
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch, staticIP):
     # create lxc container with specified OS
