@@ -84,7 +84,6 @@ class RemoteContainer(LXCContainer):
     for x in range(0, 19):
       result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
       if result:
-        print("result is true " + self.logger.getLastLine())
         return self.logger.getLastLine() == "0"
       # sleep for half a second
       time.sleep(0.5)
