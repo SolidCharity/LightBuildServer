@@ -19,7 +19,6 @@
 # USA
 #
 
-import lxc
 import sys
 import os
 import time
@@ -30,9 +29,10 @@ from Logger import Logger
 from LXCContainer import LXCContainer
 
 class RemoteContainer(LXCContainer):
-  def executeremote(self, command):
-    self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
-    return self.logger.getLastLine() == "0"
+  def executeOnLxcHost(self, command):
+    if self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+      return self.logger.getLastLine() == "0"
+    return False
 
   def createmachine(self, lxcdistro, lxcrelease, lxcarch, staticIP):
     # create lxc container with specified OS
@@ -40,35 +40,35 @@ class RemoteContainer(LXCContainer):
     self.release = lxcrelease
     self.arch = lxcarch
     self.staticIP = staticIP
-    if self.executeremote("if [ -d /var/lib/lxc/" + self.name + " ]; then lxc-destroy --name " + self.name + "; fi") == False:
+    if self.executeOnLxcHost("if [ -d /var/lib/lxc/" + self.name + " ]; then lxc-destroy --name " + self.name + "; fi") == False:
       return False
     result = False
     if lxcdistro == "centos":
-      result = self.executeremote("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "fedora":
-      result = self.executeremote("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "debian":
-      result = self.executeremote("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "ubuntu":
-      result = self.executeremote("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if result == True:
-      result = self.executeremote("./scripts/tunnelssh.sh " + self.name + " 10 ")
+      result = self.executeOnLxcHost("./scripts/tunnelssh.sh " + self.name + " 10 ")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
     if result == True:
-      result = self.executeremote("mkdir -p " + sshpath)
+      result = self.executeOnLxcHost("mkdir -p " + sshpath)
     if result == True:
      result = self.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
     if result == True:
-      result = self.executeremote("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
+      result = self.executeOnLxcHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
 
   def startmachine(self):
-    if self.executeremote("lxc-start -d -n " + self.name):
+    if self.executeOnLxcHost("lxc-start -d -n " + self.name):
       self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
       # also remove the ip address
       self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:2010')
       # wait until ssh server is running
-      result = self.execute('echo "container is running"')
+      result = self.executeInContainer('echo "container is running"')
       return result
     return False
 
@@ -76,23 +76,25 @@ class RemoteContainer(LXCContainer):
     # we do not have access to the rootfs
     return ""
 
-  def execute(self, command):
+  def executeInContainer(self, command):
     """Execute a command in a container via SSH"""
     print (" * Executing '%s' in %s..." % (command,
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 19):
-      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1\"")
+      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
       if result:
-        if self.logger.hasLBSERROR():
-          return False
-        return True
+        print("result is true " + self.logger.getLastLine())
+        return self.logger.getLastLine() == "0"
       # sleep for half a second
       time.sleep(0.5)
     return False
 
+  def destroy(self):
+    return self.executeOnLxcHost("lxc-destroy --name " + self.name)
+
   def stop(self):
-    return self.executeremote("lxc-stop --name " + self.name) 
+    return self.executeOnLxcHost("lxc-stop --name " + self.name)
 
   def copytree(self, src, dest):
     # shutil.copytree(src, self.container.getrootfs() + dest)

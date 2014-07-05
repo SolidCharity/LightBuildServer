@@ -32,9 +32,7 @@ class BuildHelper:
     self.packagename = packagename
 
   def run(self, command):
-    result = self.container.execute(command)
-    # we do not handle self.container.output here
-    return result
+    return self.container.executeInContainer(command)
 
   def PrepareMachineBeforeStart(self):
     print("not implemented")
@@ -73,7 +71,7 @@ class BuildHelper:
     pathSrc="/var/lib/lbs/src/"+self.username
     setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
     if os.path.isfile(pathSrc + "/" + setupfile):
-      if not self.run("cd `dirname " + setupfile + "` && ./setup.sh \"" + branchname + "\""):
+      if not self.run("cd " + os.path.dirname(setupfile) + "; ./setup.sh " + branchname):
         return False
     return True
 

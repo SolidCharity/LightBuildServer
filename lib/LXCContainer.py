@@ -52,8 +52,8 @@ class LXCContainer():
       line=child.stdout.readline()
       if "LBSERROR" in line:
         self.logger.print(line)
-      if ((len(line) == 0) and processFinished) or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
-        if not processFinished and ("LBSScriptFinished" in line or "LBSERROR" in line):
+      if ((len(line) == 0) and processFinished): # or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
+        if not processFinished: # and ("LBSScriptFinished" in line or "LBSERROR" in line):
           returncode = child.poll()
           if returncode is None:
             returncode = 0
@@ -168,7 +168,7 @@ class LXCContainer():
       return None
     return ipaddress[0]
 
-  def execute(self, command):
+  def executeInContainer(self, command):
     """Execute a command in a container via SSH"""
     print (" * Executing '%s' in %s..." % (command,
                                              self.name))
