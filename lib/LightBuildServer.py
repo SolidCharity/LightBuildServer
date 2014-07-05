@@ -27,6 +27,7 @@ from time import gmtime, strftime
 import yaml
 import os
 import shutil
+from Shell import Shell
 
 class LightBuildServer:
   'light build server based on lxc and git'
@@ -114,7 +115,8 @@ class LightBuildServer:
         if os.path.isdir(pathSrc+'lbs-'+projectname):
           #we want a clean clone
           shutil.rmtree(pathSrc+'lbs-'+projectname)
-        self.container.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
+        shell = Shell(self.logger)
+        shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
         if not os.path.isdir(pathSrc+'lbs-'+projectname):
           raise Exception("Problem with cloning the git repo")
         # copy the repo to the container

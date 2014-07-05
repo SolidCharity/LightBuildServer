@@ -30,27 +30,6 @@ class BuildHelperCentos(BuildHelper):
     BuildHelper.__init__(self, container, pathInsideContainer, username, projectname, packagename)
 
   def PrepareMachineBeforeStart(self):
-    rootfs=self.container.getrootfs()
-    if rootfs == "":
-      return True
-    # clear the root password, since it is expired anyway, and no ssh access would be possible
-    if not self.container.executeshell("chroot " + rootfs + " passwd -d root"):
-      return False
-    # setup a static IP address, to speed up the startup
-    networkfile = rootfs+"/etc/sysconfig/network-scripts/ifcfg-eth0"
-    self.container.executeshell("sed -i 's/^BOOTPROTO=dhcp/BOOTPROTO=static/g' "+networkfile)
-    self.container.executeshell("echo \"IPADDR=" + self.container.staticIP +"\" >> " + networkfile)
-    self.container.executeshell("echo \"GATEWAY=10.0.3.1\" >> " + networkfile)
-    self.container.executeshell("echo \"NETMASK=255.255.255.0\" >> " + networkfile)
-    self.container.executeshell("echo \"NETWORK=10.0.3.0\" >> " + networkfile)
-    self.container.executeshell("echo \"nameserver 10.0.3.1\" > " + rootfs + "/etc/resolv.conf")
-    self.container.executeshell("echo \"lxc.network.ipv4="+self.container.staticIP + "/24\" >> " + rootfs + "/../config")
-    # setup tmpfs /dev/shm
-    self.container.executeshell("echo \"lxc.mount.entry = tmpfs " + rootfs + "/dev/shm tmpfs defaults 0 0\" >> " + rootfs + "/../config")
-    # configure timezone
-    self.container.executeshell("cd " + rootfs + "/etc; rm -f localtime; ln -s ../usr/share/zoneinfo/Europe/Berlin localtime")
-    # yum: keep the cache
-    self.container.executeshell("sed -i 's/^keepcache=0/keepcache=1/g' " + rootfs + "/etc/yum.conf")
     return True
 
   def PrepareForBuilding(self):

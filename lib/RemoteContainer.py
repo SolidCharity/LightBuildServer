@@ -30,7 +30,7 @@ from LXCContainer import LXCContainer
 
 class RemoteContainer(LXCContainer):
   def executeOnLxcHost(self, command):
-    if self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
     return False
 
@@ -46,6 +46,9 @@ class RemoteContainer(LXCContainer):
     if lxcdistro == "centos":
       result = self.executeOnLxcHost("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "fedora":
+      if lxcrelease == "rawhide":
+        # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
+        lxcrelease = "20"
       result = self.executeOnLxcHost("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "debian":
       result = self.executeOnLxcHost("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
@@ -57,16 +60,16 @@ class RemoteContainer(LXCContainer):
     if result == True:
       result = self.executeOnLxcHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
+     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
     if result == True:
       result = self.executeOnLxcHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
 
   def startmachine(self):
     if self.executeOnLxcHost("lxc-start -d -n " + self.name):
-      self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
       # also remove the ip address
-      self.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:2010')
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:2010')
       # wait until ssh server is running
       result = self.executeInContainer('echo "container is running"')
       return result
@@ -82,7 +85,7 @@ class RemoteContainer(LXCContainer):
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 19):
-      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       # sleep for half a second
@@ -102,12 +105,12 @@ class RemoteContainer(LXCContainer):
     if dest == None:
       dest = src
     dest = dest[:dest.rindex("/")]
-    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path):
     dest = path[:path.rindex("/")]
-    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':' + path + ' ' + dest)
     return result 
 
   def installmount(self, localpath, hostpath = None):
@@ -116,7 +119,7 @@ class RemoteContainer(LXCContainer):
     result = self.executeOnLxcHost("./scripts/initMount.sh " + hostpath + " " + self.name + " " + localpath)
     if result:
       if not os.path.exists(hostpath):
-          self.executeshell("mkdir -p " + hostpath)
+          self.shell.executeshell("mkdir -p " + hostpath)
       #rsync the contents
       return self.rsyncHostPut(hostpath)
     return False
