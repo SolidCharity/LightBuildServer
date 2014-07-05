@@ -179,11 +179,9 @@ class LXCContainer(lxc.Container):
       #stdin, stdout, stderr = client.exec_command(command)
       #result = not stdout.channel.recv_exit_status()
       ip = self.getIP()
-      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"export LANG=C; " + command + " 2>&1\"")
+      result = self.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + ip + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
       if result:
-        if self.logger.hasLBSERROR():
-          return False
-        return True
+        return self.logger.getLastLine() == "0"
       # sleep for half a second
       time.sleep(0.5)
     return False
