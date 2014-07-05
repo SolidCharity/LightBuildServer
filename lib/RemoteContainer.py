@@ -23,12 +23,23 @@ import sys
 import os
 import time
 import socket
-#from paramiko import SSHClient
-from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
-from LXCContainer import LXCContainer
+from Shell import Shell
 
-class RemoteContainer(LXCContainer):
+class RemoteContainer:
+  def __init__(self, containername, logger):
+    self.name = containername
+    self.logger = logger
+    self.shell = Shell(logger)
+    # we are reusing the slots, for caches etc
+    self.slot = containername
+    self.distro = ""
+    self.release = ""
+    self.arch = ""
+    self.staticIP = ""
+    self.LBSHOME_PATH = "/var/lib/lbs/"
+    self.LXCHOME_PATH = "/var/lib/lxc/"
+
   def executeOnLxcHost(self, command):
     if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
@@ -74,10 +85,6 @@ class RemoteContainer(LXCContainer):
       result = self.executeInContainer('echo "container is running"')
       return result
     return False
-
-  def getrootfs(self):
-    # we do not have access to the rootfs
-    return ""
 
   def executeInContainer(self, command):
     """Execute a command in a container via SSH"""

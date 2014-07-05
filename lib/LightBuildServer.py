@@ -42,15 +42,9 @@ class LightBuildServer:
     self.config = yaml.load(stream)
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    staticIP = self.config['lbs']['Machines'][buildmachine]
-    if not staticIP == None:
-      self.container = LXCContainer(buildmachine, self.logger)
-      result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, staticIP)
-    else:
-      # create a container on a remote machine
-      self.container = RemoteContainer(buildmachine, self.logger)
-      result = self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
-    return result
+    # create a container on a remote machine
+    self.container = RemoteContainer(buildmachine, self.logger)
+    return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def GetAvailableBuildMachine(self, buildjob):
     for buildmachine in self.config['lbs']['Machines']:
