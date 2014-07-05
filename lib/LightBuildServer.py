@@ -19,7 +19,6 @@
 # USA
 #
 
-from LXCContainer import LXCContainer
 from RemoteContainer import RemoteContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
