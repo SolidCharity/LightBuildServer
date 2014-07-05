@@ -75,9 +75,5 @@ class BuildHelper:
         return False
     return True
 
-  def RunTests(self):
-    print("not implemented")
-    return True
-
   def GetRepoInstructions(self, LBSUrl, buildtarget):
     return "not implemented"

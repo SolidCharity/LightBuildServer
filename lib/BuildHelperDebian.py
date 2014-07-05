@@ -124,11 +124,6 @@ class BuildHelperDebian(BuildHelper):
         return False
     return True
 
-  def RunTests(self):
-    if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
-      return False
-    return True
-
   def GetRepoInstructions(self, LBSUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = "echo 'deb " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"

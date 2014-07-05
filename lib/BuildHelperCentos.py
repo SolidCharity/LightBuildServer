@@ -133,27 +133,19 @@ class BuildHelperCentos(BuildHelper):
         return False
 
       # add result to repo
-      # TODO
-      return True
-
       self.run("mkdir -p ~/repo/src")
       self.run("cp ~/rpmbuild/SRPMS/*.src.rpm ~/repo/src")
       self.run("cp -R ~/rpmbuild/RPMS/* ~/repo")
+      if not self.run("cd repo && createrepo ."):
+        return False
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
       repoFileContent+="baseurl=" + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "\n"
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
-      with open(rootfs + "/root/lbs-"+self.username + "-"+self.projectname +".repo", 'w') as f:
+      repofile="lbs-"+self.username + "-"+self.projectname +".repo"
+      with open("/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/" + repofile, 'w') as f:
         f.write(repoFileContent)
-      if not self.run("cd repo && createrepo ."):
-        return False
-      self.run("cp /root/lbs-"+self.username + "-"+self.projectname +".repo repo")
-    return True
-
-  def RunTests(self):
-    if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && ./runtests.sh"):
-      return False
     return True
 
   def GetRepoInstructions(self, LBSUrl, buildtarget):

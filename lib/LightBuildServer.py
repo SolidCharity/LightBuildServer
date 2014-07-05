@@ -128,6 +128,10 @@ class LightBuildServer:
           raise Exception("Setup script did not succeed")
         if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
           raise Exception("Problem with building the package")
+        if not self.container.rsyncHostGet("/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease):
+          raise Exception("Problem with syncing repos")
+        if not self.container.rsyncHostGet("/var/www/tarballs/" + username + "/" + projectname):
+          raise Exception("Problem with syncing tarballs")
         self.logger.print("Success!")
       except Exception as e:
         self.logger.print("LBSERROR: "+str(e))

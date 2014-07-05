@@ -97,11 +97,27 @@ class RemoteContainer(LXCContainer):
     return self.executeOnLxcHost("lxc-stop --name " + self.name)
 
   def copytree(self, src, dest):
-    # shutil.copytree(src, self.container.getrootfs() + dest)
+    return self.rsyncHostPut(src, "/var/lib/lxc/" + self.name + "/rootfs" + dest)
+
+  def rsyncHostPut(self, src, dest = None):
+    if dest == None:
+      dest = src
     dest = dest[:dest.rindex("/")]
-    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs'+ dest)
+    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':' + dest)
+    return result 
+
+  def rsyncHostGet(self, path):
+    dest = path[:path.rindex("/")]
+    result = self.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':' + path + ' ' + dest)
     return result 
 
   def installmount(self, localpath, hostpath = None):
-    # not implemented. need to do something for repo and tarballs
+    if hostpath is None:
+      hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
+    result = self.executeOnLxcHost("./scripts/initMount.sh " + hostpath + " " + self.name + " " + localpath)
+    if result:
+      if not os.path.exists(hostpath):
+          self.executeshell("mkdir -p " + hostpath)
+      #rsync the contents
+      return self.rsyncHostPut(hostpath)
     return False
