@@ -19,7 +19,6 @@
 # USA
 #
 
-import lxc
 import sys
 import os
 import time
@@ -27,9 +26,9 @@ import time
 from subprocess import Popen, PIPE, STDOUT
 from Logger import Logger
 
-class LXCContainer(lxc.Container):
+class LXCContainer():
   def __init__(self, containername, logger):
-    lxc.Container.__init__(self, name = containername)
+    self.name = containername
     self.logger = logger
     # we are reusing the slots, for caches etc
     self.slot = containername
@@ -71,9 +70,7 @@ class LXCContainer(lxc.Container):
     self.release = lxcrelease
     self.arch = lxcarch
     self.staticIP = staticIP
-    lxc.Container.__init__(self, self.name)
     self.destroy();
-    #if self.create(lxcdistro, 0, {"release": lxcrelease, "arch": lxcarch}):
     # in case that https://jenkins.linuxcontainers.org/ is down and -t download does not work
     # for centos 5 there is no download available anyway
     if lxcdistro=="centos" and lxcrelease=="5":
@@ -119,6 +116,12 @@ class LXCContainer(lxc.Container):
         # sleep for half a second
         time.sleep(0.5)
     return False
+
+  def destroy(self):
+    return self.executeshell("lxc-destroy -n " + self.name)
+
+  def stop(self):
+    return self.executeshell("lxc-stop -n " + self.name)
 
   def create_sshkeys(self):
     """Create SSH keys to access containers with"""
