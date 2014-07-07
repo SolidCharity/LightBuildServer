@@ -132,5 +132,5 @@ class BuildHelperCentos(BuildHelper):
     result = "cd /etc/yum.repos.d/\n"
     result += "wget " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
-    result += "apt-get install " + self.GetSpecFilename()[:-5]
+    result += "yum install " + self.GetSpecFilename()[:-5]
     return result
