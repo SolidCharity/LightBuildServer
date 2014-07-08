@@ -75,5 +75,8 @@ class BuildHelper:
         return False
     return True
 
+  def DisableOutgoingNetwork(self):
+    self.run("iptables -P OUTPUT DROP && iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT && iptables -A OUTPUT -j DROP")
+
   def GetRepoInstructions(self, LBSUrl, buildtarget):
     return "not implemented"
