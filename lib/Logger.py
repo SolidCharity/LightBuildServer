@@ -80,8 +80,8 @@ class Logger:
   def email(self, fromAddress, toAddress, subject, logurl):
     if self.hasLBSERROR():
       subject = "ERROR " + subject
-    link="For details, see " + logurl + "\n"
-    msg = MIMEText((link+self.get(4000)).encode('utf-8'), 'plain','utf-8')
+    link="For details, see <a href='" + logurl + "'>" + logurl + "</a><br/>\n"
+    msg = MIMEText(("<html><body>" + link + "<pre>" + self.get(4000) + "</pre></body></html>").encode('utf-8'), 'html','utf-8')
     msg['From'] = fromAddress
     msg['To'] = toAddress
     msg['Subject'] = subject
