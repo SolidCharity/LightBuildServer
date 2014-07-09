@@ -66,7 +66,7 @@ class RemoteContainer:
     if lxcdistro == "ubuntu":
       result = self.executeOnLxcHost("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if result == True:
-      result = self.executeOnLxcHost("./scripts/tunnelssh.sh " + self.name + " 10 ")
+      result = self.executeOnLxcHost("./scripts/tunnelport.sh " + self.name + " 10 22")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnLxcHost("mkdir -p " + sshpath)
