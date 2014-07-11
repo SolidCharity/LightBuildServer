@@ -7,6 +7,8 @@ LightBuildServer is developed as Open Source software under the LGPL v2.1 or lat
 
 This is still work in progress!
 
+For more details, please see the [LightBuildServer Wiki](https://github.com/SolidCharity/LightBuildServer/wiki)!
+
 Goals
 -----
 The goal is to have a light weight build server, that can be easily installed on any Linux operating system, and allows people to quickly build packages for all supported Linux distributions.
