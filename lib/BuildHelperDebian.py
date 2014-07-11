@@ -93,11 +93,12 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(dscfile):
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
-      self.run("cp sources/* lbs-" + self.projectname + "/" + self.packagename)
+      pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
+      self.run("cp /root/sources/* " + pathPackageSrc)
       self.run("rm -Rf tmpSource && mkdir tmpSource")
-      self.run("for file in /root/sources/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file; fi; done")
-      self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file; fi; done")
-      self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; fi; done")
+      self.run("for file in /root/sources/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
+      self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
+      self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
       self.run("rm -Rf tmpSource")
 
