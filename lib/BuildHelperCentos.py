@@ -70,6 +70,8 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(repofile):
       self.container.copytree(repofile,"/etc/yum.repos.d/")
 
+    self.run("yum clean metadata")
+
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
