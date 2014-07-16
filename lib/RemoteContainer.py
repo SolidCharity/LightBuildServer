@@ -108,6 +108,12 @@ class RemoteContainer:
   def copytree(self, src, dest):
     return self.rsyncHostPut(src, "/var/lib/lxc/" + self.name + "/rootfs" + dest)
 
+  def rsyncContainerGet(self, path, dest = None):
+    if dest == None:
+      dest = path[:path.rindex("/")]
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs' + path + ' ' + dest)
+    return result
+
   def rsyncHostPut(self, src, dest = None):
     if dest == None:
       dest = src
@@ -115,10 +121,11 @@ class RemoteContainer:
     result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':' + dest)
     return result 
 
-  def rsyncHostGet(self, path):
-    dest = path[:path.rindex("/")]
+  def rsyncHostGet(self, path, dest = None):
+    if dest == None:
+      dest = path[:path.rindex("/")]
     result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':' + path + ' ' + dest)
-    return result 
+    return result
 
   def installmount(self, localpath, hostpath = None):
     if hostpath is None:

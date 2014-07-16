@@ -21,6 +21,8 @@
 from BuildHelper import BuildHelper;
 import os
 import yaml
+import tempfile
+import shutil
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -97,6 +99,7 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def BuildPackage(self, LBSUrl):
+    repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
@@ -108,8 +111,32 @@ class BuildHelperCentos(BuildHelper):
       # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
       self.run("mv sources/* rpmbuild/SOURCES")
 
-      # TODO: build counter for automatically increasing the release number?
-      self.run("sed -i -e 's/Release: %{release}/Release: 99/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+      # read version from spec file, that is on the build server
+      # (setup.sh might overwrite the version number...)
+      temppath = tempfile.mkdtemp()
+      self.container.rsyncContainerGet("/root/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename(), temppath)
+      buildversion = "1.0.0"
+      for line in open(temppath + "/" + self.GetSpecFilename()):
+        if line.startswith("%define version "):
+          buildversion=line[len("%define version "):].strip()
+          break
+      shutil.rmtree(temppath)
+
+      # build counter for automatically increasing the release number
+      buildnumber=0
+      arch=self.container.arch
+      if arch == "amd64":
+        arch="x86_64"
+      elif arch == "i686":
+        arch="i386"
+
+      for file in os.listdir(repopath + "/" + arch):
+        # TODO use GetSpecFilename, without spec, instead of packagename
+        if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
+          oldnumber=int(file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")])
+          if oldnumber >= buildnumber:
+            buildnumber = oldnumber + 1
+      self.run("sed -i -e 's/Release: %{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
         return False
 
@@ -125,7 +152,7 @@ class BuildHelperCentos(BuildHelper):
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
       repofile="lbs-"+self.username + "-"+self.projectname +".repo"
-      with open("/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/" + repofile, 'w') as f:
+      with open(repopath + "/" + repofile, 'w') as f:
         f.write(repoFileContent)
     return True
 
