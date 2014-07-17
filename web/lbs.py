@@ -62,6 +62,14 @@ class LightBuildServerWeb:
     def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
 
+    def getLogoutAuthUsername(self):
+        # return only the username if other users exist in the config file
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+        for user in self.config['lbs']['Users']:
+          if not user == auth_username:
+            return " " + auth_username
+        return ""
+
     def triggerbuild(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
         return self.triggerbuildwithbranch(username, projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch)
 
@@ -150,7 +158,7 @@ class LightBuildServerWeb:
           output = lbs.logger.get(4000)
           timeout = 2
 
-        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username)
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def listMachines(self):
       # for displaying the logout link
@@ -161,7 +169,7 @@ class LightBuildServerWeb:
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
 
-      return template('machines', buildmachines=buildmachines, auth_username=auth_username)
+      return template('machines', buildmachines=buildmachines, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def listProjects(self):
       # for displaying the logout link
@@ -176,7 +184,7 @@ class LightBuildServerWeb:
             projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]["buildurl"] = "/triggerbuild/" + user + "/" + project + "/" + package
         users[user] = userconfig['Projects']
-      return template('projects', users = users, auth_username=auth_username)
+      return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def detail(self, username, projectname, packagename):
         # for displaying the logout link
@@ -197,14 +205,14 @@ class LightBuildServerWeb:
         for buildtarget in package['Distros']:
           buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
           package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config['lbs']['LBSUrl'], buildtarget)
-        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username)
+        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def logs(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
       # for displaying the logout link
       auth_username = request.get_cookie("account", secret='some-secret-key')
 
       content = Logger().getLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
-      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username)
+      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')

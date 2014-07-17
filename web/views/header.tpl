@@ -36,7 +36,7 @@
           % end
           % if not auth_username == None:
           <form class="navbar-form navbar-right" role="form" action="/logout">
-            <button type="submit" class="btn-xs btn-success">Logout</button>
+            <button type="submit" class="btn-xs btn-success">Logout{{logout_auth_username}}</button>
           </form>
           % end
         </div><!--/.navbar-collapse -->
