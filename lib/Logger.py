@@ -63,8 +63,12 @@ class Logger:
       if "LBSERROR" in newOutput:
         self.error = True
       self.output += timeprefix + newOutput
-      sys.stdout.write(timeprefix + newOutput)
-      sys.stdout.flush()
+      # sometimes we get incomplete bytes, and would get an ordinal not in range error
+      # just ignore the exception...
+      try:
+        sys.stdout.write(timeprefix + newOutput)
+      finally:
+        sys.stdout.flush() 
 
   def hasLBSERROR(self):
     return self.error
