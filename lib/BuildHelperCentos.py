@@ -130,12 +130,13 @@ class BuildHelperCentos(BuildHelper):
       elif arch == "i686":
         arch="i386"
 
-      for file in os.listdir(repopath + "/" + arch):
-        # TODO use GetSpecFilename, without spec, instead of packagename
-        if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
-          oldnumber=int(file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")])
-          if oldnumber >= buildnumber:
-            buildnumber = oldnumber + 1
+      if os.path.isdir(repopath + "/" + arch):
+        for file in os.listdir(repopath + "/" + arch):
+          # TODO use GetSpecFilename, without spec, instead of packagename
+          if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
+            oldnumber=int(file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")])
+            if oldnumber >= buildnumber:
+              buildnumber = oldnumber + 1
       self.run("sed -i -e 's/Release: %{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
         return False
