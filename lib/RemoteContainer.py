@@ -92,7 +92,7 @@ class RemoteContainer:
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 19):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       # sleep for half a second
