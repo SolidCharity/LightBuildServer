@@ -81,16 +81,30 @@ class BuildHelperDebian(BuildHelper):
       for line in open(dscfile):
         packagesWithVersions=None
         if line.startswith("Build-Depends: "):
+          if not packages is None:
+            if not self.run("apt-get install -y " + " ".join(packages)):
+              return False
+          packages=[]
           packagesWithVersions=line[len("Build-Depends: "):].split(',')
         if nextLineBuildDepends:
           packagesWithVersions=line.strip().split(',')
         if packagesWithVersions is not None:
           nextLineBuildDepends=line.strip().endswith(",")
-          packages=[]
           for word in packagesWithVersions:
-              # only use package names, ignore space (>= 9)
-              if len(word.strip()) > 0:
-                packages.append(word.split()[0])
+              if "|" in word:
+                onePackageSucceeded=False
+                # try each of the packages, ignore failure
+                optionalPackages=word.strip().split('|')
+                for word2 in optionalPackages:
+                  if onePackageSucceeded == False and len(word2.strip()) > 0:
+                     onePackageSucceeded = self.run("apt-get install -y " + word2.split()[0])
+                if not onePackageSucceeded:
+                  self.logger.print("cannot install at least one of these packages: " + word)
+                  return False
+              else:
+                # only use package names, ignore space (>= 9)
+                if len(word.strip()) > 0:
+                  packages.append(word.split()[0])
       if not packages is None:
         if not self.run("apt-get install -y " + " ".join(packages)):
          return False
