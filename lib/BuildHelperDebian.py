@@ -75,16 +75,25 @@ class BuildHelperDebian(BuildHelper):
 
     # now install required packages
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    packages=None
+    nextLineBuildDepends=False
     if os.path.isfile(dscfile):
       for line in open(dscfile):
+        packagesWithVersions=None
         if line.startswith("Build-Depends: "):
           packagesWithVersions=line[len("Build-Depends: "):].split(',')
+        if nextLineBuildDepends:
+          packagesWithVersions=line.strip().split(',')
+        if packagesWithVersions is not None:
+          nextLineBuildDepends=line.strip().endswith(",")
           packages=[]
           for word in packagesWithVersions:
               # only use package names, ignore space (>= 9)
-              packages.append(word.split()[0])
-          if not self.run("apt-get install -y " + " ".join(packages)):
-            return False
+              if len(word.strip()) > 0:
+                packages.append(word.split()[0])
+      if not packages is None:
+        if not self.run("apt-get install -y " + " ".join(packages)):
+         return False
     return True
 
   def BuildPackage(self, LBSUrl):
