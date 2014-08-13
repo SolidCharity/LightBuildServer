@@ -80,16 +80,16 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(dscfile):
       for line in open(dscfile):
         packagesWithVersions=None
-        if line.startswith("Build-Depends: "):
+        if line.startswith("Build-Depends:"):
           if not packages is None:
             if not self.run("apt-get install -y " + " ".join(packages)):
               return False
           packages=[]
-          packagesWithVersions=line[len("Build-Depends: "):].split(',')
+          packagesWithVersions=line[len("Build-Depends:"):].strip().split(',')
         if nextLineBuildDepends:
           packagesWithVersions=line.strip().split(',')
         if packagesWithVersions is not None:
-          nextLineBuildDepends=line.strip().endswith(",")
+          nextLineBuildDepends=line.strip().endswith(",") or line.strip().endswith(":")
           for word in packagesWithVersions:
               if "|" in word:
                 onePackageSucceeded=False
