@@ -76,13 +76,15 @@ class BuildHelperDebian(BuildHelper):
     # now install required packages
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None
+    # force-yes for packages from our own repository, they are not signed at the moment
+    aptInstallFlags="--force-yes "
     nextLineBuildDepends=False
     if os.path.isfile(dscfile):
       for line in open(dscfile):
         packagesWithVersions=None
         if line.startswith("Build-Depends:"):
           if not packages is None:
-            if not self.run("apt-get install -y " + " ".join(packages)):
+            if not self.run("apt-get install -y " + aptInstallFlags + " ".join(packages)):
               return False
           packages=[]
           packagesWithVersions=line[len("Build-Depends:"):].strip().split(',')
@@ -97,7 +99,7 @@ class BuildHelperDebian(BuildHelper):
                 optionalPackages=word.strip().split('|')
                 for word2 in optionalPackages:
                   if onePackageSucceeded == False and len(word2.strip()) > 0:
-                     onePackageSucceeded = self.run("apt-get install -y " + word2.split()[0])
+                     onePackageSucceeded = self.run("apt-get install -y " + aptInstallFlags + word2.split()[0])
                 if not onePackageSucceeded:
                   self.logger.print("cannot install at least one of these packages: " + word)
                   return False
@@ -106,7 +108,7 @@ class BuildHelperDebian(BuildHelper):
                 if len(word.strip()) > 0:
                   packages.append(word.split()[0])
       if not packages is None:
-        if not self.run("apt-get install -y " + " ".join(packages)):
+        if not self.run("apt-get install -y " + aptInstallFlags + " ".join(packages)):
          return False
     return True
 
