@@ -13,6 +13,7 @@ from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
 from threading import Thread
 import yaml
+import copy
 from collections import deque
 
 class LightBuildServerWeb:
@@ -179,12 +180,24 @@ class LightBuildServerWeb:
 
       users={}
       for user in self.config['lbs']['Users']:
-        userconfig=self.config['lbs']['Users'][user]
+        userconfig=copy.deepcopy(self.config['lbs']['Users'][user])
         for project in userconfig['Projects']:
           projectconfig=userconfig['Projects'][project]
-          for package in projectconfig:
-            projectconfig[package]["detailurl"] = "/detail/" + user + "/" + project + "/" + package
-            projectconfig[package]["buildurl"] = "/triggerbuild/" + user + "/" + project + "/" + package
+          if 'Packages' in projectconfig:
+            packages = userconfig['Projects'][project]['Packages']
+          else:
+            packages = userconfig['Projects'][project]
+          for package in packages:
+            if not package in projectconfig:
+              projectconfig[package] = {}
+            if 'Distros' in projectconfig:
+              projectconfig[package]['Distros'] = projectconfig['Distros']
+            projectconfig[package]['detailurl'] = "/detail/" + user + "/" + project + "/" + package
+            projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
+          if 'Distros' in projectconfig:
+            del projectconfig['Distros']
+          if 'Packages' in projectconfig:
+            del projectconfig['Packages']
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
@@ -192,8 +205,10 @@ class LightBuildServerWeb:
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
 
-        user=self.config['lbs']['Users'][username]
+        user=copy.deepcopy(self.config['lbs']['Users'][username])
         project=user['Projects'][projectname]
+        if 'Packages' in project:
+          project[packagename] = project['Packages']
         package=project[packagename]
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
@@ -202,6 +217,8 @@ class LightBuildServerWeb:
         if not "Branches" in package:
           package["Branches"] = ["master"]
         for branchname in package["Branches"]:
+          if not 'Distros' in package:
+            package['Distros'] = project['Distros']
           for buildtarget in package['Distros']:
             package["logs"][buildtarget+"-"+branchname] = Logger().getBuildNumbers(username, projectname, packagename, branchname, buildtarget)
         for buildtarget in package['Distros']:
