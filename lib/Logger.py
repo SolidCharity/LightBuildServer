@@ -146,4 +146,24 @@ class Logger:
           content = f.read()
           if content.find('LBSERROR') >= 0:
             result[number]["resultcode"] = "failure"
-    return OrderedDict(reversed(sorted(result.items()))) 
+    return OrderedDict(reversed(sorted(result.items())))
+
+  def getLastBuild(self, username, projectname, packagename, branchname, buildtarget):
+    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
+    result={}
+    if not os.path.exists(LogPath):
+      return result
+    previousNumber = -1
+    for file in os.listdir(LogPath):
+      if file.endswith(".log"):
+        number=int(file[6:-4])
+        if number > previousNumber:
+          previousNumber = number
+          result = {}
+          result['number'] = number
+          result['resultcode'] = "success"
+          with open(LogPath + "/" + file, 'r') as f:
+            content = f.read()
+            if content.find('LBSERROR') >= 0:
+              result['resultcode'] = "failure"
+    return result 

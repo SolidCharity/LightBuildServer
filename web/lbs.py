@@ -194,6 +194,9 @@ class LightBuildServerWeb:
               projectconfig[package]['Distros'] = projectconfig['Distros']
             projectconfig[package]['detailurl'] = "/detail/" + user + "/" + project + "/" + package
             projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
+            projectconfig[package]['buildresult'] = {}
+            for buildtarget in projectconfig[package]['Distros']:
+              projectconfig[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
           if 'Distros' in projectconfig:
             del projectconfig['Distros']
           if 'Packages' in projectconfig:
