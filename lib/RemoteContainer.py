@@ -95,8 +95,12 @@ class RemoteContainer:
       result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
-      # sleep for half a second
-      time.sleep(0.5)
+      if x < 5:
+        # sleep for half a second
+        time.sleep(0.5)
+      else:
+        # sleep for 10 seconds
+        time.sleep(10)
     return False
 
   def destroy(self):
