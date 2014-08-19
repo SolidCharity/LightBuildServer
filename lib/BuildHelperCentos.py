@@ -65,7 +65,11 @@ class BuildHelperCentos(BuildHelper):
       if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
         repos = config['lbs'][self.dist][str(self.container.release)]['repos']
         for repo in repos:
-          self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
+          if repo.endswith('.repo'):
+            self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
+          elif repo.endswith('.rpm'):
+            if not self.run("yum -y install " + repo):
+              return False
 
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
