@@ -27,13 +27,17 @@ class BuildHelper:
 
   def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     self.container = container
+    if container is not None:
+      self.arch = container.arch
+      self.release = container.release
     self.pathInsideContainer = pathInsideContainer
     self.username = username
     self.projectname = projectname
     self.packagename = packagename
 
   def log(self, message):
-    self.container.logger.print(message);
+    if self.container is not None:
+      self.container.logger.print(message);
 
   def run(self, command):
     return self.container.executeInContainer(command)
@@ -93,6 +97,8 @@ class BuildHelper:
 
   def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
     result = deque()
+    self.release = lxcrelease
+    self.arch = lxcarch
     userconfig=config['lbs']['Users'][self.username]
     projectconfig=userconfig['Projects'][self.projectname]
     if 'Packages' in projectconfig:

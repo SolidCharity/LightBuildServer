@@ -42,7 +42,7 @@ class BuildHelperCentos(BuildHelper):
     if not self.run("yum -y install tar createrepo gcc rpm-build"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
-    if self.dist == "centos" and self.container.release == "5":
+    if self.dist == "centos" and self.release == "5":
       self.run("mkdir -p /usr/src/redhat; ln -s /usr/src/redhat rpmbuild")
       self.run("yum -y install make")
     self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}")
@@ -63,8 +63,8 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
-      if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
-        repos = config['lbs'][self.dist][str(self.container.release)]['repos']
+      if self.dist in config['lbs'] and str(self.release) in config['lbs'][self.dist]:
+        repos = config['lbs'][self.dist][str(self.release)]['repos']
         for repo in repos:
           if repo.endswith('.repo'):
             self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
@@ -73,7 +73,7 @@ class BuildHelperCentos(BuildHelper):
               return False
 
     # install own repo as well if it exists
-    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
+    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
       self.container.copytree(repofile,"/etc/yum.repos.d/")
 
@@ -107,7 +107,7 @@ class BuildHelperCentos(BuildHelper):
     LBSUrl = config['lbs']['LBSUrl']
     DeletePackagesAfterDays = config['lbs']['DeletePackagesAfterDays']
     KeepMinimumPackages = config['lbs']['KeepMinimumPackages']
-    repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
+    repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
@@ -132,7 +132,7 @@ class BuildHelperCentos(BuildHelper):
 
       # build counter for automatically increasing the release number
       buildnumber=0
-      arch=self.container.arch
+      arch=self.arch
       if arch == "amd64":
         arch="x86_64"
       elif arch == "i686":
@@ -171,7 +171,7 @@ class BuildHelperCentos(BuildHelper):
         return False
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
-      repoFileContent+="baseurl=" + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "\n"
+      repoFileContent+="baseurl=" + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
       repofile="lbs-"+self.username + "-"+self.projectname +".repo"
