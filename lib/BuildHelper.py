@@ -20,6 +20,7 @@
 #
 import yaml
 import os.path
+from collections import deque
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
@@ -85,7 +86,49 @@ class BuildHelper:
 
   def GetRepoInstructions(self, LBSUrl, buildtarget):
     return "not implemented"
-  
-  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
+ 
+  def GetDependanciesAndProvides(self, config, lxcdistro, lxcrelease, lxcarch):
     print("not implemented")
     return False
+
+  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
+    result = deque()
+    userconfig=config['lbs']['Users'][self.username]
+    projectconfig=userconfig['Projects'][self.projectname]
+    if 'Packages' in projectconfig:
+      packages = userconfig['Projects'][self.projectname]['Packages']
+    else:
+      packages = userconfig['Projects'][self.projectname]
+    unsorted={}
+    depends={}
+    provides={}
+    for package in packages:
+      unsorted[package] = 1
+      self.packagename=package
+      (depends[package],provides[package]) = self.GetDependanciesAndProvides()
+      print( package + " depends on: ")
+      for p in depends[package]:
+        print("   " + p)
+      print( package + " provides: ")
+      for p in provides[package]:
+        print("   " + p)
+
+    loopCounter = len(unsorted)
+    for i in range(1, loopCounter):
+      nextPackage = None
+      for package in unsorted:
+        if nextPackage is None:
+          missingRequirement=False
+          # check that this package does not require a package that is in unsorted
+          for dep in depends[package]:
+            if dep in unsorted:
+              missingRequirement=True
+          if not missingRequirement:
+            nextPackage=package
+      if nextPackage == None and len(unsorted) > 0:
+        # problem: circular dependancy
+        return None
+      result.append(package)
+      del unsorted[package]
+
+    return result

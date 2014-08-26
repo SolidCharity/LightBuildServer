@@ -24,7 +24,6 @@ import os
 import yaml
 import tempfile
 import shutil
-from collections import deque
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -222,39 +221,3 @@ class BuildHelperCentos(BuildHelper):
           provides.append(self.packagename + "-" + line[len("%package"):].strip())
 
     return (depends, provides)
-      
-  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
-    result = deque()
-    userconfig=config['lbs']['Users'][self.username]
-    projectconfig=userconfig['Projects'][self.projectname]
-    if 'Packages' in projectconfig:
-      packages = userconfig['Projects'][self.projectname]['Packages']
-    else:
-      packages = userconfig['Projects'][self.projectname]
-    unsorted={}
-    depends={}
-    provides={}
-    for package in packages:
-      unsorted[package] = 1
-      self.packagename=package
-      (depends[package],provides[package]) = self.GetDependanciesAndProvides()
-
-    loopCounter = len(unsorted)
-    for i in range(1, loopCounter):
-      nextPackage = None
-      for package in unsorted:
-        if nextPackage is None:
-          missingRequirement=False
-          # check that this package does not require a package that is in unsorted
-          for dep in depends[package]:
-            if dep in unsorted:
-              missingRequirement=True
-          if not missingRequirement:
-            nextPackage=package
-      if nextPackage == None and len(unsorted) > 0:
-        # problem: circular dependancy
-        return None
-      result.append(package)
-      del unsorted[package]
-
-    return result

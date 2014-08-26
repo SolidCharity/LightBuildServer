@@ -147,3 +147,38 @@ class BuildHelperDebian(BuildHelper):
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]
     return result
+
+  def GetDependanciesAndProvides(self):
+    pathSrc="/var/lib/lbs/src/"+self.username
+    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    depends=[]
+    provides=[]
+    if os.path.isfile(dscfile):
+      nextLineBuildDepends=False
+      for line in open(dscfile):
+        packagesWithVersions=None
+        if line.startswith("Build-Depends:"):
+          packagesWithVersions=line[len("Build-Depends:"):].strip().split(',')
+        if nextLineBuildDepends:
+          packagesWithVersions=line.strip().split(',')
+        if packagesWithVersions is not None:
+          nextLineBuildDepends=line.strip().endswith(",") or line.strip().endswith(":")
+          for word in packagesWithVersions:
+              if "|" in word:
+                optionalPackages=word.strip().split('|')
+                for word2 in optionalPackages:
+                  if len(word2.strip()) > 0:
+                     depends.append(word2.split()[0])
+              else:
+                # only use package names, ignore space (>= 9)
+                if len(word.strip()) > 0:
+                  depends.append(word.split()[0])
+
+    controlfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
+    if os.path.isfile(controlfile):
+      for line in open(controlfile):
+        if line.lower().startswith("package:"):
+          provides.append(line[len("package:"):].strip())
+
+    return (depends, provides)
+
