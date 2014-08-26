@@ -81,6 +81,8 @@ class BuildHelperCentos(BuildHelper):
     self.run("yum clean metadata")
 
     # now install required packages
+    if not self.run("yum -y install rpm-build"):
+      return False
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       for line in open(specfile):
@@ -100,7 +102,7 @@ class BuildHelperCentos(BuildHelper):
                 packages.append(word.strip())
             else:
               ignoreNext=False
-          if not self.run("yum -y install rpm-build " + " ".join(packages)):
+          if not self.run("yum -y install " + " ".join(packages)):
             return False
     return True
 
