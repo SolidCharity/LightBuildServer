@@ -81,7 +81,7 @@ class LightBuildServerWeb:
         if not auth_username:
             return self.pleaselogin()
         if not auth_username == username:
-            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/detail/" + username + "/" + projectname + "/" + packagename)
+            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/package/" + username + "/" + projectname + "/" + packagename)
 
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
         if lbsName in self.recentlyFinishedLbsList:
@@ -192,7 +192,7 @@ class LightBuildServerWeb:
               projectconfig[package] = {}
             if 'Distros' in projectconfig:
               projectconfig[package]['Distros'] = projectconfig['Distros']
-            projectconfig[package]['detailurl'] = "/detail/" + user + "/" + project + "/" + package
+            projectconfig[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
             projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
             projectconfig[package]['buildresult'] = {}
             for buildtarget in projectconfig[package]['Distros']:
@@ -204,7 +204,7 @@ class LightBuildServerWeb:
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
-    def detail(self, username, projectname, packagename):
+    def package(self, username, projectname, packagename):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
 
@@ -227,7 +227,7 @@ class LightBuildServerWeb:
         for buildtarget in package['Distros']:
           buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
           package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config['lbs']['LBSUrl'], buildtarget)
-        return template('detail', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+        return template('package', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def logs(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
       # for displaying the logout link
@@ -266,7 +266,7 @@ bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithpwd)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithbranchandpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
-bottle.route('/detail/<username>/<projectname>/<packagename>')(myApp.detail)
+bottle.route('/package/<username>/<projectname>/<packagename>')(myApp.package)
 bottle.route('/')(myApp.listProjects)
 bottle.route('/projects')(myApp.listProjects)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)

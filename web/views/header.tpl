@@ -24,7 +24,7 @@
           <ul class="nav navbar-nav">
             <li {{"class=active" if page == "projects" else ""}}><a href="/projects">Projects</a></li>
             % if page=="package":
-              <li class="active"><a href="/detail/{{username}}/{{projectname}}/{{packagename}}">Package {{username}}:{{projectname}}:{{packagename}}</a></li>
+              <li class="active"><a href="/package/{{username}}/{{projectname}}/{{packagename}}">Package {{username}}:{{projectname}}:{{packagename}}</a></li>
             % end
             <li {{"class=active" if page == "machines" else ""}}><a href="/machines">Machines</a></li>
             <li><a href="http://www.lightbuildserver.org" target="_blank">About</a></li>
