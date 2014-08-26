@@ -85,3 +85,7 @@ class BuildHelper:
 
   def GetRepoInstructions(self, LBSUrl, buildtarget):
     return "not implemented"
+  
+  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
+    print("not implemented")
+    return False

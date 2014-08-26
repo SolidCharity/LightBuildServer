@@ -2,6 +2,10 @@
     <div class="container">
       <div class="row">
 		<h2>Details of Project {{username}}:{{project}}</h2>
+		Build all packages for:
+		% for buildtarget in buildtargets:
+		<a href="/buildproject/{{username}}/{{project}}/{{buildtarget}}">{{buildtarget}}</a>&nbsp;
+		%end
         	<ul>
 	            % for package in sorted(users[username][project]):
         	        <li><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a>

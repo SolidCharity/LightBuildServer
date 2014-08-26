@@ -78,6 +78,19 @@ class LightBuildServer:
       return "available"
     return "undefined"
 
+  def getPackagingInstructions(self, userconfig, username, projectname):
+    lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
+    pathSrc="/var/lib/lbs/src/"+username+"/"
+    os.makedirs(pathSrc, exist_ok=True)
+    if os.path.isdir(pathSrc+'lbs-'+projectname):
+        #we want a clean clone
+        shutil.rmtree(pathSrc+'lbs-'+projectname)
+    shell = Shell(self.logger)
+    shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
+    if not os.path.isdir(pathSrc+'lbs-'+projectname):
+      raise Exception("Problem with cloning the git repo")
+    return pathSrc
+
   def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):
     userconfig = self.config['lbs']['Users'][username]
     self.logger.startTimer()
@@ -102,16 +115,7 @@ class LightBuildServer:
           raise Exception("Problem with PrepareForBuilding")
 
         # get the sources of the packaging instructions
-        lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
-        pathSrc="/var/lib/lbs/src/"+username+"/"
-        os.makedirs(pathSrc, exist_ok=True)
-        if os.path.isdir(pathSrc+'lbs-'+projectname):
-          #we want a clean clone
-          shutil.rmtree(pathSrc+'lbs-'+projectname)
-        shell = Shell(self.logger)
-        shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
-        if not os.path.isdir(pathSrc+'lbs-'+projectname):
-          raise Exception("Problem with cloning the git repo")
+        pathSrc=self.getPackagingInstructions(userconfig, username, projectname)
         # copy the repo to the container
         self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
 
@@ -142,4 +146,13 @@ class LightBuildServer:
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
     self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
     return self.logger.get()
+
+  def CalculatePackageOrder(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
+    userconfig = self.config['lbs']['Users'][username]
+
+    # get the sources of the packaging instructions
+    self.getPackagingInstructions(userconfig, username, projectname)
+
+    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, None, username, projectname, None)
+    return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
 

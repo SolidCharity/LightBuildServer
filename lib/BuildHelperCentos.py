@@ -24,6 +24,7 @@ import os
 import yaml
 import tempfile
 import shutil
+from collections import deque
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -185,4 +186,58 @@ class BuildHelperCentos(BuildHelper):
     result += "wget " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
+    return result
+
+  def GetDependanciesAndProvides(self):
+    pathSrc="/var/lib/lbs/src/"+self.username
+    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    depends=[]
+    provides=[]
+    if os.path.isfile(specfile):
+      for line in open(specfile):
+        if line.lower().startswith("buildrequires: "):
+          if line.count(",") > 0:
+            packagesWithVersions=line[len("BuildRequires: "):].split(",")
+          else:
+            packagesWithVersions=line[len("BuildRequires: "):].split()
+          ignoreNext=False
+          for word in packagesWithVersions:
+            if not ignoreNext:
+              # filter >= 3.0, only use package names
+              if word[0] == '>' or word[0] == '<' or word[0] == '=':
+                ignoreNext=True
+              else:
+                depends.append(word.strip())
+            else:
+              ignoreNext=False
+
+      name = self.packagename 
+      for line in open(specfile):
+        if line.lower().startswith("name:"):
+          name = line[len("name:"):].strip()
+          provides.append(name)
+        elif line.lower().startswith("%package -n"):
+          provides.append(line[len("%package -n"):].strip())
+        elif line.lower().startswith("%package"):
+          provides.append(self.packagename + "-" + line[len("%package"):].strip())
+
+    return (depends, provides)
+      
+  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
+    result = deque()
+    userconfig=config['lbs']['Users'][self.username]
+    projectconfig=userconfig['Projects'][self.projectname]
+    if 'Packages' in projectconfig:
+      packages = userconfig['Projects'][self.projectname]['Packages']
+    else:
+      packages = userconfig['Projects'][self.projectname]
+    unsorted={}
+    depends={}
+    provides={}
+    for package in packages:
+      unsorted[package] = 1
+      self.packagename=package
+      (depends[package],provides[package]) = self.GetDependanciesAndProvides()
+    for package in packages:
+      result.append(package)  
     return result

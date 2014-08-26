@@ -56,13 +56,6 @@ class LightBuildServerWeb:
         response.delete_cookie("account")
         return template("message", title="Logged out", message=username+", you are now logged out!", redirect="/")
 
-    def buildproject(self, projectname, lxcdistro, lxcrelease, lxcarch):
-        # TODO calculate dependancies between packages inside the project, and build in correct order
-        return self.list();
-
-    def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-        return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-
     def getLogoutAuthUsername(self):
         # return only the username if other users exist in the config file
         auth_username = request.get_cookie("account", secret='some-secret-key')
@@ -72,6 +65,27 @@ class LightBuildServerWeb:
           if not user == auth_username:
             return " " + auth_username
         return ""
+
+    def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+        return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+
+    def buildproject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+        if not auth_username:
+            return self.pleaselogin()
+        if not auth_username == username:
+            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/project/" + username + "/" + projectname)
+
+        lbs=LightBuildServer(Logger())
+        packages=lbs.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
+
+        message=""
+        for package in packages:
+          # TODO add package to build queue
+          message += package+ ", "
+
+        # TODO redirect to build queue listing
+        return template("<p>Build for project {{projectname}} has been triggered.</p>{{message}}<br/><a href='/'>Back to main page</a>", projectname=projectname, message=message)
 
     def triggerbuild(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch):
         return self.triggerbuildwithbranch(username, projectname, packagename, "master", lxcdistro, lxcrelease, lxcarch)
@@ -205,6 +219,7 @@ class LightBuildServerWeb:
         auth_username = request.get_cookie("account", secret='some-secret-key')
 
         userconfig=copy.deepcopy(self.config['lbs']['Users'][user])
+        buildtargets={}
 
         projectconfig=userconfig['Projects'][project]
         if 'Packages' in projectconfig:
@@ -220,6 +235,8 @@ class LightBuildServerWeb:
           projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
           projectconfig[package]['buildresult'] = {}
           for buildtarget in projectconfig[package]['Distros']:
+            if not buildtarget in buildtargets:
+              buildtargets[buildtarget] = 1
             projectconfig[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
         if 'Distros' in projectconfig:
           del projectconfig['Distros']
@@ -228,7 +245,7 @@ class LightBuildServerWeb:
         users={}
         users[user] = userconfig['Projects']
 
-        return template('project', users = users, auth_username=auth_username, username=user, project=project, logout_auth_username=self.getLogoutAuthUsername())
+        return template('project', users = users, buildtargets=buildtargets, auth_username=auth_username, username=user, project=project, logout_auth_username=self.getLogoutAuthUsername())
 
     def package(self, username, projectname, packagename):
         # for displaying the logout link
@@ -286,7 +303,7 @@ myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
-bottle.route('/buildproject/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
+bottle.route('/buildproject/<username>/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithpwd)
