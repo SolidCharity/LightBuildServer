@@ -103,15 +103,15 @@ class BuildHelper:
     depends={}
     provides={}
     for package in packages:
-      unsorted[package] = 1
-      self.packagename=package
-      (depends[package],provides[package]) = self.GetDependanciesAndProvides()
-      print( package + " depends on: ")
-      for p in depends[package]:
-        print("   " + p)
-      print( package + " provides: ")
-      for p in provides[package]:
-        print("   " + p)
+      excludeDistro=False
+      if packages[package] is not None and "ExcludeDistros" in packages[package]:
+        for exclude in packages[package]['ExcludeDistros']:
+          if (lxcdistro + "/" + lxcrelease + "/" + lxcarch).startswith(exclude):
+            excludeDistro = True
+      if not excludeDistro:
+        unsorted[package] = 1
+        self.packagename=package
+        (depends[package],provides[package]) = self.GetDependanciesAndProvides()
 
     loopCounter = len(unsorted)
     for i in range(1, loopCounter):
