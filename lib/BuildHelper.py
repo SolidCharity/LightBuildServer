@@ -30,6 +30,9 @@ class BuildHelper:
     if container is not None:
       self.arch = container.arch
       self.release = container.release
+      self.fedora = 0
+      self.suse_version = 0
+      self.rhel = self.release
     self.pathInsideContainer = pathInsideContainer
     self.username = username
     self.projectname = projectname

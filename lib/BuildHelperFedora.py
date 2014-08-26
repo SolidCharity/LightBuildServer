@@ -29,6 +29,8 @@ class BuildHelperFedora(BuildHelperCentos):
   def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     BuildHelperCentos.__init__(self, container, pathInsideContainer, username, projectname, packagename)
     self.dist='fedora'
+    self.fedora = self.release
+    self.rhel = 0
 
   def PrepareMachineBeforeStart(self):
     return True

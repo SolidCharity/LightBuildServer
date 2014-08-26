@@ -24,6 +24,7 @@ import os
 import yaml
 import tempfile
 import shutil
+import re
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -56,6 +57,18 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
+  def evaluateSpecIf(self, condition, globals):
+    for g in globals:
+      condition = str.replace(condition, "0%{"+g+"}", str(globals[g]))
+    condition = re.sub("0%\{.*\}", "0", condition)
+    condition = str.replace(condition, "||", "or")
+    condition = str.replace(condition, "&&", "and")
+    
+    value=eval(condition)
+    if value == False or value <= 0:
+      return False
+    return True
+
   def InstallRequiredPackages(self, LBSUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
@@ -82,8 +95,29 @@ class BuildHelperCentos(BuildHelper):
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
+      IfString = ""
+      globals = {}
+      globals['suse_version'] = self.suse_version
+      globals['rhel'] = self.rhel
+      globals['fedora'] = self.fedora
+
       for line in open(specfile):
-        if line.lower().startswith("buildrequires: "):
+        if line.lower().startswith("%endif"):
+          IfString = IfString[:-1]
+        elif line.lower().startswith("%else"):
+          IfString = IfString[:-1] + ("1" if IfString[-1:] == "0" else "0")
+        if len(IfString) > 0 and (IfString[-1:] == "0"):
+          # ignore the line because we are in a false if section or else
+          IfString=IfString 
+        elif line.lower().startswith("%global"):
+          globalset=line[len("%global"):].strip().split(" ")
+          globals[globalset[0]] = globalset[1]
+        elif line.lower().startswith("%if"):
+          if not self.evaluateSpecIf(line[len("%if"):].strip(), globals):
+            IfString += "0"
+          else:
+            IfString += "1"
+        elif line.lower().startswith("buildrequires: "):
           if line.count(",") > 0:
             packagesWithVersions=line[len("BuildRequires: "):].split(",")
           else:
@@ -95,7 +129,7 @@ class BuildHelperCentos(BuildHelper):
               # filter >= 3.0, only use package names
               if word[0] == '>' or word[0] == '<' or word[0] == '=':
                 ignoreNext=True
-              else:
+              elif not "(" in word:
                 packages.append(word.strip())
             else:
               ignoreNext=False
@@ -111,7 +145,11 @@ class BuildHelperCentos(BuildHelper):
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
-      self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec rpmbuild/SPECS")
+      remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
+      self.run('sed -i "s/0%{?suse_version}/' + self.suse_version + '/g" ' + remoteSpecName)
+      self.run('sed -i "s/0%{?rhel}/' + self.rhel + '/g" ' + remoteSpecName)
+      self.run('sed -i "s/0%{?fedora}/' + self.fedora + '/g" ' + remoteSpecName)
+      self.run("cp " + remoteSpecName + " rpmbuild/SPECS")
 
       # copy patches, and other files (eg. env.sh for mono-opt)
       self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/* rpmbuild/SOURCES")
