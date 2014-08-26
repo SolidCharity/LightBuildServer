@@ -27,6 +27,7 @@ import yaml
 import os
 import shutil
 from Shell import Shell
+import logging
 
 class LightBuildServer:
   'light build server based on lxc and git'
@@ -136,6 +137,7 @@ class LightBuildServer:
           raise Exception("Problem with syncing tarballs")
         self.logger.print("Success!")
       except Exception as e:
+        logging.exception("Error happened...")
         self.logger.print("LBSERROR: "+str(e))
       finally:  
         self.ReleaseMachine(buildmachine)
