@@ -1,7 +1,7 @@
 % include('header.tpl', title=username+":"+projectname+":"+packagename+" Details", page='package', username=username)
     <div class="container">
       <div class="row">
-	<h2>Details for {{username}}:{{projectname}}:{{packagename}}</h2>
+	<h2>Details of Package {{username}}:{{projectname}}:{{packagename}}</h2>
 	<ul>
 		<li><a href="{{package['giturl']}}" target="_blank">Project sources</a></li>
 		% for branchname in sorted(package['Branches']):

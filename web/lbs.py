@@ -193,16 +193,42 @@ class LightBuildServerWeb:
             if 'Distros' in projectconfig:
               projectconfig[package]['Distros'] = projectconfig['Distros']
             projectconfig[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
-            projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
-            projectconfig[package]['buildresult'] = {}
-            for buildtarget in projectconfig[package]['Distros']:
-              projectconfig[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
           if 'Distros' in projectconfig:
             del projectconfig['Distros']
           if 'Packages' in projectconfig:
             del projectconfig['Packages']
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+
+    def project(self, user, project):
+        # for displaying the logout link
+        auth_username = request.get_cookie("account", secret='some-secret-key')
+
+        userconfig=copy.deepcopy(self.config['lbs']['Users'][user])
+
+        projectconfig=userconfig['Projects'][project]
+        if 'Packages' in projectconfig:
+          packages = userconfig['Projects'][project]['Packages']
+        else:
+          packages = userconfig['Projects'][project]
+        for package in packages:
+          if not package in projectconfig:
+            projectconfig[package] = {}
+          if 'Distros' in projectconfig:
+            projectconfig[package]['Distros'] = projectconfig['Distros']
+          projectconfig[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
+          projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
+          projectconfig[package]['buildresult'] = {}
+          for buildtarget in projectconfig[package]['Distros']:
+            projectconfig[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
+        if 'Distros' in projectconfig:
+          del projectconfig['Distros']
+        if 'Packages' in projectconfig:
+          del projectconfig['Packages']
+        users={}
+        users[user] = userconfig['Projects']
+
+        return template('project', users = users, auth_username=auth_username, username=user, project=project, logout_auth_username=self.getLogoutAuthUsername())
 
     def package(self, username, projectname, packagename):
         # for displaying the logout link
@@ -267,6 +293,7 @@ bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithbranchandpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/package/<username>/<projectname>/<packagename>')(myApp.package)
+bottle.route('/project/<user>/<project>')(myApp.project)
 bottle.route('/')(myApp.listProjects)
 bottle.route('/projects')(myApp.listProjects)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
