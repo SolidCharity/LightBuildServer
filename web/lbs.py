@@ -79,10 +79,20 @@ class LightBuildServerWeb:
         lbs=LightBuildServer(Logger())
         packages=lbs.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
 
-        message=""
-        for package in packages:
-          # TODO add package to build queue
-          message += package+ ", "
+        if packages is None:
+          message="Error: circular dependancy!"
+        else:
+          message=""
+          branchname="master"
+          for packagename in packages:
+            # add package to build queue
+            message += packagename + ", "
+            lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+            if lbsName in self.recentlyFinishedLbsList:
+              del self.recentlyFinishedLbsList[lbsName]
+            if not lbsName in self.lbsList:
+              self.ToBuild.append(lbsName)
+              self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
 
         # TODO redirect to build queue listing
         return template("<p>Build for project {{projectname}} has been triggered.</p>{{message}}<br/><a href='/'>Back to main page</a>", projectname=projectname, message=message)

@@ -238,6 +238,23 @@ class BuildHelperCentos(BuildHelper):
       unsorted[package] = 1
       self.packagename=package
       (depends[package],provides[package]) = self.GetDependanciesAndProvides()
-    for package in packages:
-      result.append(package)  
+
+    loopCounter = len(unsorted)
+    for i in range(1, loopCounter):
+      nextPackage = None
+      for package in unsorted:
+        if nextPackage is None:
+          missingRequirement=False
+          # check that this package does not require a package that is in unsorted
+          for dep in depends[package]:
+            if dep in unsorted:
+              missingRequirement=True
+          if not missingRequirement:
+            nextPackage=package
+      if nextPackage == None and len(unsorted) > 0:
+        # problem: circular dependancy
+        return None
+      result.append(package)
+      del unsorted[package]
+
     return result
