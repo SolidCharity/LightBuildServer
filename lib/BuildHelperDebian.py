@@ -112,7 +112,8 @@ class BuildHelperDebian(BuildHelper):
          return False
     return True
 
-  def BuildPackage(self, LBSUrl):
+  def BuildPackage(self, config):
+    LBSUrl = config['lbs']['LBSUrl']
     pathSrc="/var/lib/lbs/src/"+self.username
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):

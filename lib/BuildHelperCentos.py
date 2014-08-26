@@ -19,6 +19,7 @@
 # USA
 #
 from BuildHelper import BuildHelper;
+import time
 import os
 import yaml
 import tempfile
@@ -102,7 +103,10 @@ class BuildHelperCentos(BuildHelper):
             return False
     return True
 
-  def BuildPackage(self, LBSUrl):
+  def BuildPackage(self, config):
+    LBSUrl = config['lbs']['LBSUrl']
+    DeletePackagesAfterDays = config['lbs']['DeletePackagesAfterDays']
+    KeepMinimumPackages = config['lbs']['KeepMinimumPackages']
     repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
@@ -134,11 +138,13 @@ class BuildHelperCentos(BuildHelper):
       elif arch == "i686":
         arch="i386"
 
+      rpmfiles=[]
       if os.path.isdir(repopath + "/" + arch):
         for file in os.listdir(repopath + "/" + arch):
           # TODO use GetSpecFilename, without spec, instead of packagename
           if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
             oldnumber=int(file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")])
+            rpmfiles.append(str(oldnumber).zfill(6) + ":" + file)
             if oldnumber >= buildnumber:
               buildnumber = oldnumber + 1
       self.run("sed -i -e 's/Release: %{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
@@ -149,6 +155,18 @@ class BuildHelperCentos(BuildHelper):
       self.run("mkdir -p ~/repo/src")
       self.run("cp ~/rpmbuild/SRPMS/*.src.rpm ~/repo/src")
       self.run("cp -R ~/rpmbuild/RPMS/* ~/repo")
+
+      # clean up old packages
+      MaximumAgeInSeconds=time.time() - (DeletePackagesAfterDays*24*60*60)
+      rpmfiles=sorted(rpmfiles)
+      if (len(rpmfiles) > KeepMinimumPackages):
+        for i in range(1, len(rpmfiles) - KeepMinimumPackages + 1):
+          file=rpmfiles[i - 1][7:]
+          # delete older rpm files, depending on DeletePackagesAfterDays
+          if os.path.getmtime(repopath + "/" + arch + "/" + file) < MaximumAgeInSeconds:
+            self.run("rm -f " + "/root/repo/" + arch + "/" + file)
+            self.run("rm -f " + "/root/repo/src/" + str.replace(file, arch+".rpm", "src.rpm"))
+
       if not self.run("cd repo && createrepo ."):
         return False
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"

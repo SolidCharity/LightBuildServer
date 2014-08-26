@@ -31,6 +31,9 @@ class BuildHelper:
     self.projectname = projectname
     self.packagename = packagename
 
+  def log(self, message):
+    self.container.logger.print(message);
+
   def run(self, command):
     return self.container.executeInContainer(command)
 
@@ -63,7 +66,7 @@ class BuildHelper:
     print("not implemented")
     return True
 
-  def BuildPackage(self, LBSUrl):
+  def BuildPackage(self, config):
     print("not implemented")
     return True
 

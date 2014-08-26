@@ -124,7 +124,7 @@ class LightBuildServer:
         # disable the network, so that only code from the tarball is being used
         if not self.buildHelper.DisableOutgoingNetwork():
           raise Exception("Problem with disabling the network")
-        if not self.buildHelper.BuildPackage(self.config['lbs']['LBSUrl']):
+        if not self.buildHelper.BuildPackage(self.config):
           raise Exception("Problem with building the package")
         if not self.container.rsyncHostGet("/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease):
           raise Exception("Problem with syncing repos")
