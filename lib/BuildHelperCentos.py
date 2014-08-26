@@ -40,7 +40,7 @@ class BuildHelperCentos(BuildHelper):
     #self.run("yum clean headers dbcache rpmdb")
     if not self.run("yum -y update"):
       return False
-    if not self.run("yum -y install tar createrepo"):
+    if not self.run("yum -y install tar createrepo gcc rpm-build"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.container.release == "5":
@@ -81,8 +81,6 @@ class BuildHelperCentos(BuildHelper):
     self.run("yum clean metadata")
 
     # now install required packages
-    if not self.run("yum -y install rpm-build"):
-      return False
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       for line in open(specfile):
