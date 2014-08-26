@@ -25,6 +25,7 @@ import yaml
 import tempfile
 import shutil
 import re
+import logging
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -63,8 +64,11 @@ class BuildHelperCentos(BuildHelper):
     condition = re.sub("0%\{.*\}", "0", condition)
     condition = str.replace(condition, "||", "or")
     condition = str.replace(condition, "&&", "and")
-    
-    value=eval(condition)
+    try:
+      value=eval(condition)
+    except Exception as e:
+      logging.exception("cannot eval " + condition)
+      value = False
     if value == False or value <= 0:
       return False
     return True
@@ -133,7 +137,7 @@ class BuildHelperCentos(BuildHelper):
                 packages.append(word.strip())
             else:
               ignoreNext=False
-          if not self.run("yum -y install " + " ".join(packages)):
+          if len(packages) > 0 and not self.run("yum -y install " + " ".join(packages)):
             return False
     return True
 
