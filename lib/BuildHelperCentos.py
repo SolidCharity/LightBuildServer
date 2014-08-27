@@ -182,8 +182,8 @@ class BuildHelperCentos(BuildHelper):
   def GetDependanciesAndProvides(self):
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
-    depends=[]
-    provides=[]
+    builddepends=[]
+    provides={}
     if os.path.isfile(specfile):
       for line in open(specfile):
         if line.lower().startswith("buildrequires: "):
@@ -198,18 +198,25 @@ class BuildHelperCentos(BuildHelper):
               if word[0] == '>' or word[0] == '<' or word[0] == '=':
                 ignoreNext=True
               else:
-                depends.append(word.strip())
+                builddepends.append(word.strip())
             else:
               ignoreNext=False
 
-      name = self.packagename 
+      name = self.packagename
+      recentpackagename=name
       for line in open(specfile):
         if line.lower().startswith("name:"):
           name = line[len("name:"):].strip()
-          provides.append(name)
+          recentpackagename=name
+          provides[name] = []
         elif line.lower().startswith("%package -n"):
-          provides.append(line[len("%package -n"):].strip())
+          recentpackagename=line[len("%package -n"):].strip()
+          provides[recentpackagename] = []
         elif line.lower().startswith("%package"):
-          provides.append(self.packagename + "-" + line[len("%package"):].strip())
+          recentpackagename=self.packagename + "-" + line[len("%package"):].strip()
+          provides[recentpackagename] = []
+        elif line.lower().startswith("requires:"):
+          r = line[len("requires:"):].strip().replace("(", "-").replace(")", "")
+          provides[recentpackagename].append(r.split()[0])
 
-    return (depends, provides)
+    return (builddepends, provides)

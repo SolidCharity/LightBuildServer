@@ -111,6 +111,7 @@ class BuildHelper:
     else:
       packages = userconfig['Projects'][self.projectname]
     unsorted={}
+    builddepends={}
     depends={}
     provides={}
     for package in packages:
@@ -121,19 +122,22 @@ class BuildHelper:
             excludeDistro = True
       if not excludeDistro:
         self.packagename=package
-        (depends[package],provides[package]) = self.GetDependanciesAndProvides()
+        (builddepends[package],provides[package]) = self.GetDependanciesAndProvides()
         for p in provides[package]:
           unsorted[p] = 1
+          depends[p] = provides[package][p]
         if not package in unsorted:
           unsorted[package] = 1
         # useful for debugging:
-        if False:
-          print( package + " depends on: ")
-          for p in depends[package]:
+        if True:
+          print( package + " builddepends on: ")
+          for p in builddepends[package]:
             print("   " + p)
           print( package + " provides: ")
           for p in provides[package]:
-            print("   " + p)
+            print("   " + p + " which depends on:")
+            for d in depends[p]:
+              print("      " + d)
 
     while len(unsorted) > 0:
       nextPackage = None
@@ -141,9 +145,13 @@ class BuildHelper:
         if package in packages and nextPackage is None:
           missingRequirement=False
           # check that this package does not require a package that is in unsorted
-          for dep in depends[package]:
+          for dep in builddepends[package]:
             if dep in unsorted:
               missingRequirement=True
+            if dep in depends:
+              for dep2 in depends[dep]:
+                if dep2 in unsorted:
+                  missingRequirement=True
           if not missingRequirement:
             nextPackage=package
       if nextPackage == None:
