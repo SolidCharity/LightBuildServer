@@ -72,7 +72,7 @@ class BuildHelper:
         self.run("curl -L " + url + " -o /root/sources/`basename " + url + "`")
     return True
 
-  def InstallRequiredPackages(self, LBSUrl):
+  def InstallRequiredPackages(self, DownloadUrl):
     print("not implemented")
     return True
 
@@ -93,7 +93,7 @@ class BuildHelper:
       return False
     return True
 
-  def GetRepoInstructions(self, LBSUrl, buildtarget):
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
     return "not implemented"
  
   def GetDependanciesAndProvides(self, config, lxcdistro, lxcrelease, lxcarch):

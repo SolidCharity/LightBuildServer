@@ -52,7 +52,7 @@ class BuildHelperDebian(BuildHelper):
           return file
     return self.packagename + ".dsc"
 
-  def InstallRequiredPackages(self, LBSUrl):
+  def InstallRequiredPackages(self, DownloadUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
     configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
@@ -67,7 +67,7 @@ class BuildHelperDebian(BuildHelper):
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
     if os.path.isfile(repofile):
-      repopath=LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
+      repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
 
     # update the repository information
@@ -113,7 +113,7 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def BuildPackage(self, config):
-    LBSUrl = config['lbs']['LBSUrl']
+    DownloadUrl = config['lbs']['DownloadUrl']
     pathSrc="/var/lib/lbs/src/"+self.username
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
@@ -140,9 +140,9 @@ class BuildHelperDebian(BuildHelper):
         return False
     return True
 
-  def GetRepoInstructions(self, LBSUrl, buildtarget):
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
-    result = "echo 'deb " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
+    result = "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]

@@ -58,7 +58,7 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
-  def InstallRequiredPackages(self, LBSUrl):
+  def InstallRequiredPackages(self, DownloadUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
     configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
@@ -89,7 +89,7 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def BuildPackage(self, config):
-    LBSUrl = config['lbs']['LBSUrl']
+    DownloadUrl = config['lbs']['DownloadUrl']
     DeletePackagesAfterDays = config['lbs']['DeletePackagesAfterDays']
     KeepMinimumPackages = config['lbs']['KeepMinimumPackages']
     repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release
@@ -160,7 +160,7 @@ class BuildHelperCentos(BuildHelper):
         return False
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
-      repoFileContent+="baseurl=" + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
+      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
       repofile="lbs-"+self.username + "-"+self.projectname +".repo"
@@ -168,10 +168,10 @@ class BuildHelperCentos(BuildHelper):
         f.write(repoFileContent)
     return True
 
-  def GetRepoInstructions(self, LBSUrl, buildtarget):
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = "cd /etc/yum.repos.d/\n"
-    result += "wget " + LBSUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
+    result += "wget " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
     return result

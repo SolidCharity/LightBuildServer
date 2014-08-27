@@ -4,9 +4,11 @@ lbs:
    EmailPort: 465
    EmailUser: myuser@gmail.com
    EmailPassword: secret
+   SendEmailOnSuccess: False
    DeleteLogAfterDays: 20
    KeepMinimumLogs: 5
    LBSUrl: http://lbs.example.org
+   DownloadUrl: http://download.lbs.example.org
    Users:
      demo:
        Password: demo
