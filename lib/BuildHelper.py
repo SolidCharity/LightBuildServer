@@ -124,6 +124,8 @@ class BuildHelper:
         (depends[package],provides[package]) = self.GetDependanciesAndProvides()
         for p in provides[package]:
           unsorted[p] = 1
+        if not package in unsorted:
+          unsorted[package] = 1
         # useful for debugging:
         if False:
           print( package + " depends on: ")
@@ -146,10 +148,15 @@ class BuildHelper:
             nextPackage=package
       if nextPackage == None:
         # problem: circular dependancy
+        print ("circular dependancy, remaining packages: ")
+        for p in unsorted:
+          print(p)
         return None
       result.append(nextPackage)
       for p in provides[nextPackage]:
         if p in unsorted:
           del unsorted[p]
+      if nextPackage in unsorted:
+        del unsorted[nextPackage]
 
     return result
