@@ -173,9 +173,9 @@ class LightBuildServerWeb:
           lbs = self.lbsList[lbsName]
         else:
           if lbsName in self.ToBuild: 
-            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=username, logout_auth_username=self.getLogoutAuthUsername())
+            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
           else:
-            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=username, logout_auth_username=self.getLogoutAuthUsername())
+            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
         if lbs.finished:
           output = lbs.logger.get()
