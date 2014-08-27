@@ -266,6 +266,8 @@ class LightBuildServerWeb:
         if 'Packages' in project:
           project[packagename] = project['Packages'][packagename]
         package=project[packagename]
+        if package is None:
+          package = {}
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
         package["logs"] = {}
