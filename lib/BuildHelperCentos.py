@@ -155,6 +155,8 @@ class BuildHelperCentos(BuildHelper):
           # delete older rpm files, depending on DeletePackagesAfterDays
           if os.path.getmtime(repopath + "/" + arch + "/" + file) < MaximumAgeInSeconds:
             self.run("rm -f " + "/root/repo/" + arch + "/" + file)
+            self.run("rm -f " + "/root/repo/" + arch + "/" + str.replace(file, self.packagename + "-", self.packagename + "-debuginfo-"))
+            # TODO: what about other packages provided by that source package
             self.run("rm -f " + "/root/repo/src/" + str.replace(file, arch+".rpm", "src.rpm"))
 
       if not self.run("cd repo && createrepo ."):
