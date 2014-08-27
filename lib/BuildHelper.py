@@ -27,11 +27,13 @@ class BuildHelper:
 
   def __init__(self, container, pathInsideContainer, username, projectname, packagename):
     self.container = container
+    self.fedora = 0
+    self.suse_version = 0
+    self.rhel = 0
+    self.release = 0
     if container is not None:
       self.arch = container.arch
       self.release = container.release
-      self.fedora = 0
-      self.suse_version = 0
       self.rhel = self.release
     self.pathInsideContainer = pathInsideContainer
     self.username = username
