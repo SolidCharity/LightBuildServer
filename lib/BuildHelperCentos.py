@@ -41,7 +41,7 @@ class BuildHelperCentos(BuildHelper):
     #self.run("yum clean headers dbcache rpmdb")
     if not self.run("yum -y update"):
       return False
-    if not self.run("yum -y install tar createrepo gcc rpm-build"):
+    if not self.run("yum -y install tar createrepo gcc rpm-build yum-utils"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -98,7 +98,9 @@ class BuildHelperCentos(BuildHelper):
 
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
-    if os.path.isfile(specfile):
+    remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
+    self.run("yum-builddep -y " + remoteSpecName)
+    if False and os.path.isfile(specfile):
       IfString = ""
       globals = {}
       globals['suse_version'] = self.suse_version
@@ -150,9 +152,9 @@ class BuildHelperCentos(BuildHelper):
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
-      self.run('sed -i "s/0%{?suse_version}/' + self.suse_version + '/g" ' + remoteSpecName)
-      self.run('sed -i "s/0%{?rhel}/' + self.rhel + '/g" ' + remoteSpecName)
-      self.run('sed -i "s/0%{?fedora}/' + self.fedora + '/g" ' + remoteSpecName)
+      self.run('sed -i "s/0%{?suse_version}/' + str(self.suse_version) + '/g" ' + remoteSpecName)
+      self.run('sed -i "s/0%{?rhel}/' + str(self.rhel) + '/g" ' + remoteSpecName)
+      self.run('sed -i "s/0%{?fedora}/' + str(self.fedora) + '/g" ' + remoteSpecName)
       self.run("cp " + remoteSpecName + " rpmbuild/SPECS")
 
       # copy patches, and other files (eg. env.sh for mono-opt)
