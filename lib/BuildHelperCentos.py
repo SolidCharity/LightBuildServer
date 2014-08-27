@@ -58,21 +58,6 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
-  def evaluateSpecIf(self, condition, globals):
-    for g in globals:
-      condition = str.replace(condition, "0%{"+g+"}", str(globals[g]))
-    condition = re.sub("0%\{.*\}", "0", condition)
-    condition = str.replace(condition, "||", "or")
-    condition = str.replace(condition, "&&", "and")
-    try:
-      value=eval(condition)
-    except Exception as e:
-      logging.exception("cannot eval " + condition)
-      value = False
-    if value == False or value <= 0:
-      return False
-    return True
-
   def InstallRequiredPackages(self, LBSUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
@@ -99,48 +84,8 @@ class BuildHelperCentos(BuildHelper):
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
-    self.run("yum-builddep -y " + remoteSpecName)
-    if False and os.path.isfile(specfile):
-      IfString = ""
-      globals = {}
-      globals['suse_version'] = self.suse_version
-      globals['rhel'] = self.rhel
-      globals['fedora'] = self.fedora
-
-      for line in open(specfile):
-        if line.lower().startswith("%endif"):
-          IfString = IfString[:-1]
-        elif line.lower().startswith("%else"):
-          IfString = IfString[:-1] + ("1" if IfString[-1:] == "0" else "0")
-        if len(IfString) > 0 and (IfString[-1:] == "0"):
-          # ignore the line because we are in a false if section or else
-          IfString=IfString 
-        elif line.lower().startswith("%global"):
-          globalset=line[len("%global"):].strip().split(" ")
-          globals[globalset[0]] = globalset[1]
-        elif line.lower().startswith("%if"):
-          if not self.evaluateSpecIf(line[len("%if"):].strip(), globals):
-            IfString += "0"
-          else:
-            IfString += "1"
-        elif line.lower().startswith("buildrequires: "):
-          if line.count(",") > 0:
-            packagesWithVersions=line[len("BuildRequires: "):].split(",")
-          else:
-            packagesWithVersions=line[len("BuildRequires: "):].split()
-          packages=[]
-          ignoreNext=False
-          for word in packagesWithVersions:
-            if not ignoreNext:
-              # filter >= 3.0, only use package names
-              if word[0] == '>' or word[0] == '<' or word[0] == '=':
-                ignoreNext=True
-              elif not "(" in word:
-                packages.append(word.strip())
-            else:
-              ignoreNext=False
-          if len(packages) > 0 and not self.run("yum -y install " + " ".join(packages)):
-            return False
+    if not self.run("yum-builddep -y " + remoteSpecName):
+      return False
     return True
 
   def BuildPackage(self, config):
