@@ -166,14 +166,15 @@ class BuildHelperCentos(BuildHelper):
   def CreateRepoFile(self, config):
     DownloadUrl = config['lbs']['DownloadUrl']
     repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release
-    repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
-    repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
-    repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
-    repoFileContent+="enabled=1\n"
-    repoFileContent+="gpgcheck=0\n"
-    repofile="lbs-"+self.username + "-"+self.projectname +".repo"
-    with open(repopath + "/" + repofile, 'w') as f:
-      f.write(repoFileContent)
+    if os.path.isdir(repopath + "/repodata"):
+      repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
+      repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
+      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
+      repoFileContent+="enabled=1\n"
+      repoFileContent+="gpgcheck=0\n"
+      repofile="lbs-"+self.username + "-"+self.projectname +".repo"
+      with open(repopath + "/" + repofile, 'w') as f:
+        f.write(repoFileContent)
     return True
 
   def GetRepoInstructions(self, DownloadUrl, buildtarget):

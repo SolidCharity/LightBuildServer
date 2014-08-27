@@ -117,8 +117,6 @@ class LightBuildServer:
 
         # get the sources of the packaging instructions
         pathSrc=self.getPackagingInstructions(userconfig, username, projectname)
-        # create repo file
-        self.buildHelper.CreateRepoFile(self.config)
         # copy the repo to the container
         self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
 
@@ -137,6 +135,8 @@ class LightBuildServer:
           raise Exception("Problem with syncing repos")
         if not self.container.rsyncHostGet("/var/www/tarballs/" + username + "/" + projectname):
           raise Exception("Problem with syncing tarballs")
+        # create repo file
+        self.buildHelper.CreateRepoFile(self.config)
         self.logger.print("Success!")
       except Exception as e:
         # TODO: logging to log file does not work yet?
