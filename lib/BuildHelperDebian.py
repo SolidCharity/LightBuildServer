@@ -151,8 +151,8 @@ class BuildHelperDebian(BuildHelper):
   def GetDependanciesAndProvides(self):
     pathSrc="/var/lib/lbs/src/"+self.username
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
-    depends=[]
-    provides=[]
+    builddepends=[]
+    provides={}
     if os.path.isfile(dscfile):
       nextLineBuildDepends=False
       for line in open(dscfile):
@@ -168,17 +168,31 @@ class BuildHelperDebian(BuildHelper):
                 optionalPackages=word.strip().split('|')
                 for word2 in optionalPackages:
                   if len(word2.strip()) > 0:
-                     depends.append(word2.split()[0])
+                     builddepends.append(word2.split()[0])
               else:
                 # only use package names, ignore space (>= 9)
                 if len(word.strip()) > 0:
-                  depends.append(word.split()[0])
+                  builddepends.append(word.split()[0])
 
     controlfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
+    recentpackagename=self.packagename
+    nextLineDepends=False
     if os.path.isfile(controlfile):
       for line in open(controlfile):
+        packagesWithVersions=None
         if line.lower().startswith("package:"):
-          provides.append(line[len("package:"):].strip())
+          recentpackagename=line[len("package:"):].strip()
+          provides[recentpackagename] = []
+        elif line.lower().startswith("depends:"):
+          packagesWithVersions=line[len("depends:"):].strip().split(',')
+        if nextLineDepends:
+          packagesWithVersions=line.strip().split(',')
+        if packagesWithVersions is not None:
+          nextLineDepends=line.strip().endswith(",") or line.strip().endswith(":")
+          for word in packagesWithVersions:
+            for w2 in word.split('|'):
+              if len(w2.strip()) > 0:
+                provides[recentpackagename].append(w2.split()[0].strip())
 
-    return (depends, provides)
+    return (builddepends, provides)
 

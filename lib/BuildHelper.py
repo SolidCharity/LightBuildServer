@@ -129,7 +129,7 @@ class BuildHelper:
         if not package in unsorted:
           unsorted[package] = 1
         # useful for debugging:
-        if True:
+        if False:
           print( package + " builddepends on: ")
           for p in builddepends[package]:
             print("   " + p)
