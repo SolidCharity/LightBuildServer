@@ -20,6 +20,12 @@
               </li>
            % end
         </ul>
+	<h2>Planned Jobs</h2>
+	<ul>
+		% for job in jobs:
+		<li>{{job[0]}}-{{job[1]}}-{{job[2]}}-{{job[3]}}-{{job[4]}}-{{job[5]}}</li>
+		% end
+	</ul>
       </div>
     </div>
 % include('footer.tpl')

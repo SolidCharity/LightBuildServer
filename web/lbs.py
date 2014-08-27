@@ -196,7 +196,7 @@ class LightBuildServerWeb:
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
 
-      return template('machines', buildmachines=buildmachines, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+      return template('machines', buildmachines=buildmachines, jobs=self.buildqueue, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def listProjects(self):
       # for displaying the logout link
