@@ -264,7 +264,7 @@ class LightBuildServerWeb:
         user=copy.deepcopy(self.config['lbs']['Users'][username])
         project=user['Projects'][projectname]
         if 'Packages' in project:
-          project[packagename] = project['Packages']
+          project[packagename] = project['Packages'][packagename]
         package=project[packagename]
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
@@ -275,6 +275,17 @@ class LightBuildServerWeb:
         for branchname in package["Branches"]:
           if not 'Distros' in package:
             package['Distros'] = project['Distros']
+          if 'ExcludeDistros' in package:
+            index=0
+            while index < len(package['Distros']):
+              d = package['Distros'][index]
+              deleted = False
+              for exclude in package['ExcludeDistros']:
+                if not deleted and d.startswith(exclude):
+                  del package['Distros'][index]
+                  deleted = True
+              if not deleted:
+                index+=1
           for buildtarget in package['Distros']:
             package["logs"][buildtarget+"-"+branchname] = Logger().getBuildNumbers(username, projectname, packagename, branchname, buildtarget)
         for buildtarget in package['Distros']:
