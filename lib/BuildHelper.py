@@ -120,15 +120,23 @@ class BuildHelper:
           if (lxcdistro + "/" + lxcrelease + "/" + lxcarch).startswith(exclude):
             excludeDistro = True
       if not excludeDistro:
-        unsorted[package] = 1
         self.packagename=package
         (depends[package],provides[package]) = self.GetDependanciesAndProvides()
+        for p in provides[package]:
+          unsorted[p] = 1
+        # useful for debugging:
+        if False:
+          print( package + " depends on: ")
+          for p in depends[package]:
+            print("   " + p)
+          print( package + " provides: ")
+          for p in provides[package]:
+            print("   " + p)
 
-    loopCounter = len(unsorted)
-    for i in range(1, loopCounter):
+    while len(unsorted) > 0:
       nextPackage = None
       for package in unsorted:
-        if nextPackage is None:
+        if package in packages and nextPackage is None:
           missingRequirement=False
           # check that this package does not require a package that is in unsorted
           for dep in depends[package]:
@@ -136,10 +144,12 @@ class BuildHelper:
               missingRequirement=True
           if not missingRequirement:
             nextPackage=package
-      if nextPackage == None and len(unsorted) > 0:
+      if nextPackage == None:
         # problem: circular dependancy
         return None
-      result.append(package)
-      del unsorted[package]
+      result.append(nextPackage)
+      for p in provides[nextPackage]:
+        if p in unsorted:
+          del unsorted[p]
 
     return result
