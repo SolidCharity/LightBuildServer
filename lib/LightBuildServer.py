@@ -117,6 +117,8 @@ class LightBuildServer:
 
         # get the sources of the packaging instructions
         pathSrc=self.getPackagingInstructions(userconfig, username, projectname)
+        # create repo file
+        self.buildHelper.CreateRepoFile(self.config)
         # copy the repo to the container
         self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
 

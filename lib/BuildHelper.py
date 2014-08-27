@@ -95,6 +95,9 @@ class BuildHelper:
 
   def GetRepoInstructions(self, DownloadUrl, buildtarget):
     return "not implemented"
+
+  def CreateRepoFile(self, config):
+    return "not implemented"
  
   def GetDependanciesAndProvides(self, config, lxcdistro, lxcrelease, lxcarch):
     print("not implemented")
