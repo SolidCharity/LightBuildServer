@@ -40,7 +40,8 @@ class BuildHelperCentos(BuildHelper):
   def PrepareForBuilding(self):
     #self.run("yum clean headers dbcache rpmdb")
     if not self.run("yum -y update"):
-      return False
+      if not self.run("yum clean all && yum -y update"):
+        return False
     if not self.run("yum -y install tar createrepo gcc rpm-build yum-utils"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
