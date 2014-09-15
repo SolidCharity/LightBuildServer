@@ -33,6 +33,7 @@ class Logger:
 
   def __init__(self):
     self.logspath = "/var/www/logs"
+    self.lastTimeUpdate = int(time.time())
     self.startTimer()
     configfile="../config.yml"
     stream = open(configfile, 'r')
@@ -60,6 +61,7 @@ class Logger:
       if newOutput[-1:] != "\n":
         newOutput += "\n"
       timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
+      self.lastTimeUpdate = int(time.time())
       if "LBSERROR" in newOutput:
         self.error = True
       self.output += timeprefix + newOutput

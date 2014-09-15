@@ -7,6 +7,10 @@ lbs:
    SendEmailOnSuccess: False
    DeleteLogAfterDays: 20
    KeepMinimumLogs: 5
+   DeletePackagesAfterDays: 4
+   KeepMinimumPackages: 4
+   # BuildingTimeout in seconds, will stop the build if no output from build script arrives within that time
+   BuildingTimeout: 600
    LBSUrl: http://lbs.example.org
    DownloadUrl: http://download.lbs.example.org
    Users:

@@ -64,7 +64,11 @@ class LightBuildServer:
         with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a') as f:
           f.write(buildjob)
         return buildmachine
-      # TODO check for hanging build (BuildTimeout in config.yml)
+      # check for hanging build (BuildingTimeout in config.yml)
+      for lbsName in self.lbsList:
+        lbs = self.lbsList[lbsName]
+        if (lbs.buildmachine == buildmachine) and (lbs.logger.lastTimeUpdate + self.config['lbs']['BuildingTimeout'] < int(time.time())):
+          self.ReleaseMachine(buildmachine)
     return None
 
   def ReleaseMachine(self, buildmachine):

@@ -37,12 +37,14 @@ class Build:
     self.logger = logger
     self.container = None
     self.finished = False
+    self.buildmachine = None
     configfile="../config.yml"
     stream = open(configfile, 'r')
     self.config = yaml.load(stream)
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     # create a container on a remote machine
+    self.buildmachine = buildmachine
     self.container = RemoteContainer(buildmachine, self.logger)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
