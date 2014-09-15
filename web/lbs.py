@@ -2,7 +2,6 @@
 import sys
 import bottle
 import os
-import time
 from bottle import route, run, template, static_file, request, response
 import lxc
 import socket
@@ -11,22 +10,15 @@ from LightBuildServer import LightBuildServer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
-from threading import Thread
 import yaml
 import copy
-from collections import deque
 
 class LightBuildServerWeb:
     def __init__(self):
         configfile="../config.yml"
         stream = open(configfile, 'r')
         self.config = yaml.load(stream)
-        self.lbsList = {}
-        self.recentlyFinishedLbsList = {}
-        self.buildqueue = deque()
-        self.ToBuild = deque()
-        thread = Thread(target = self.buildqueuethread, args=())
-        thread.start()
+        self.LBS = LightBuildServer()
 
     def check_login(self, username, password):
         if username in self.config['lbs']['Users'] and self.config['lbs']['Users'][username]['Password'] == password:
@@ -66,9 +58,6 @@ class LightBuildServerWeb:
             return " " + auth_username
         return ""
 
-    def getLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-        return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
-
     def buildproject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
         auth_username = request.get_cookie("account", secret='some-secret-key')
         if not auth_username:
@@ -76,23 +65,7 @@ class LightBuildServerWeb:
         if not auth_username == username:
             return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/project/" + username + "/" + projectname)
 
-        lbs=LightBuildServer(Logger())
-        packages=lbs.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
-
-        if packages is None:
-          message="Error: circular dependancy!"
-        else:
-          message=""
-          branchname="master"
-          for packagename in packages:
-            # add package to build queue
-            message += packagename + ", "
-            lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-            if lbsName in self.recentlyFinishedLbsList:
-              del self.recentlyFinishedLbsList[lbsName]
-            if not lbsName in self.lbsList:
-              self.ToBuild.append(lbsName)
-              self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+        message = self.LBS.BuildProject(username, projectname, lxcdistro, lxcrelease, lxcarch)
 
         # TODO redirect to build queue listing
         return template("<p>Build for project {{projectname}} has been triggered.</p>{{message}}<br/><a href='/'>Back to main page</a>", projectname=projectname, message=message)
@@ -107,12 +80,8 @@ class LightBuildServerWeb:
         if not auth_username == username:
             return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/package/" + username + "/" + projectname + "/" + packagename)
 
-        lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if lbsName in self.recentlyFinishedLbsList:
-          del self.recentlyFinishedLbsList[lbsName]
-        if not lbsName in self.lbsList:
-          self.ToBuild.append(lbsName)
-          self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+        self.LBS.BuildProjectWithBranch(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+
         bottle.redirect("/livelog/"+username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
 
     def triggerbuildwithpwd(self, username, projectname, packagename, lxcdistro, lxcrelease, lxcarch, auth_username, password):
@@ -120,70 +89,18 @@ class LightBuildServerWeb:
 
     def triggerbuildwithbranchandpwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
       # note: we are not using the template message, because this will be processed by scripts usually
-      if auth_username == username and self.check_login(auth_username, password):
-        lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if not lbsName in self.lbsList:
-          self.ToBuild.append(lbsName)
-          self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
-          return template("<p>Build for {{lbsName}} has been triggered.</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
-        else:
-          return template("<p>{{lbsName}} is already in the build queue.</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
-      return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
+      if not (auth_username == username and self.check_login(auth_username, password)):
+       return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
 
-    def WaitForBuildJobFinish(self, thread, lbsName):
-      thread.join()
-      self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName] 
-      del self.lbsList[lbsName]
-
-    def buildqueuethread(self):
-      while True:
-        if len(self.buildqueue) > 0:
-          # peek at the leftmost item
-          item = self.buildqueue[0]
-          username = item[0]
-          projectname = item[1]
-          packagename = item[2]
-          branchname = item[3]
-          lxcdistro = item[4]
-          lxcrelease = item[5]
-          lxcarch = item[6]
-          lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-          lbs=LightBuildServer(Logger())
-          # get name of available slot
-          buildmachine=lbs.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
-          if not buildmachine == None:
-            self.lbsList[lbsName] = lbs
-            thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
-            thread.start()
-            threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
-            threadWait.start()
-            self.ToBuild.remove(lbsName)
-            self.buildqueue.remove(item)
-        # sleep two seconds before looping through buildqueue again
-        time.sleep(2)
+      message = self.LBS.BuildProjectWithBranchAndPwd(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password)
+ 
+      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
 
     def livelog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
 
-        lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if lbsName in self.lbsList:
-          lbs = self.lbsList[lbsName]
-        elif lbsName in self.recentlyFinishedLbsList:
-          lbs = self.recentlyFinishedLbsList[lbsName] 
-        else:
-          if lbsName in self.ToBuild: 
-            return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
-          else:
-            return template('buildresult', buildresult="No build is planned for this package at the moment...", timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
-
-        if lbs.finished:
-          output = lbs.logger.get()
-          # stop refreshing
-          timeout=-1
-        else:
-          output = lbs.logger.get(4000)
-          timeout = 2
+        (output, timeout) = self.LBS.LiveLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
         return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
@@ -192,11 +109,10 @@ class LightBuildServerWeb:
       auth_username = request.get_cookie("account", secret='some-secret-key')
 
       buildmachines={}
-      lbs = LightBuildServer(Logger())
       for buildmachine in self.config['lbs']['Machines']:
-        buildmachines[buildmachine] = lbs.GetBuildMachineState(buildmachine)
+        buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
 
-      return template('machines', buildmachines=buildmachines, jobs=self.buildqueue, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+      return template('machines', buildmachines=buildmachines, jobs=self.LBS.buildqueue, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def listProjects(self):
       # for displaying the logout link
@@ -319,7 +235,7 @@ class LightBuildServerWeb:
       if not username:
         return self.pleaselogin()
       if action == "reset":
-        LightBuildServer(Logger()).ReleaseMachine(buildmachine)
+        self.LBS.ReleaseMachine(buildmachine)
       return template("message", title="machine available", message="The machine "+buildmachine+" should now be available.", redirect="/machines")
 
 myApp=LightBuildServerWeb()

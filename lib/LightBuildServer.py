@@ -22,29 +22,36 @@
 from RemoteContainer import RemoteContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
+from Logger import Logger
+from Build import Build
 from time import gmtime, strftime
 import yaml
 import os
 import shutil
+import time
 from Shell import Shell
 import logging
+from threading import Thread
+from collections import deque
 
 class LightBuildServer:
   'light build server based on lxc and git'
 
-  def __init__(self, logger):
-    self.logger = logger
-    self.container = None
-    self.finished = False
+  def __init__(self):
     self.MachineAvailabilityPath="/var/lib/lbs/machines"
     configfile="../config.yml"
     stream = open(configfile, 'r')
     self.config = yaml.load(stream)
 
-  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    # create a container on a remote machine
-    self.container = RemoteContainer(buildmachine, self.logger)
-    return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
+    self.lbsList = {}
+    self.recentlyFinishedLbsList = {}
+    self.buildqueue = deque()
+    self.ToBuild = deque()
+    thread = Thread(target = self.buildqueuethread, args=())
+    thread.start()
+
+  def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+    return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
 
   def GetAvailableBuildMachine(self, buildjob):
     for buildmachine in self.config['lbs']['Machines']:
@@ -57,15 +64,16 @@ class LightBuildServer:
         with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a') as f:
           f.write(buildjob)
         return buildmachine
+      # TODO check for hanging build (BuildTimeout in config.yml)
     return None
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
     staticIP = self.config['lbs']['Machines'][buildmachine]
     if not staticIP == None:
-      LXCContainer(buildmachine, self.logger).stop()
+      LXCContainer(buildmachine, Logger()).stop()
     else:
-      RemoteContainer(buildmachine, self.logger).stop()
+      RemoteContainer(buildmachine, Logger()).stop()
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
     open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
@@ -86,73 +94,11 @@ class LightBuildServer:
     if os.path.isdir(pathSrc+'lbs-'+projectname):
         #we want a clean clone
         shutil.rmtree(pathSrc+'lbs-'+projectname)
-    shell = Shell(self.logger)
+    shell = Shell(Logger())
     shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
     return pathSrc
-
-  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):
-    userconfig = self.config['lbs']['Users'][username]
-    self.logger.startTimer()
-    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
-    self.logger.print(" * Preparing the machine...")
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
-
-      try:
-        # install a mount for the project repo
-        self.container.installmount("/root/repo", "/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
-        self.container.installmount("/root/tarball", "/var/www/tarballs/" + username + "/" + projectname)
-      
-        # prepare container, install packages that the build requires; this is specific to the distro
-        self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
-        if not self.buildHelper.PrepareMachineBeforeStart():
-          raise Exception("Problem with PrepareMachineBeforeStart")
-        if self.container.startmachine():
-          self.logger.print("container has been started successfully")
-        if not self.buildHelper.PrepareMachineAfterStart():
-          raise Exception("Problem with PrepareMachineAfterStart")
-        if not self.buildHelper.PrepareForBuilding():
-          raise Exception("Problem with PrepareForBuilding")
-
-        # get the sources of the packaging instructions
-        pathSrc=self.getPackagingInstructions(userconfig, username, projectname)
-        # copy the repo to the container
-        self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
-
-        if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
-          raise Exception("Problem with InstallRequiredPackages")
-        if not self.buildHelper.DownloadSources():
-          raise Exception("Problem with DownloadSources")
-        if not self.buildHelper.SetupEnvironment(branchname):
-          raise Exception("Setup script did not succeed")
-        # disable the network, so that only code from the tarball is being used
-        if not self.buildHelper.DisableOutgoingNetwork():
-          raise Exception("Problem with disabling the network")
-        if not self.buildHelper.BuildPackage(self.config):
-          raise Exception("Problem with building the package")
-        if not self.container.rsyncHostGet("/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease):
-          raise Exception("Problem with syncing repos")
-        if not self.container.rsyncHostGet("/var/www/tarballs/" + username + "/" + projectname):
-          raise Exception("Problem with syncing tarballs")
-        # create repo file
-        self.buildHelper.CreateRepoFile(self.config)
-        self.logger.print("Success!")
-      except Exception as e:
-        # TODO: logging to log file does not work yet?
-        logging.basicConfig(level=logging.DEBUG, filename='/var/log/lbs.log')
-        logging.exception("Error happened...")
-        self.logger.print("LBSERROR: "+str(e))
-      finally:  
-        self.ReleaseMachine(buildmachine)
-    else:
-      self.logger.print("LBSERROR: There is a problem with creating the container!")
-    self.finished = True
-    logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
-    if self.logger.hasLBSERROR() or not self.config['lbs']['SendEmailOnSuccess'] == False:
-      self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
-    return self.logger.get()
 
   def CalculatePackageOrder(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
     userconfig = self.config['lbs']['Users'][username]
@@ -162,4 +108,95 @@ class LightBuildServer:
 
     buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, None, username, projectname, None)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
+
+  def BuildProject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
+    packages=self.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
+
+    if packages is None:
+      message="Error: circular dependancy!"
+    else:
+      message=""
+      branchname="master"
+      for packagename in packages:
+        # add package to build queue
+        message += packagename + ", "
+        lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+        if lbsName in self.recentlyFinishedLbsList:
+          del self.recentlyFinishedLbsList[lbsName]
+        if not lbsName in self.lbsList:
+          self.ToBuild.append(lbsName)
+          self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+
+    return message
+
+  def BuildProjectWithBranch(self, username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch):
+    lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+    if lbsName in self.recentlyFinishedLbsList:
+      del self.recentlyFinishedLbsList[lbsName]
+    if not lbsName in self.lbsList:
+       self.ToBuild.append(lbsName)
+       self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+
+  def BuildProjectWithBranchAndPwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
+    lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+    if not lbsName in self.lbsList:
+      self.ToBuild.append(lbsName)
+      self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+      return "Build for {{lbsName}} has been triggered."
+    else:
+      return "{{lbsName}} is already in the build queue."
+
+  def WaitForBuildJobFinish(self, thread, lbsName):
+      thread.join()
+      self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName]
+      del self.lbsList[lbsName]
+
+  def buildqueuethread(self):
+      while True:
+        if len(self.buildqueue) > 0:
+          # peek at the leftmost item
+          item = self.buildqueue[0]
+          username = item[0]
+          projectname = item[1]
+          packagename = item[2]
+          branchname = item[3]
+          lxcdistro = item[4]
+          lxcrelease = item[5]
+          lxcarch = item[6]
+          lbs = Build(self, Logger())
+          lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+          # get name of available slot
+          buildmachine=self.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+          if not buildmachine == None:
+            self.lbsList[lbsName] = lbs
+            thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
+            thread.start()
+            threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
+            threadWait.start()
+            self.ToBuild.remove(lbsName)
+            self.buildqueue.remove(item)
+        # sleep two seconds before looping through buildqueue again
+        time.sleep(2)
+
+  def LiveLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+        lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+        if lbsName in self.lbsList:
+          lbs = self.lbsList[lbsName]
+        elif lbsName in self.recentlyFinishedLbsList:
+          lbs = self.recentlyFinishedLbsList[lbsName]
+        else:
+          if lbsName in self.ToBuild:
+            return ("We are waiting for a build machine to become available...", 10)
+          else:
+            return ("No build is planned for this package at the moment...", -1)
+
+        if lbs.finished:
+          output = lbs.logger.get()
+          # stop refreshing
+          timeout=-1
+        else:
+          output = lbs.logger.get(4000)
+          timeout = 2
+
+        return (output, timeout)
 
