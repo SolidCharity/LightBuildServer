@@ -167,10 +167,10 @@ class LightBuildServerWeb:
         auth_username = request.get_cookie("account", secret='some-secret-key')
 
         lbsName=self.getLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if lbsName in self.recentlyFinishedLbsList:
-          lbs = self.recentlyFinishedLbsList[lbsName] 
-        elif lbsName in self.lbsList:
+        if lbsName in self.lbsList:
           lbs = self.lbsList[lbsName]
+        elif lbsName in self.recentlyFinishedLbsList:
+          lbs = self.recentlyFinishedLbsList[lbsName] 
         else:
           if lbsName in self.ToBuild: 
             return template('buildresult', buildresult="We are waiting for a build machine to become available...", timeoutInSeconds=10, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
