@@ -68,8 +68,12 @@ class BuildHelper:
       stream = open(file, 'r')
       config = yaml.load(stream)
       for url in config['lbs']['source']['download']:
+        filename="`basename " + url + "`"
+        if isinstance(config['lbs']['source']['download'], dict):
+          filename=url
+          url=config['lbs']['source']['download'][url]
         self.run("mkdir -p /root/sources")
-        self.run("curl -L " + url + " -o /root/sources/`basename " + url + "`")
+        self.run("curl -L " + url + " -o /root/sources/" + filename)
     return True
 
   def InstallRequiredPackages(self, DownloadUrl):
