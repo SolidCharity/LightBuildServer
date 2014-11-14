@@ -131,8 +131,8 @@ class Logger:
   def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
     LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
     filename=LogPath + "/build-" + str(buildnumber).zfill(6) + ".log"
-    if os.path.is_file(filename):
-      with open(filename + ".log", 'r') as content_file:
+    if os.path.isfile(filename):
+      with open(filename, 'r') as content_file:
         return content_file.read()
     return ""
 
