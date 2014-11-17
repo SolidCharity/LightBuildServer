@@ -64,12 +64,14 @@ class LightBuildServer:
         with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a') as f:
           f.write(buildjob)
         return buildmachine
+    return None
+
+  def CheckForHangingBuild(self):
       # check for hanging build (BuildingTimeout in config.yml)
       for lbsName in self.lbsList:
         lbs = self.lbsList[lbsName]
         if (lbs.buildmachine == buildmachine) and (lbs.logger.lastTimeUpdate + self.config['lbs']['BuildingTimeout'] < int(time.time())):
           self.ReleaseMachine(buildmachine)
-    return None
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
@@ -179,6 +181,7 @@ class LightBuildServer:
             threadWait.start()
             self.ToBuild.remove(lbsName)
             self.buildqueue.remove(item)
+        self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
 
