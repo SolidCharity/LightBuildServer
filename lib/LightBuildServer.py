@@ -70,8 +70,8 @@ class LightBuildServer:
       # check for hanging build (BuildingTimeout in config.yml)
       for lbsName in self.lbsList:
         lbs = self.lbsList[lbsName]
-        if (lbs.buildmachine == buildmachine) and (lbs.logger.lastTimeUpdate + self.config['lbs']['BuildingTimeout'] < int(time.time())):
-          self.ReleaseMachine(buildmachine)
+        if (lbs.logger.lastTimeUpdate + self.config['lbs']['BuildingTimeout'] < int(time.time())):
+          self.ReleaseMachine(lbs.buildmachine)
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
