@@ -76,12 +76,12 @@ class Build:
         # copy the repo to the container
         self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
 
-        if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
-          raise Exception("Problem with InstallRequiredPackages")
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
         if not self.buildHelper.SetupEnvironment(branchname):
           raise Exception("Setup script did not succeed")
+        if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
+          raise Exception("Problem with InstallRequiredPackages")
         # disable the network, so that only code from the tarball is being used
         if not self.buildHelper.DisableOutgoingNetwork():
           raise Exception("Problem with disabling the network")
