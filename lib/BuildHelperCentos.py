@@ -84,6 +84,7 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def InstallRequiredPackages(self, DownloadUrl):
+    pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"

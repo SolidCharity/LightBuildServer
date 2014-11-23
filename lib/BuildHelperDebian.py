@@ -75,6 +75,7 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def InstallRequiredPackages(self, DownloadUrl):
+    pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None
