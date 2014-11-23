@@ -72,6 +72,7 @@ class BuildHelperDebian(BuildHelper):
 
     # update the repository information
     self.run("apt-get update")
+    return True
 
   def InstallRequiredPackages(self, DownloadUrl):
     # now install required packages

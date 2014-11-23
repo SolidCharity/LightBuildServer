@@ -81,6 +81,7 @@ class BuildHelperCentos(BuildHelper):
       self.container.copytree(repofile,"/etc/yum.repos.d/")
 
     self.run("yum clean metadata")
+    return True
 
   def InstallRequiredPackages(self, DownloadUrl):
     # now install required packages
