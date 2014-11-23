@@ -59,7 +59,7 @@ class BuildHelperCentos(BuildHelper):
           return file
     return self.packagename + ".spec"
 
-  def InstallRequiredPackages(self, DownloadUrl):
+  def InstallRepositories(self, DownloadUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
     configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
@@ -82,6 +82,7 @@ class BuildHelperCentos(BuildHelper):
 
     self.run("yum clean metadata")
 
+  def InstallRequiredPackages(self, DownloadUrl):
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"

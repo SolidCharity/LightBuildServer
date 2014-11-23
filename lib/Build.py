@@ -78,6 +78,8 @@ class Build:
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
+        if not self.buildHelper.InstallRepositories(self.config['lbs']['LBSUrl']):
+          raise Exception("Problem with InstallRepositories")
         if not self.buildHelper.SetupEnvironment(branchname):
           raise Exception("Setup script did not succeed")
         if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):

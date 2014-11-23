@@ -52,7 +52,7 @@ class BuildHelperDebian(BuildHelper):
           return file
     return self.packagename + ".dsc"
 
-  def InstallRequiredPackages(self, DownloadUrl):
+  def InstallRepositories(self, DownloadUrl):
     # first install required repos
     pathSrc="/var/lib/lbs/src/"+self.username
     configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
@@ -73,6 +73,7 @@ class BuildHelperDebian(BuildHelper):
     # update the repository information
     self.run("apt-get update")
 
+  def InstallRequiredPackages(self, DownloadUrl):
     # now install required packages
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None

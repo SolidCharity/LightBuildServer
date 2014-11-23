@@ -76,6 +76,10 @@ class BuildHelper:
         self.run("curl -L " + url + " -o /root/sources/" + filename)
     return True
 
+  def InstallRepositories(self, DownloadUrl):
+    print("not implemented")
+    return True
+
   def InstallRequiredPackages(self, DownloadUrl):
     print("not implemented")
     return True
