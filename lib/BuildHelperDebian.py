@@ -19,6 +19,9 @@
 # USA
 #
 from BuildHelper import BuildHelper;
+import tempfile
+import shutil
+import re
 import os
 import yaml
 
@@ -132,7 +135,36 @@ class BuildHelperDebian(BuildHelper):
       self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
       self.run("rm -Rf tmpSource")
 
-      # TODO: build counter for automatically increasing the release number?
+      # read version from dsc file, that is on the build server
+      # (setup.sh might overwrite the version number...)
+      temppath = tempfile.mkdtemp()
+      self.container.rsyncContainerGet("/root/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename(), temppath)
+      buildversion = "1.0.0"
+      for line in open(temppath + "/" + self.GetDscFilename()):
+        if line.startswith("Version: "):
+          buildversion=line[len("Version: "):].strip()
+          if buildversion.find("-") > 0:
+            buildversion=buildversion[:buildversion.find("-")]
+          break
+      shutil.rmtree(temppath)
+
+      # build counter for automatically increasing the release number
+      buildnumber=0
+      arch=self.arch
+
+      debfiles=[]
+      repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
+      if os.path.isdir(repopath + "/" + arch + "/binary"):
+        for file in os.listdir(repopath + "/" + arch + "/binary"):
+          # TODO use GetDscFilename, without dsc, instead of packagename
+          if file.startswith(self.packagename + "_" + buildversion + "-") and file.endswith("_" + arch + ".deb"):
+            oldnumber=int(file[len(self.packagename + "_" + buildversion + "-"):-1*len("_" + arch + ".deb")])
+            debfiles.append(str(oldnumber).zfill(6) + ":" + file)
+            if oldnumber >= buildnumber:
+              buildnumber = oldnumber + 1
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/debian/changelog")
+
       if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
         return False
 
