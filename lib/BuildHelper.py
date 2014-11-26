@@ -73,7 +73,8 @@ class BuildHelper:
           filename=url
           url=config['lbs']['source']['download'][url]
         self.run("mkdir -p /root/sources")
-        self.run("curl -L " + url + " -o /root/sources/" + filename)
+        if not self.run("curl -L " + url + " -o /root/sources/" + filename):
+          return False
     return True
 
   def InstallRepositories(self, DownloadUrl):
