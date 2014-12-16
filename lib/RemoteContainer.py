@@ -27,9 +27,10 @@ from Logger import Logger
 from Shell import Shell
 
 class RemoteContainer:
-  def __init__(self, containername, port, logger):
+  def __init__(self, containername, port, cid, logger):
     self.name = containername
     self.port = str(port)
+    self.cid = cid
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc
@@ -56,18 +57,18 @@ class RemoteContainer:
       return False
     result = False
     if lxcdistro == "centos":
-      result = self.executeOnLxcHost("./scripts/initCentOS.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initCentOS.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "fedora":
       if lxcrelease == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
         lxcrelease = "20"
-      result = self.executeOnLxcHost("./scripts/initFedora.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initFedora.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "debian":
-      result = self.executeOnLxcHost("./scripts/initDebian.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initDebian.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "ubuntu":
-      result = self.executeOnLxcHost("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
+      result = self.executeOnLxcHost("./scripts/initUbuntu.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
     if result == True:
-      result = self.executeOnLxcHost("./scripts/tunnelport.sh 10 22")
+      result = self.executeOnLxcHost("./scripts/tunnelport.sh " + str(self.cid) + " 22")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnLxcHost("mkdir -p " + sshpath)
@@ -79,9 +80,9 @@ class RemoteContainer:
 
   def startmachine(self):
     if self.executeOnLxcHost("lxc-start -d -n " + self.name):
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:2010')
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:' + str(2000 + self.cid))
       # also remove the ip address
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:2010')
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + socket.gethostbyname(self.name) + ']:' + str(2000+ self.cid))
       # wait until ssh server is running
       result = self.executeInContainer('echo "container is running"')
       return result
@@ -93,7 +94,7 @@ class RemoteContainer:
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=2010 -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + str(2000+ self.cid) + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:

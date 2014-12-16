@@ -48,7 +48,10 @@ class Build:
     port = 22
     if "port" in self.config['lbs']['Machines'][buildmachine]:
       port=self.config['lbs']['Machines'][buildmachine]['port']
-    self.container = RemoteContainer(buildmachine, port, self.logger)
+    cid = 10
+    if "cid" in self.config['lbs']['Machines'][buildmachine]:
+      cid=self.config['lbs']['Machines'][buildmachine]['cid']
+    self.container = RemoteContainer(buildmachine, port, cid, self.logger)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):

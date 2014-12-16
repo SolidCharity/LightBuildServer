@@ -37,5 +37,6 @@ lbs:
        # IP is resolved through DNS
        mybuild01.lbs.example.org: 
           port: 2222
+          cid: 10
        mybuild02.lbs.example.org: 
 

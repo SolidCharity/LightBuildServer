@@ -78,7 +78,10 @@ class LightBuildServer:
     port=22
     if "port" in self.config['lbs']['Machines'][buildmachine]:
       port=self.config['lbs']['Machines'][buildmachine]['port']
-    RemoteContainer(buildmachine, port, Logger()).stop()
+    cid=10
+    if "cid" in self.config['lbs']['Machines'][buildmachine]:
+      cid=self.config['lbs']['Machines'][buildmachine]['cid']
+    RemoteContainer(buildmachine, port, cid, Logger()).stop()
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
     open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
