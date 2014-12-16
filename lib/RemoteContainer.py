@@ -27,8 +27,9 @@ from Logger import Logger
 from Shell import Shell
 
 class RemoteContainer:
-  def __init__(self, containername, logger):
+  def __init__(self, containername, port, logger):
     self.name = containername
+    self.port = str(port)
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc
@@ -41,7 +42,7 @@ class RemoteContainer:
     self.LXCHOME_PATH = "/var/lib/lxc/"
 
   def executeOnLxcHost(self, command):
-    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
     return False
 
@@ -66,12 +67,12 @@ class RemoteContainer:
     if lxcdistro == "ubuntu":
       result = self.executeOnLxcHost("./scripts/initUbuntu.sh " + self.name + " 10 " + lxcrelease + " " + lxcarch + " 0")
     if result == True:
-      result = self.executeOnLxcHost("./scripts/tunnelport.sh " + self.name + " 10 22")
+      result = self.executeOnLxcHost("./scripts/tunnelport.sh 10 22")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnLxcHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
+     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
     if result == True:
       result = self.executeOnLxcHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
@@ -115,20 +116,20 @@ class RemoteContainer:
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
     if dest == None:
       dest = src
     dest = dest[:dest.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" ' + src + ' root@' + self.name + ':' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.name + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + '" root@' + self.name + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):

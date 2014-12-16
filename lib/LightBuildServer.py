@@ -75,11 +75,10 @@ class LightBuildServer:
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
-    staticIP = self.config['lbs']['Machines'][buildmachine]
-    if not staticIP == None:
-      LXCContainer(buildmachine, Logger()).stop()
-    else:
-      RemoteContainer(buildmachine, Logger()).stop()
+    port=22
+    if "port" in self.config['lbs']['Machines'][buildmachine]:
+      port=self.config['lbs']['Machines'][buildmachine]['port']
+    RemoteContainer(buildmachine, port, Logger()).stop()
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
     open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()

@@ -34,8 +34,8 @@ lbs:
              Distros: ["centos/6/amd64", "debian/wheezy/amd64", "fedora/rawhide/amd64", "ubuntu/trusty/amd64"]
 
    Machines:
-       mybuild01.lbs.example.org: 10.0.3.2
-       mybuild02.lbs.example.org: 10.0.3.3
-       # remote machines: IP is resolved through DNS
-       build03.lbs.example.org:
+       # IP is resolved through DNS
+       mybuild01.lbs.example.org: 
+          port: 2222
+       mybuild02.lbs.example.org: 
 
