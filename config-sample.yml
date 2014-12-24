@@ -13,6 +13,7 @@ lbs:
    BuildingTimeout: 600
    LBSUrl: http://lbs.example.org
    DownloadUrl: http://download.lbs.example.org
+   SSHContainerPath: /root/.sshcontainer
    Users:
      demo:
        Password: demo
