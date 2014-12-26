@@ -3,7 +3,6 @@ import sys
 import bottle
 import os
 from bottle import route, run, template, static_file, request, response
-import lxc
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from LightBuildServer import LightBuildServer

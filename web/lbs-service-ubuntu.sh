@@ -21,7 +21,7 @@
 # start the LightBuildServer
 start() {
     log_daemon_msg "Starting LightBuildServer"
-    cd /root/lightbuildserver/web
+    cd /usr/local/lightbuildserver/web
     nohup python3 ./lbs.py &> /dev/null &
     status=0
     log_end_msg $status
