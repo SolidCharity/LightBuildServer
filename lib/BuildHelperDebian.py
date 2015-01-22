@@ -177,7 +177,9 @@ class BuildHelperDebian(BuildHelper):
 
   def GetRepoInstructions(self, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
-    result = "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
+    result = ""
+    result += "apt-get install apt-transport-https\n"
+    result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]
