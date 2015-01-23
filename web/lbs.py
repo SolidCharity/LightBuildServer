@@ -93,7 +93,7 @@ class LightBuildServerWeb:
 
       message = self.LBS.BuildProjectWithBranchAndPwd(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password)
  
-      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
+      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName="")
 
     def livelog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         # for displaying the logout link
