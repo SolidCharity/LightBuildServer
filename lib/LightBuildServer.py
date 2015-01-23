@@ -103,7 +103,18 @@ class LightBuildServer:
         #we want a clean clone
         shutil.rmtree(pathSrc+'lbs-'+projectname)
     shell = Shell(Logger())
-    shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject)
+    if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
+      shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject) 
+    elif userconfig['GitType'] == 'gitlab':
+      url=lbsproject + "/repository/archive.tar.gz?ref=master"
+      tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
+      if os.path.isfile(tokenfilename):
+        with open (tokenfilename, "r") as myfile:
+          url+="&private_token="+myfile.read().strip()
+      cmd="cd " + pathSrc + ";";
+      cmd+="curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\";"
+      cmd+="tar xzf source.tar.gz; mv lbs-" + projectname + ".git lbs-" + projectname
+      shell.executeshell(cmd)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
     return pathSrc

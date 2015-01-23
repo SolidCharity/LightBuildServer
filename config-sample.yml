@@ -15,6 +15,16 @@ lbs:
    DownloadUrl: http://download.lbs.example.org
    SSHContainerPath: /root/.sshcontainer
    Users:
+     business:
+       Password: demo
+       GitURL: https://mygitlab.example.com/myusername/
+       GitType: gitlab
+       Secret: VeryLongAndUnexpectedRandomPassword871623487619234761234
+       EmailToAddress: firstname.lastname@example.org
+       Projects:
+         sample:
+           sample:
+             Distros: ["centos/6/amd64"]
      demo:
        Password: demo
        GitURL: https://github.com/myusername/
