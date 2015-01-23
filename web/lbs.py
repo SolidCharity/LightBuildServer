@@ -57,6 +57,11 @@ class LightBuildServerWeb:
             return " " + auth_username
         return ""
 
+    def checkPermission(self, auth_username, username):
+        if 'Secret' in self.config['lbs']['Users'][username] and not auth_username == username:
+          return template("message", title="Error", message="You don't have the permissions to see this content", redirect="/")
+        return None
+
     def buildproject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
         auth_username = request.get_cookie("account", secret='some-secret-key')
         if not auth_username:
@@ -98,6 +103,10 @@ class LightBuildServerWeb:
     def livelog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
+       
+        output = self.checkPermission(auth_username, username)
+        if output is not None:
+          return output
 
         (output, timeout) = self.LBS.LiveLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
@@ -120,6 +129,8 @@ class LightBuildServerWeb:
       users={}
       for user in self.config['lbs']['Users']:
         userconfig=copy.deepcopy(self.config['lbs']['Users'][user])
+        if 'Secret' in userconfig and not auth_username == user:
+          continue
         for project in userconfig['Projects']:
           projectconfig=userconfig['Projects'][project]
           if 'Packages' in projectconfig:
@@ -142,6 +153,10 @@ class LightBuildServerWeb:
     def project(self, user, project):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
+
+        output = self.checkPermission(auth_username, user)
+        if output is not None:
+          return output
 
         userconfig=copy.deepcopy(self.config['lbs']['Users'][user])
         buildtargets={}
@@ -175,6 +190,10 @@ class LightBuildServerWeb:
     def package(self, username, projectname, packagename):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
+
+        output = self.checkPermission(auth_username, username)
+        if output is not None:
+          return output
 
         user=copy.deepcopy(self.config['lbs']['Users'][username])
         project=user['Projects'][projectname]
@@ -213,6 +232,10 @@ class LightBuildServerWeb:
     def logs(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
       # for displaying the logout link
       auth_username = request.get_cookie("account", secret='some-secret-key')
+
+      output = self.checkPermission(auth_username, username)
+      if output is not None:
+        return output
 
       content = Logger().getLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
       return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
