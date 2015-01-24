@@ -116,6 +116,9 @@ class LightBuildServerWeb:
       # for displaying the logout link
       auth_username = request.get_cookie("account", secret='some-secret-key')
 
+      if auth_username is None:
+        return template('message', title="Error", message="You must be logged in to see the machines", redirect="/login")
+
       buildmachines={}
       for buildmachine in self.config['lbs']['Machines']:
         buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
