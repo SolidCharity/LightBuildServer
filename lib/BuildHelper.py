@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper: abstract base class for various builders"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -102,7 +102,7 @@ class BuildHelper:
       return False
     return True
 
-  def GetRepoInstructions(self, DownloadUrl, buildtarget):
+  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     return "not implemented"
 
   def CreateRepoFile(self, config):

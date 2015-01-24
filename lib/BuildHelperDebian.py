@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -175,11 +175,14 @@ class BuildHelperDebian(BuildHelper):
         return False
     return True
 
-  def GetRepoInstructions(self, DownloadUrl, buildtarget):
+  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = ""
     result += "apt-get install apt-transport-https\n"
-    result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
+    result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" 
+    if 'Secret' in config['lbs']['Users'][self.username]:
+        result += config['lbs']['Users'][self.username]['Secret'] + "/"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]

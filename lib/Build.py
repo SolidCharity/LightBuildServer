@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -63,8 +63,11 @@ class Build:
 
       try:
         # install a mount for the project repo
-        self.container.installmount("/root/repo", "/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease)
-        self.container.installmount("/root/tarball", "/var/www/tarballs/" + username + "/" + projectname)
+        myPath = username + "/" + projectname
+        if 'Secret' in self.config['lbs']['Users'][username]:
+          myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
+        self.container.installmount("/root/repo", "/var/www/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease)
+        self.container.installmount("/root/tarball", "/var/www/tarballs/" + myPath)
       
         # prepare container, install packages that the build requires; this is specific to the distro
         self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
@@ -99,9 +102,12 @@ class Build:
           raise Exception("Problem with disabling the network")
         if not self.buildHelper.BuildPackage(self.config):
           raise Exception("Problem with building the package")
-        if not self.container.rsyncHostGet("/var/www/repos/" + username + "/" + projectname + "/" + lxcdistro + "/" + lxcrelease):
+        myPath = username + "/" + projectname
+        if 'Secret' in self.config['lbs']['Users'][username]:
+          myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
+        if not self.container.rsyncHostGet("/var/www/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease):
           raise Exception("Problem with syncing repos")
-        if not self.container.rsyncHostGet("/var/www/tarballs/" + username + "/" + projectname):
+        if not self.container.rsyncHostGet("/var/www/tarballs/" + myPath):
           raise Exception("Problem with syncing tarballs")
         # create repo file
         self.buildHelper.CreateRepoFile(self.config)

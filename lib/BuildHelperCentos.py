@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -169,11 +169,14 @@ class BuildHelperCentos(BuildHelper):
 
   def CreateRepoFile(self, config):
     DownloadUrl = config['lbs']['DownloadUrl']
-    repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release
+    myPath = self.username + "/" + self.projectname
+    if 'Secret' in config['lbs']['Users'][self.username]:
+      myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.release
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
-      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "\n"
+      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + myPath + "/" + self.dist + "/" + self.release + "\n"
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
       repofile="lbs-"+self.username + "-"+self.projectname +".repo"
@@ -181,10 +184,13 @@ class BuildHelperCentos(BuildHelper):
         f.write(repoFileContent)
     return True
 
-  def GetRepoInstructions(self, DownloadUrl, buildtarget):
+  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = "cd /etc/yum.repos.d/\n"
-    result += "wget " + DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
+    result += "wget " + DownloadUrl + "/repos/" + self.username + "/"
+    if 'Secret' in config['lbs']['Users'][self.username]:
+        result += config['lbs']['Users'][self.username]['Secret'] + "/"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
     return result
