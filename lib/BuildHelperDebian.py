@@ -153,7 +153,10 @@ class BuildHelperDebian(BuildHelper):
       arch=self.arch
 
       debfiles=[]
-      repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
+      myPath = self.username + "/" + self.projectname
+      if 'Secret' in config['lbs']['Users'][self.username]:
+        myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+      repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
       if os.path.isdir(repopath + "/" + arch + "/binary"):
         for file in os.listdir(repopath + "/" + arch + "/binary"):
           # TODO use GetDscFilename, without dsc, instead of packagename

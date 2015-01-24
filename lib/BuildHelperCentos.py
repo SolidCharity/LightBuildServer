@@ -97,7 +97,10 @@ class BuildHelperCentos(BuildHelper):
     DownloadUrl = config['lbs']['DownloadUrl']
     DeletePackagesAfterDays = config['lbs']['DeletePackagesAfterDays']
     KeepMinimumPackages = config['lbs']['KeepMinimumPackages']
-    repopath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release
+    myPath = self.username + "/" + self.projectname
+    if 'Secret' in config['lbs']['Users'][self.username]:
+      myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.release
     pathSrc="/var/lib/lbs/src/"+self.username
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
