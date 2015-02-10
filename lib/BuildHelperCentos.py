@@ -74,6 +74,9 @@ class BuildHelperCentos(BuildHelper):
           elif repo.endswith('.rpm'):
             if not self.run("yum -y install " + repo):
               return False
+          else:
+            if not self.run("yum-config-manager --add-repo " + repo):
+              return False
 
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
