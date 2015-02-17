@@ -42,7 +42,7 @@ class BuildHelperCentos(BuildHelper):
     if not self.run("yum -y update"):
       if not self.run("yum clean all && yum -y update"):
         return False
-    if not self.run("yum -y install tar createrepo gcc rpm-build yum-utils"):
+    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -148,8 +148,16 @@ class BuildHelperCentos(BuildHelper):
             if oldnumber >= buildnumber:
               buildnumber = oldnumber + 1
       self.run("sed -i -e 's/Release: %{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
         return False
+
+      # import the private key for signing the package if the file privateLBSkey exists
+      sshContainerPath = config['lbs']['SSHContainerPath']
+      if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
+        self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
+        if not self.run("rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm"):
+          return False
 
       # add result to repo
       self.run("mkdir -p ~/repo/src")
