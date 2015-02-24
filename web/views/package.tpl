@@ -7,10 +7,16 @@
 		% for branchname in sorted(package['Branches']):
 			% for buildtarget in sorted(package['Distros']):
                         % if len(package['Branches']) > 1:
-				<h4>{{branchname}} - {{buildtarget}}</h4>
+				<a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
+				<a href="#{{branchname}}_{{buildtarget}}">
+					<h4>{{branchname}} - {{buildtarget}}</h4>
+				</a>
 			% end
                         % if len(package['Branches']) == 1:
-				<h4>{{buildtarget}}</h4>
+				<a name="{{buildtarget}}"></a>
+				<a href="#{{buildtarget}}">
+					<h4>{{buildtarget}}</h4>
+				</a>
 			% end
 			<ul>
                 		<li><a href="{{package['buildurl']}}/{{branchname}}/{{buildtarget}}">Trigger build</a></li>
