@@ -130,7 +130,7 @@ class LightBuildServerWeb:
 
         (output, timeout) = self.LBS.LiveLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
-        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+        return template('buildresult', buildresult=output, timeoutInSeconds=timeout, username=username, projectname=projectname, packagename=packagename, branchname=branchname, buildtarget=lxcdistro + "/" + lxcrelease + "/" + lxcarch, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def listMachines(self):
       # for displaying the logout link
@@ -261,7 +261,7 @@ class LightBuildServerWeb:
         return output
 
       content = Logger().getLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
-      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+      return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, buildtarget=lxcdistro + "/" + lxcrelease + "/" + lxcarch, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def repo(self, filepath):
       return static_file(filepath, root='/var/www/repos')

@@ -1,4 +1,4 @@
-% include('header.tpl', title="Build Result for "+username+"/"+projectname+"/"+packagename+"/"+branchname, page='package')
+% include('header.tpl', title="Build Result for "+username+"/"+projectname+"/"+packagename+"/"+branchname, page='package', branchname=branchname, buildtarget=buildtarget)
 <script type="text/JavaScript">
 function timedRefresh(timeoutPeriod) {
         if (timeoutPeriod > 0) {
