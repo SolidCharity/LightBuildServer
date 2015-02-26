@@ -23,6 +23,7 @@ import tempfile
 import shutil
 import re
 import os
+import glob
 import yaml
 
 class BuildHelperDebian(BuildHelper):
@@ -189,7 +190,14 @@ class BuildHelperDebian(BuildHelper):
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]
-    return result
+
+    # check if there is such a package at all
+    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
+    print(checkfile)
+    if glob.glob(checkfile):
+      return result
+
+    return None
 
   def GetDependanciesAndProvides(self):
     pathSrc="/var/lib/lbs/src/"+self.username

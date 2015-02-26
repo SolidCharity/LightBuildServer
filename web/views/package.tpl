@@ -30,9 +30,11 @@
 					</li>
 					% end	
 				</ul></li>
-				<li>Installation instructions:
-				<pre>{{package['repoinstructions'][buildtarget]}}</pre>
-				</li>
+				% if package['repoinstructions'][buildtarget] is not None:
+					<li>Installation instructions:
+					<pre>{{package['repoinstructions'][buildtarget]}}</pre>
+					</li>
+				% end
 			</ul>
 			%end
               	% end

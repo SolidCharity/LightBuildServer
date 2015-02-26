@@ -21,6 +21,7 @@
 from BuildHelper import BuildHelper;
 import time
 import os
+import glob
 import yaml
 import tempfile
 import shutil
@@ -200,14 +201,20 @@ class BuildHelperCentos(BuildHelper):
 
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
-    result = "cd /etc/yum.repos.d/\n"
-    result += "wget " + DownloadUrl + "/repos/" + self.username + "/"
+    result = "yum install yum-utils\n"
+    result += "yum-config-manager --add-repo " + DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
         result += config['lbs']['Users'][self.username]['Secret'] + "/"
-    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
-    return result
+
+    # check if there is such a package at all
+    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
+    if glob.glob(checkfile):
+      return result
+    
+    return None
 
   def GetDependanciesAndProvides(self):
     pathSrc="/var/lib/lbs/src/"+self.username
