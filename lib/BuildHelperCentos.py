@@ -78,6 +78,10 @@ class BuildHelperCentos(BuildHelper):
           else:
             if not self.run("yum-config-manager --add-repo " + repo):
               return False
+        keys = config['lbs'][self.dist][str(self.release)]['keys']
+        for key in keys:
+          if not self.run("rpm --import '" + key + "'"):
+            return False
 
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
