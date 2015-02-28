@@ -47,6 +47,7 @@ class LightBuildServer:
     self.recentlyFinishedLbsList = {}
     self.buildqueue = deque()
     self.ToBuild = deque()
+    self.finishedqueue = deque()
     thread = Thread(target = self.buildqueuethread, args=())
     thread.start()
 
@@ -168,6 +169,11 @@ class LightBuildServer:
   def WaitForBuildJobFinish(self, thread, lbsName):
       thread.join()
       self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName]
+      listLbsName=lbsName.split('-')
+      listLbsName.append(Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6]))
+      self.finishedqueue.appendleft(listLbsName)
+      if len(self.finishedqueue) > 40:
+        self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
   def buildqueuethread(self):
