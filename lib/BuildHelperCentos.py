@@ -75,8 +75,11 @@ class BuildHelperCentos(BuildHelper):
           elif repo.endswith('.rpm'):
             if not self.run("yum -y install " + repo):
               return False
-          else:
+          elif repo.startswith('http://') or repo.startswith('https://'):
             if not self.run("yum-config-manager --add-repo " + repo):
+              return False
+          else:
+            if not self.run("yum -y install " + repo):
               return False
         keys = config['lbs'][self.dist][str(self.release)]['keys']
         for key in keys:
