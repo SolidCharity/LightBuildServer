@@ -52,7 +52,7 @@ class LightBuildServer:
     thread.start()
 
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-    return username+"-"+projectname+"-"+packagename+"-"+branchname+"-"+lxcdistro+"-"+lxcrelease+"-"+lxcarch
+    return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
   def GetAvailableBuildMachine(self, buildjob):
     for buildmachine in self.config['lbs']['Machines']:
@@ -169,7 +169,7 @@ class LightBuildServer:
   def WaitForBuildJobFinish(self, thread, lbsName):
       thread.join()
       self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName]
-      listLbsName=lbsName.split('-')
+      listLbsName=lbsName.split('/')
       listLbsName.append(Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6]))
       self.finishedqueue.appendleft(listLbsName)
       if len(self.finishedqueue) > 40:
