@@ -4,10 +4,10 @@ body {
   padding-bottom: 20px;
 }
 
-a.success, li.success {
+a.success, li.success, code.success {
   background-color: lightgreen;
 }
 
-a.failure, li.failure {
+a.failure, li.failure, code.failure {
   background-color: red;
 }
