@@ -99,10 +99,11 @@ class BuildHelperCentos(BuildHelper):
     pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
-    remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
-    self.run("sed -e 's/%{release}/0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
-    if not self.run("yum-builddep -y /tmp/" + self.packagename + ".spec"):
-      return False
+    if os.path.isfile(specfile):
+      remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
+      self.run("sed -e 's/%{release}/0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
+      if not self.run("yum-builddep -y /tmp/" + self.packagename + ".spec"):
+        return False
     return True
 
   def BuildPackage(self, config):
