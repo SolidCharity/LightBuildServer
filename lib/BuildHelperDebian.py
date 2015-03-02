@@ -63,7 +63,7 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
-      if self.dist in config['lbs'] and str(self.container.release) in config['lbs'][self.dist]:
+      if self.dist in config['lbs'] and self.container.release in config['lbs'][self.dist]:
         repos = config['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
           self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
@@ -78,7 +78,7 @@ class BuildHelperDebian(BuildHelper):
     self.run("apt-get update")
     return True
 
-  def InstallRequiredPackages(self, DownloadUrl):
+  def InstallRequiredPackages(self):
     pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
     dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
@@ -193,7 +193,6 @@ class BuildHelperDebian(BuildHelper):
 
     # check if there is such a package at all
     checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
-    print(checkfile)
     if glob.glob(checkfile):
       return result
 

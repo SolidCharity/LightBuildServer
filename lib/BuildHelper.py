@@ -81,7 +81,7 @@ class BuildHelper:
     print("not implemented")
     return True
 
-  def InstallRequiredPackages(self, DownloadUrl):
+  def InstallRequiredPackages(self):
     print("not implemented")
     return True
 

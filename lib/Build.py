@@ -91,11 +91,11 @@ class Build:
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
-        if not self.buildHelper.InstallRepositories(self.config['lbs']['LBSUrl']):
+        if not self.buildHelper.InstallRepositories(self.config['lbs']['DownloadUrl']):
           raise Exception("Problem with InstallRepositories")
         if not self.buildHelper.SetupEnvironment(branchname):
           raise Exception("Setup script did not succeed")
-        if not self.buildHelper.InstallRequiredPackages(self.config['lbs']['LBSUrl']):
+        if not self.buildHelper.InstallRequiredPackages():
           raise Exception("Problem with InstallRequiredPackages")
         # disable the network, so that only code from the tarball is being used
         if not self.buildHelper.DisableOutgoingNetwork():

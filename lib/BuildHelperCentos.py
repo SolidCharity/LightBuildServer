@@ -95,7 +95,7 @@ class BuildHelperCentos(BuildHelper):
     self.run("yum clean metadata")
     return True
 
-  def InstallRequiredPackages(self, DownloadUrl):
+  def InstallRequiredPackages(self):
     pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
     specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
