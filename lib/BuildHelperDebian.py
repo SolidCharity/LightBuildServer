@@ -133,7 +133,7 @@ class BuildHelperDebian(BuildHelper):
       self.run("for file in /root/sources/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
-      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
+      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; mv \$dir/.* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
       self.run("rm -Rf tmpSource")
 
       # read version from dsc file, that is on the build server
