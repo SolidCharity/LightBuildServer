@@ -167,8 +167,9 @@ class BuildHelperDebian(BuildHelper):
               debfiles.append(str(oldnumber).zfill(6) + ":" + file)
               if oldnumber >= buildnumber:
                 buildnumber = oldnumber + 1
-            except TypeError:
+            except ValueError:
               # ignore errors if the package version contains more than 0.1.0-0
+              # avoiding ValueError: invalid literal for int() with base 10
               oldnumber=0
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc")
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/debian/changelog")
