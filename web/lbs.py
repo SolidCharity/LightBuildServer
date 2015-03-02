@@ -120,6 +120,15 @@ class LightBuildServerWeb:
  
       return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName="")
 
+    def triggerbuildprojectwithpwd(self, username, projectname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
+      # note: we are not using the template message, because this will be processed by scripts usually
+      if not (auth_username == username and self.check_login(auth_username, password)):
+       return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
+
+      message = self.LBS.BuildProject(username, projectname, lxcdistro, lxcrelease, lxcarch)
+ 
+      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName="")
+
     def livelog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
         # for displaying the logout link
         auth_username = request.get_cookie("account", secret='some-secret-key')
@@ -292,6 +301,7 @@ bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithpwd)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithbranchandpwd)
+bottle.route('/triggerbuildproject/<username>/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildprojectwithpwd)
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/package/<username>/<projectname>/<packagename>')(myApp.package)
 bottle.route('/project/<user>/<project>')(myApp.project)
