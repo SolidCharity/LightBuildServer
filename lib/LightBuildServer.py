@@ -29,6 +29,7 @@ import yaml
 import os
 import shutil
 import time
+import datetime
 from Shell import Shell
 import logging
 from threading import Thread
@@ -171,6 +172,7 @@ class LightBuildServer:
       self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName]
       listLbsName=lbsName.split('/')
       listLbsName.append(Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6]))
+      listLbsName.append(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
       self.finishedqueue.appendleft(listLbsName)
       if len(self.finishedqueue) > 40:
         self.finishedqueue.pop()

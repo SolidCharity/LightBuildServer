@@ -30,9 +30,12 @@
 	<ul>
 		% for job in finishedjobs:
 		<li>
-                                                <a href="/logs/{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}/{{job[5]}}/{{job[6]}}/{{job[7]["number"]}}">{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}-{{job[5]}}-{{job[6]}} build {{job[7]["number"]}}</a>
-                                                &nbsp;
-                                                <code class="{{job[7]["resultcode"]}}">{{"Succeeded" if job[7]["resultcode"] == "success" else "Failure"}}</code>
+			{{job[8]}}:
+			{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}-{{job[5]}}-{{job[6]}}
+			<a href="/logs/{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}/{{job[5]}}/{{job[6]}}/{{job[7]["number"]}}">
+				build {{job[7]["number"]}}</a>
+			&nbsp;
+			<code class="{{job[7]["resultcode"]}}">{{"Succeeded" if job[7]["resultcode"] == "success" else "Failure"}}</code>
 		</li>
 		% end
 	</ul>
