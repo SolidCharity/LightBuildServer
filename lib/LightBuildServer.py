@@ -106,7 +106,11 @@ class LightBuildServer:
         shutil.rmtree(pathSrc+'lbs-'+projectname)
     shell = Shell(Logger())
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
-      shell.executeshell("cd " + pathSrc + "; git clone " + lbsproject) 
+      url=lbsproject + "/archive/master.tar.gz"
+      cmd="cd " + pathSrc + ";";
+      cmd+="curl --retry 10 --retry-delay 30 -f -L -o master.tar.gz \"" + url + "\";"
+      cmd+="tar xzf master.tar.gz; mv lbs-" + projectname + "-master lbs-" + projectname
+      shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
       url=lbsproject + "/repository/archive.tar.gz?ref=master"
       tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
