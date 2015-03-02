@@ -42,7 +42,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https"):
       return False
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
