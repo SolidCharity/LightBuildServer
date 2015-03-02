@@ -162,10 +162,14 @@ class BuildHelperDebian(BuildHelper):
         for file in os.listdir(repopath + "/" + arch + "/binary"):
           # TODO use GetDscFilename, without dsc, instead of packagename
           if file.startswith(self.packagename + "_" + buildversion + "-") and file.endswith("_" + arch + ".deb"):
-            oldnumber=int(file[len(self.packagename + "_" + buildversion + "-"):-1*len("_" + arch + ".deb")])
-            debfiles.append(str(oldnumber).zfill(6) + ":" + file)
-            if oldnumber >= buildnumber:
-              buildnumber = oldnumber + 1
+            try:	
+              oldnumber=int(file[len(self.packagename + "_" + buildversion + "-"):-1*len("_" + arch + ".deb")])
+              debfiles.append(str(oldnumber).zfill(6) + ":" + file)
+              if oldnumber >= buildnumber:
+                buildnumber = oldnumber + 1
+            except TypeError:
+              # ignore errors if the package version contains more than 0.1.0-0
+              oldnumber=0
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc")
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/debian/changelog")
 
