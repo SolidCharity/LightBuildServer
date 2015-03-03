@@ -166,7 +166,9 @@ class BuildHelperCentos(BuildHelper):
       sshContainerPath = config['lbs']['SSHContainerPath']
       if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
         self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
-        if not self.run("rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm"):
+        if not self.run("if ls rpmbuild/RPMS/" + arch + "/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm; fi"):
+          return False
+        if not self.run("if ls rpmbuild/RPMS/noarch/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/noarch/*.rpm; fi"):
           return False
 
       # add result to repo
