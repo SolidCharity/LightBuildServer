@@ -9,6 +9,7 @@ lbs:
    KeepMinimumLogs: 5
    DeletePackagesAfterDays: 4
    KeepMinimumPackages: 4
+   ShowNumberOfFinishedJobs: 30
    # BuildingTimeout in seconds, will stop the build if no output from build script arrives within that time
    BuildingTimeout: 600
    LBSUrl: http://lbs.example.org

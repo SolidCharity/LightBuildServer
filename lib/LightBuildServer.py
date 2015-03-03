@@ -178,7 +178,7 @@ class LightBuildServer:
       listLbsName.append(Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6]))
       listLbsName.append(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
       self.finishedqueue.appendleft(listLbsName)
-      if len(self.finishedqueue) > 40:
+      if len(self.finishedqueue) > self.config['lbs']['ShowNumberOfFinishedJobs']:
         self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
