@@ -2,21 +2,22 @@
     <div class="container">
       <div class="row">
 		<h2>Details of Project {{username}}:{{project}}</h2>
-		Build all packages for:
+        	<table class="table">
+		<tr><td>Build all packages:</td>
 		% for buildtarget in buildtargets:
-		<a href="/buildproject/{{username}}/{{project}}/{{buildtarget}}">{{buildtarget}}</a>&nbsp;
+		<td><a href="/buildproject/{{username}}/{{project}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a></td>
 		%end
-        	<ul>
+		</tr>
 	            % for package in sorted(users[username][project]):
-        	        <li><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a>
+        	        <tr><td><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a></td>
 		        % for buildtarget in users[username][project][package]['buildresult']:
 			   % if 'resultcode' in users[username][project][package]['buildresult'][buildtarget]:
-			      <a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>&nbsp;
+			      <td><a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a></td>
 			   % end
 			% end
-			</li>
+			</tr>
                    % end
-	        </ul>
+	        </table>
       </div>
     </div>
 % include('footer.tpl')
