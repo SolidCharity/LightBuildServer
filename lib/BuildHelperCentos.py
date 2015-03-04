@@ -216,7 +216,7 @@ class BuildHelperCentos(BuildHelper):
     result += "yum-config-manager --add-repo " + DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
         result += config['lbs']['Users'][self.username]['Secret'] + "/"
-    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/\n"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
 
