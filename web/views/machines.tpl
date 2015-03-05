@@ -31,7 +31,10 @@
 		% for job in finishedjobs:
 		<tr>
 			<td>{{job[8]}}</td>
-			<td>{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}-{{job[5]}}-{{job[6]}}</td>
+			<td>
+				<a href="/package/{{job[0]}}/{{job[1]}}/{{job[2]}}#{{job[3]}}_{{job[4]}}/{{job[5]}}/{{job[6]}}">
+				{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}-{{job[5]}}-{{job[6]}}</a>
+			</td>
 			<td><a href="/logs/{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}/{{job[5]}}/{{job[6]}}/{{job[7]["number"]}}">
 				build {{job[7]["number"]}}</a></td>
 			<td>
