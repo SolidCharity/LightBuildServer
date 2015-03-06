@@ -176,30 +176,41 @@ class LightBuildServer:
         self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
+  def attemptToFindBuildMachine(self, item):
+    username = item[0]
+    projectname = item[1]
+    packagename = item[2]
+    branchname = item[3]
+    lxcdistro = item[4]
+    lxcrelease = item[5]
+    lxcarch = item[6]
+
+    # TODO
+    # 1: check if there is a package waiting from the same user and buildtarget => return False
+    # 2: check if any project that this package depends on is still building or waiting => return False
+
+    lbs = Build(self, Logger())
+    lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+    # get name of available slot
+    buildmachine=self.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+    if not buildmachine == None:
+      self.lbsList[lbsName] = lbs
+      thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
+      thread.start()
+      threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
+      threadWait.start()
+      self.ToBuild.remove(lbsName)
+      self.buildqueue.remove(item)
+      return True
+    return False
+
   def buildqueuethread(self):
       while True:
+        # TODO loop through the queue
         if len(self.buildqueue) > 0:
           # peek at the leftmost item
           item = self.buildqueue[0]
-          username = item[0]
-          projectname = item[1]
-          packagename = item[2]
-          branchname = item[3]
-          lxcdistro = item[4]
-          lxcrelease = item[5]
-          lxcarch = item[6]
-          lbs = Build(self, Logger())
-          lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-          # get name of available slot
-          buildmachine=self.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
-          if not buildmachine == None:
-            self.lbsList[lbsName] = lbs
-            thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
-            thread.start()
-            threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
-            threadWait.start()
-            self.ToBuild.remove(lbsName)
-            self.buildqueue.remove(item)
+          self.attemptToFindBuildMachine(item)
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
