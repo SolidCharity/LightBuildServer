@@ -81,7 +81,7 @@ class RemoteContainer:
     if lxcdistro == "fedora":
       if lxcrelease == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        lxcrelease = "20"
+        lxcrelease = "21"
       result = self.executeOnLxcHost("./scripts/initFedora.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
     if lxcdistro == "debian":
       result = self.executeOnLxcHost("./scripts/initDebian.sh " + self.name + " " + str(self.cid) + " " + lxcrelease + " " + lxcarch + " 0")
