@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for LXC Container Management"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,10 +27,16 @@ from Logger import Logger
 from Shell import Shell
 
 class RemoteContainer:
-  def __init__(self, containername, port, cid, logger):
+  def __init__(self, containername, configBuildMachine, logger):
     self.name = containername
-    self.port = str(port)
-    self.cid = cid
+
+    self.port=22
+    if "port" in configBuildMachine:
+      self.port=str(configBuildMachine['port'])
+    self.cid=10
+    if "cid" in configBuildMachine:
+      self.cid=configBuildMachine['cid']
+
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc

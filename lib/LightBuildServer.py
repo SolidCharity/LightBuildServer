@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -77,13 +77,7 @@ class LightBuildServer:
 
   def ReleaseMachine(self, buildmachine):
     os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
-    port=22
-    if "port" in self.config['lbs']['Machines'][buildmachine]:
-      port=self.config['lbs']['Machines'][buildmachine]['port']
-    cid=10
-    if "cid" in self.config['lbs']['Machines'][buildmachine]:
-      cid=self.config['lbs']['Machines'][buildmachine]['cid']
-    RemoteContainer(buildmachine, port, cid, Logger()).stop()
+    RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], Logger()).stop()
     if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
       os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
     open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
