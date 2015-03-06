@@ -102,7 +102,7 @@ class RemoteContainer:
     if self.executeOnLxcHost("lxc-start -d -n " + self.name):
       # remove the ip address
       if self.containerPort == "22":
-        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']')
+        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.containerIP)
       else:
         self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
       # wait until ssh server is running
