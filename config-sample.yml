@@ -50,5 +50,6 @@ lbs:
        mybuild01.lbs.example.org: 
           port: 2222
           cid: 10
+          priority: 1
        mybuild02.lbs.example.org: 
 

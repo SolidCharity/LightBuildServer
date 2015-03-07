@@ -179,6 +179,8 @@ class LightBuildServerWeb:
             del projectconfig['Distros']
           if 'Packages' in projectconfig:
             del projectconfig['Packages']
+          if 'DependsOn' in projectconfig:
+            del projectconfig['DependsOn']
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
@@ -214,6 +216,8 @@ class LightBuildServerWeb:
           del projectconfig['Distros']
         if 'Packages' in projectconfig:
           del projectconfig['Packages']
+        if 'DependsOn' in projectconfig:
+          del projectconfig['DependsOn']
         users={}
         users[user] = userconfig['Projects']
 

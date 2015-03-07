@@ -39,10 +39,15 @@ class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
-    self.MachineAvailabilityPath="/var/lib/lbs/machines"
     configfile="../config.yml"
     stream = open(configfile, 'r')
     self.config = yaml.load(stream)
+
+    self.machines = {}
+    for buildmachine in self.config['lbs']['Machines']:
+      # init the machine
+      self.machines[buildmachine] = { }
+      self.machines[buildmachine]['status'] = 'available'
 
     self.lbsList = {}
     self.recentlyFinishedLbsList = {}
@@ -55,17 +60,27 @@ class LightBuildServer:
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
-  def GetAvailableBuildMachine(self, buildjob):
+  def GetAvailableBuildMachine(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+    buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+    machineToUse=None
+    machinePriorityToUse=101
     for buildmachine in self.config['lbs']['Machines']:
-      if not os.path.exists(self.MachineAvailabilityPath + "/" + buildmachine):
-        # init the machine
-        os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
-        open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
-      if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
-        os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/available")
-        with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", 'a') as f:
-          f.write(buildjob)
-        return buildmachine
+      if self.machines[buildmachine]['status'] == 'available':
+        buildmachinePriority=100
+        if 'priority' in self.config['lbs']['Machines'][buildmachine]:
+          buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
+        if buildmachinePriority < machinePriorityToUse:
+          machinePriorityToUse = buildmachinePriority
+          machineToUse = buildmachine
+    if machineToUse is not None:
+      self.machines[machineToUse]['status'] = 'building'
+      self.machines[machineToUse]['buildjob'] = buildjob
+      self.machines[machineToUse]['queue'] = queue
+      self.machines[machineToUse]['username'] = username
+      self.machines[machineToUse]['projectname'] = projectname
+      self.machines[machineToUse]['packagename'] = packagename
+      return machineToUse
     return None
 
   def CheckForHangingBuild(self):
@@ -76,20 +91,32 @@ class LightBuildServer:
           self.ReleaseMachine(lbs.buildmachine)
 
   def ReleaseMachine(self, buildmachine):
-    os.makedirs(self.MachineAvailabilityPath + "/" + buildmachine, exist_ok=True)
     RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], Logger()).stop()
-    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
-      os.unlink(self.MachineAvailabilityPath + "/" + buildmachine + "/building")
-    open(self.MachineAvailabilityPath + "/" + buildmachine + "/available", 'a').close()
+    self.machines[buildmachine]['status'] = 'available'
 
   def GetBuildMachineState(self, buildmachine):
-    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/building"):
-      with open(self.MachineAvailabilityPath + "/" + buildmachine + "/building", "r") as f:
-        buildjob = f.read()
-      return ("building", buildjob)
-    if os.path.isfile(self.MachineAvailabilityPath + "/" + buildmachine + "/available"):
+    if self.machines[buildmachine]['status'] == 'building':
+      return ("building", self.machines[buildmachine]['buildjob'])
+    if self.machines[buildmachine]['status'] == 'available':
       return "available"
     return "undefined"
+
+  def CanFindMachineBuildingOnSameQueue(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+    for buildmachine in self.config['lbs']['Machines']:
+      if self.machines[buildmachine]['status'] == 'building':
+        if self.machines[buildmachine]['queue'] == queue:
+          # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
+          return True
+    return False
+
+  def CanFindMachineBuildingProject(self, username, projectname):
+    for buildmachine in self.config['lbs']['Machines']:
+      if self.machines[buildmachine]['status'] == 'building':
+        if self.machines[buildmachine]['username'] == username and self.machines[buildmachine]['projectname'] == projectname:
+          # there is a machine building a package of the specified project
+          return True
+    return False
 
   def getPackagingInstructions(self, userconfig, username, projectname):
     lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
@@ -128,6 +155,13 @@ class LightBuildServer:
     buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, None, username, projectname, None)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
 
+  def AddToBuildQueue(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+    # find if this project depends on other projects
+    DependsOnOtherProjects={}
+    if 'DependsOn' in self.config['lbs']['Users'][username]['Projects'][projectname]:
+      DependsOnOtherProjects=self.config['lbs']['Users'][username]['Projects'][projectname]['DependsOn']
+    self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, DependsOnOtherProjects))
+
   def BuildProject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
     packages=self.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
 
@@ -144,7 +178,7 @@ class LightBuildServer:
           del self.recentlyFinishedLbsList[lbsName]
         if not lbsName in self.lbsList:
           self.ToBuild.append(lbsName)
-          self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+          self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
     return message
 
@@ -154,13 +188,13 @@ class LightBuildServer:
       del self.recentlyFinishedLbsList[lbsName]
     if not lbsName in self.lbsList:
        self.ToBuild.append(lbsName)
-       self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+       self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
   def BuildProjectWithBranchAndPwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     if not lbsName in self.lbsList:
       self.ToBuild.append(lbsName)
-      self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+      self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
       return "Build for {{lbsName}} has been triggered."
     else:
       return "{{lbsName}} is already in the build queue."
@@ -176,7 +210,7 @@ class LightBuildServer:
         self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
-  def attemptToFindBuildMachine(self, item):
+  def attemptToFindBuildMachine(self, item, FirstItemInQueue):
     username = item[0]
     projectname = item[1]
     packagename = item[2]
@@ -184,15 +218,22 @@ class LightBuildServer:
     lxcdistro = item[4]
     lxcrelease = item[5]
     lxcarch = item[6]
+    DependsOnOtherProjects = item[7]
 
-    # TODO
-    # 1: check if there is a package waiting from the same user and buildtarget => return False
-    # 2: check if any project that this package depends on is still building or waiting => return False
+    if not FirstItemInQueue:
+      # 1: check if there is a package building or waiting from the same user and buildtarget => return False
+      if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
+        return False
+      
+      # 2: check if any project that this package depends on is still building or waiting => return False
+      for DependantProjectName in DependsOnOtherProjects:
+        if self.CanFindMachineBuildingProject(username, DependantProjectName):
+          return False
 
     lbs = Build(self, Logger())
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
-    buildmachine=self.GetAvailableBuildMachine(buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+    buildmachine=self.GetAvailableBuildMachine(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     if not buildmachine == None:
       self.lbsList[lbsName] = lbs
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
@@ -206,11 +247,14 @@ class LightBuildServer:
 
   def buildqueuethread(self):
       while True:
-        # TODO loop through the queue
         if len(self.buildqueue) > 0:
           # peek at the leftmost item
           item = self.buildqueue[0]
-          self.attemptToFindBuildMachine(item)
+          if not self.attemptToFindBuildMachine(item, True):
+            # check if any other project might be ready to build
+            for item in self.buildqueue:
+              if self.attemptToFindBuildMachine(item, False):
+                break
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
