@@ -210,7 +210,7 @@ class LightBuildServer:
         self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
-  def attemptToFindBuildMachine(self, item, FirstItemInQueue):
+  def attemptToFindBuildMachine(self, item):
     username = item[0]
     projectname = item[1]
     packagename = item[2]
@@ -220,15 +220,14 @@ class LightBuildServer:
     lxcarch = item[6]
     DependsOnOtherProjects = item[7]
 
-    if not FirstItemInQueue:
-      # 1: check if there is a package building or waiting from the same user and buildtarget => return False
-      if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
-        return False
+    # 1: check if there is a package building or waiting from the same user and buildtarget => return False
+    if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
+      return False
       
-      # 2: check if any project that this package depends on is still building or waiting => return False
-      for DependantProjectName in DependsOnOtherProjects:
-        if self.CanFindMachineBuildingProject(username, DependantProjectName):
-          return False
+    # 2: check if any project that this package depends on is still building or waiting => return False
+    for DependantProjectName in DependsOnOtherProjects:
+      if self.CanFindMachineBuildingProject(username, DependantProjectName):
+        return False
 
     lbs = Build(self, Logger())
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
@@ -247,14 +246,11 @@ class LightBuildServer:
 
   def buildqueuethread(self):
       while True:
-        if len(self.buildqueue) > 0:
-          # peek at the leftmost item
-          item = self.buildqueue[0]
-          if not self.attemptToFindBuildMachine(item, True):
-            # check if any other project might be ready to build
-            for item in self.buildqueue:
-              if self.attemptToFindBuildMachine(item, False):
-                break
+        # loop from left to right
+        # check if a project might be ready to build
+        for item in self.buildqueue:
+          if self.attemptToFindBuildMachine(item):
+            break
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
