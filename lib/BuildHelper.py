@@ -132,7 +132,13 @@ class BuildHelper:
         for exclude in packages[package]['ExcludeDistros']:
           if (lxcdistro + "/" + lxcrelease + "/" + lxcarch).startswith(exclude):
             excludeDistro = True
-      if not excludeDistro:
+      includeDistro=True
+      if packages[package] is not None and "Distros" in packages[package]:
+        includeDistro=False
+        for incl in packages[package]['Distros']:
+          if (lxcdistro + "/" + lxcrelease + "/" + lxcarch) == incl:
+            includeDistro=True
+      if includeDistro and not excludeDistro:
         self.packagename=package
         (builddepends[package],provides[package]) = self.GetDependanciesAndProvides()
         for p in provides[package]:
