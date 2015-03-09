@@ -102,6 +102,9 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run("sed -e 's/%{release}/0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
+      if self.dist == "centos" and self.release == "5":
+        # we cannot use yum-builddep because it requires a SRPM. need to use a setup.sh script instead
+        return True
       if not self.run("yum-builddep -y /tmp/" + self.packagename + ".spec"):
         return False
     return True
