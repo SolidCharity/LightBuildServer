@@ -236,7 +236,9 @@ class LightBuildServerWeb:
         if 'Packages' in project:
           project[packagename] = project['Packages'][packagename]
         package=project[packagename]
-        if not isinstance(package, (dict)):
+        if package == None:
+          package = dict()
+        elif not isinstance(package, (dict)):
           return template("message", title="Error", message="Something wrong in your config.yml about package " + packagename, redirect="/")
         package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
         package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
