@@ -216,6 +216,8 @@ class BuildHelperCentos(BuildHelper):
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = "yum install yum-utils\n"
+    if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+      result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
     result += "yum-config-manager --add-repo " + DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
         result += config['lbs']['Users'][self.username]['Secret'] + "/"

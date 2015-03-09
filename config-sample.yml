@@ -34,6 +34,7 @@ lbs:
        Projects:
          # mono will resolve automatically to https://github.com/myusername/lbs-mono
          mono:
+           PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
            monodevelop-opt:
              Distros: ["centos/6/amd64"]
            monodevelop-tarball:

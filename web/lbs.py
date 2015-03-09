@@ -181,6 +181,8 @@ class LightBuildServerWeb:
             del projectconfig['Packages']
           if 'DependsOn' in projectconfig:
             del projectconfig['DependsOn']
+          if 'PublicKey' in projectconfig:
+            del projectconfig['PublicKey']
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
@@ -218,6 +220,8 @@ class LightBuildServerWeb:
           del projectconfig['Packages']
         if 'DependsOn' in projectconfig:
           del projectconfig['DependsOn']
+        if 'PublicKey' in projectconfig:
+          del projectconfig['PublicKey']
         users={}
         users[user] = userconfig['Projects']
 
