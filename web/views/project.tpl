@@ -11,9 +11,11 @@
 	            % for package in sorted(users[username][project]):
         	        <tr><td><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a></td>
 		        % for buildtarget in users[username][project][package]['buildresult']:
+			   <td>
 			   % if 'resultcode' in users[username][project][package]['buildresult'][buildtarget]:
-			      <td><a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a></td>
+			      <a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
 			   % end
+			   </td>
 			% end
 			</tr>
                    % end
