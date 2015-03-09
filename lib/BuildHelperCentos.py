@@ -48,7 +48,7 @@ class BuildHelperCentos(BuildHelper):
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
       self.run("mkdir -p /usr/src/redhat; ln -s /usr/src/redhat rpmbuild")
-      self.run("yum -y install make")
+      self.run("yum -y install make iptables")
     self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}")
     return True
 
