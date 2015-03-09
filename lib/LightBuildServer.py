@@ -32,7 +32,7 @@ import time
 import datetime
 from Shell import Shell
 import logging
-from threading import Thread
+from threading import Thread, Lock
 from collections import deque
 
 class LightBuildServer:
@@ -52,6 +52,7 @@ class LightBuildServer:
     self.lbsList = {}
     self.recentlyFinishedLbsList = {}
     self.buildqueue = deque()
+    self.buildqueueLock = Lock()
     self.ToBuild = deque()
     self.finishedqueue = deque()
     thread = Thread(target = self.buildqueuethread, args=())
@@ -91,8 +92,12 @@ class LightBuildServer:
           self.ReleaseMachine(lbs.buildmachine)
 
   def ReleaseMachine(self, buildmachine):
-    RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], Logger()).stop()
-    self.machines[buildmachine]['status'] = 'available'
+    self.buildqueueLock.acquire()
+    try:
+      RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], Logger()).stop()
+      self.machines[buildmachine]['status'] = 'available'
+    finally:
+      self.buildqueueLock.release()
 
   def GetBuildMachineState(self, buildmachine):
     if self.machines[buildmachine]['status'] == 'building':
@@ -248,9 +253,16 @@ class LightBuildServer:
       while True:
         # loop from left to right
         # check if a project might be ready to build
-        for item in self.buildqueue:
-          if self.attemptToFindBuildMachine(item):
-            break
+        # use locking for buildqueue: avoid: a build machine is released when I am just checking for a project quite down the queue
+        self.buildqueueLock.acquire()
+        try:
+          count=0
+          while count<len(self.buildqueue):
+            if self.attemptToFindBuildMachine(self.buildqueue[count]):
+              break
+            count=count+1
+        finally:
+          self.buildqueueLock.release()
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
