@@ -43,7 +43,7 @@ class BuildHelperCentos(BuildHelper):
     if not self.run("yum -y update"):
       if not self.run("yum clean all && yum -y update"):
         return False
-    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg make"):
+    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg make curl"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -215,13 +215,18 @@ class BuildHelperCentos(BuildHelper):
 
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
-    result = "yum install yum-utils\n"
+    result = ""
     if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-      result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
-    result += "yum-config-manager --add-repo " + DownloadUrl + "/repos/" + self.username + "/"
+      result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+    repourl = DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
-        result += config['lbs']['Users'][self.username]['Secret'] + "/"
-    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo\n"
+        repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
+    repourl += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo"
+    if buildtarget[0] == "centos" and buildtarget[1] == "5":
+      result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
+    else:
+      result += "yum install yum-utils\n"
+      result += "yum-config-manager --add-repo " + repourl + "\n"
     # packagename: name of spec file, without .spec at the end
     result += "yum install " + self.GetSpecFilename()[:-5]
 
