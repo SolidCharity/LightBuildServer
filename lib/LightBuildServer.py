@@ -63,7 +63,7 @@ class LightBuildServer:
 
   def GetAvailableBuildMachine(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
-    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
     for buildmachine in self.config['lbs']['Machines']:
@@ -107,7 +107,7 @@ class LightBuildServer:
     return "undefined"
 
   def CanFindMachineBuildingOnSameQueue(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
-    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+    queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     for buildmachine in self.config['lbs']['Machines']:
       if self.machines[buildmachine]['status'] == 'building':
         if self.machines[buildmachine]['queue'] == queue:
