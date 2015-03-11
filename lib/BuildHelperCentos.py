@@ -168,11 +168,13 @@ class BuildHelperCentos(BuildHelper):
       # import the private key for signing the package if the file privateLBSkey exists
       sshContainerPath = config['lbs']['SSHContainerPath']
       if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
-        self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
-        if not self.run("if ls rpmbuild/RPMS/" + arch + "/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm; fi"):
-          return False
-        if not self.run("if ls rpmbuild/RPMS/noarch/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/noarch/*.rpm; fi"):
-          return False
+        # do not sign packages on CentOS5, see https://github.com/tpokorra/lbs-mono/issues/9
+        if not (self.dist == "centos" and self.release == "5"):
+          self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
+          if not self.run("if ls rpmbuild/RPMS/" + arch + "/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm; fi"):
+            return False
+          if not self.run("if ls rpmbuild/RPMS/noarch/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/noarch/*.rpm; fi"):
+            return False
 
       # add result to repo
       self.run("mkdir -p ~/repo/src")
@@ -216,8 +218,9 @@ class BuildHelperCentos(BuildHelper):
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = ""
-    if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-      result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+    if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
+      if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+        result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
     repourl = DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
         repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
