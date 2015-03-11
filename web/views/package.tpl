@@ -35,6 +35,11 @@
 					<pre>{{package['repoinstructions'][buildtarget]}}</pre>
 					</li>
 				% end
+				% if package['srcinstructions'][buildtarget] is not None:
+					<li>Download Source package:
+					<a href="{{package['srcinstructions'][buildtarget][0]}}">{{package['srcinstructions'][buildtarget][1]}}</a>
+					</li>
+				% end
 			</ul>
 			%end
               	% end

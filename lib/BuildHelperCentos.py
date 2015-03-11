@@ -215,16 +215,42 @@ class BuildHelperCentos(BuildHelper):
         f.write(repoFileContent)
     return True
 
+  def getRepoUrl(self, config, DownloadUrl, buildtarget):
+    buildtarget = buildtarget.split("/")
+    repourl = DownloadUrl + "/repos/" + self.username + "/"
+    if 'Secret' in config['lbs']['Users'][self.username]:
+        repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
+    repourl += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1]
+    return repourl
+    
+  # find the latest src package
+  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
+    srcurl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+    buildtarget = buildtarget.split("/")
+    result = None
+
+    srcPath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/src"
+    if os.path.isdir(srcPath):
+      latestFile=None
+      latestTime=0
+      for fn in os.listdir(srcPath):
+        if fn.startswith(self.GetSpecFilename()[:-5] + "-") and fn[len(self.GetSpecFilename()[:-5]) + 1].isdigit() and fn.endswith(".src.rpm"):
+          fileTime=os.path.getmtime(srcPath + "/" + fn)
+          if fileTime > latestTime:
+            latestTime=fileTime
+            latestFile=fn
+      if latestFile is not None:
+        result = (srcurl + "/src/" + latestFile, latestFile)
+    return result
+
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
+    repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+    repourl += "/lbs-"+self.username + "-"+self.projectname +".repo"
     buildtarget = buildtarget.split("/")
     result = ""
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
       if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
         result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
-    repourl = DownloadUrl + "/repos/" + self.username + "/"
-    if 'Secret' in config['lbs']['Users'][self.username]:
-        repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
-    repourl += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/lbs-"+self.username + "-"+self.projectname +".repo"
     if buildtarget[0] == "centos" and buildtarget[1] == "5":
       result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
     else:

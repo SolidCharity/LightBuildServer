@@ -102,6 +102,9 @@ class BuildHelper:
       return False
     return True
 
+  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
+    return "not implemented"
+
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     return "not implemented"
 

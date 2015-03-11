@@ -184,6 +184,9 @@ class BuildHelperDebian(BuildHelper):
         return False
     return True
 
+  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
+    return None
+
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
     result = ""
