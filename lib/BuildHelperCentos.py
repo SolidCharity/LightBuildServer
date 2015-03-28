@@ -229,7 +229,11 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     result = None
 
-    srcPath="/var/www/repos/" + self.username + "/" + self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/src"
+    srcPath = "/var/www/repos/" + self.username + "/"
+    if 'Secret' in config['lbs']['Users'][self.username]:
+      srcPath += config['lbs']['Users'][self.username]['Secret'] + "/"
+
+    srcPath += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/src"
     if os.path.isdir(srcPath):
       latestFile=None
       latestTime=0
@@ -260,7 +264,10 @@ class BuildHelperCentos(BuildHelper):
     result += "yum install " + self.GetSpecFilename()[:-5]
 
     # check if there is such a package at all
-    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
+    checkfile = "/var/www/repos/" + self.username + "/"
+    if 'Secret' in config['lbs']['Users'][self.username]:
+      checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
+    checkfile += self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
     if glob.glob(checkfile):
       return result
     
