@@ -8,12 +8,12 @@
 		<td><a href="/buildproject/{{username}}/{{project}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a></td>
 		%end
 		</tr>
-	            % for package in sorted(users[username][project]):
-        	        <tr><td><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a></td>
-		        % for buildtarget in users[username][project][package]['buildresult']:
+	            % for package in sorted(users[username][project]['Packages']):
+        	        <tr><td><a href="{{users[username][project]['Packages'][package]['packageurl']}}">Package {{package}}</a></td>
+		        % for buildtarget in users[username][project]['Packages'][package]['buildresult']:
 			   <td>
-			   % if 'resultcode' in users[username][project][package]['buildresult'][buildtarget]:
-			      <a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
+			   % if 'resultcode' in users[username][project]['Packages'][package]['buildresult'][buildtarget]:
+			      <a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
 			   % end
 			   </td>
 			% end

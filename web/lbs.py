@@ -165,24 +165,18 @@ class LightBuildServerWeb:
           continue
         for project in userconfig['Projects']:
           projectconfig=userconfig['Projects'][project]
-          if 'Packages' in projectconfig:
-            packages = userconfig['Projects'][project]['Packages']
-          else:
-            packages = userconfig['Projects'][project]
+          if not 'Packages' in projectconfig:
+            packages = {}
+            for package in userconfig['Projects'][project]:
+              packages[package] = userconfig['Projects'][project][package]
+            userconfig['Projects'][project]['Packages'] = packages
+          packages = userconfig['Projects'][project]['Packages']
           for package in packages:
-            if not package in projectconfig:
-              projectconfig[package] = {}
+            if packages[package] is None:
+              packages[package] = {}
             if 'Distros' in projectconfig:
-              projectconfig[package]['Distros'] = projectconfig['Distros']
-            projectconfig[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
-          if 'Distros' in projectconfig:
-            del projectconfig['Distros']
-          if 'Packages' in projectconfig:
-            del projectconfig['Packages']
-          if 'DependsOn' in projectconfig:
-            del projectconfig['DependsOn']
-          if 'PublicKey' in projectconfig:
-            del projectconfig['PublicKey']
+              packages[package]['Distros'] = projectconfig['Distros']
+            packages[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
         users[user] = userconfig['Projects']
       return template('projects', users = users, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
@@ -198,30 +192,26 @@ class LightBuildServerWeb:
         buildtargets={}
 
         projectconfig=userconfig['Projects'][project]
-        if 'Packages' in projectconfig:
-          packages = userconfig['Projects'][project]['Packages']
-        else:
-          packages = userconfig['Projects'][project]
+        if not 'Packages' in projectconfig:
+          packages = {}
+          for package in userconfig['Projects'][project]:
+            packages[package] = userconfig['Projects'][project][package]
+          userconfig['Projects'][project]['Packages'] = packages
+        packages = userconfig['Projects'][project]['Packages']
         for package in packages:
-          if not package in projectconfig:
-            projectconfig[package] = {}
+          if packages[package] is None:
+            packages[package] = {}
           if 'Distros' in projectconfig:
-            projectconfig[package]['Distros'] = projectconfig['Distros']
-          projectconfig[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
-          projectconfig[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
-          projectconfig[package]['buildresult'] = {}
-          for buildtarget in projectconfig[package]['Distros']:
+            print(packages[package])
+            print(projectconfig['Distros'])
+            packages[package]['Distros'] = projectconfig['Distros']
+          packages[package]['packageurl'] = "/package/" + user + "/" + project + "/" + package
+          packages[package]['buildurl'] = "/triggerbuild/" + user + "/" + project + "/" + package
+          packages[package]['buildresult'] = {}
+          for buildtarget in packages[package]['Distros']:
             if not buildtarget in buildtargets:
               buildtargets[buildtarget] = 1
-            projectconfig[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
-        if 'Distros' in projectconfig:
-          del projectconfig['Distros']
-        if 'Packages' in projectconfig:
-          del projectconfig['Packages']
-        if 'DependsOn' in projectconfig:
-          del projectconfig['DependsOn']
-        if 'PublicKey' in projectconfig:
-          del projectconfig['PublicKey']
+            packages[package]['buildresult'][buildtarget] = Logger().getLastBuild(user, project, package, "master", buildtarget)
         users={}
         users[user] = userconfig['Projects']
 
@@ -244,7 +234,10 @@ class LightBuildServerWeb:
           package = dict()
         elif not isinstance(package, (dict)):
           return template("message", title="Error", message="Something wrong in your config.yml about package " + packagename, redirect="/")
-        package["giturl"] = user['GitURL']+"lbs-" + projectname + "/tree/master/" + packagename
+        gitprojectname = projectname
+        if 'GitProjectName' in project:
+          gitprojectname = project['GitProjectName']
+        package["giturl"] = user['GitURL']+"lbs-" + gitprojectname + "/tree/master/" + packagename
         package["buildurl"] = "/triggerbuild/" + username + "/" + projectname + "/" + packagename
         package["logs"] = {}
         package["repoinstructions"] = {}

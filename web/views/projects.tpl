@@ -19,8 +19,8 @@
 			<div class="panel-body">
 			<a href="/project/{{username}}/{{project}}">Go to Project {{project}}</a>
                 	<ul>
-	                   % for package in sorted(users[username][project]):
-        	                <li><a href="{{users[username][project][package]['packageurl']}}">Package {{package}}</a></li>
+	                   % for package in sorted(users[username][project]['Packages']):
+        	                <li><a href="{{users[username][project]['Packages'][package]['packageurl']}}">Package {{package}}</a></li>
                 	   % end
 	                </ul>
 			</div>

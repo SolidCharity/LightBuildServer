@@ -124,7 +124,10 @@ class LightBuildServer:
     return False
 
   def getPackagingInstructions(self, userconfig, username, projectname):
-    lbsproject=userconfig['GitURL'] + 'lbs-' + projectname
+    gitprojectname = projectname
+    if 'GitProjectName' in userconfig['Projects'][projectname]:
+      gitprojectname = userconfig['Projects'][projectname]['GitProjectName']
+    lbsproject=userconfig['GitURL'] + 'lbs-' + gitprojectname
     pathSrc="/var/lib/lbs/src/"+username+"/"
     os.makedirs(pathSrc, exist_ok=True)
     if os.path.isdir(pathSrc+'lbs-'+projectname):
@@ -135,7 +138,7 @@ class LightBuildServer:
       url=lbsproject + "/archive/master.tar.gz"
       cmd="cd " + pathSrc + ";";
       cmd+="curl --retry 10 --retry-delay 30 -f -L -o master.tar.gz \"" + url + "\";"
-      cmd+="tar xzf master.tar.gz; mv lbs-" + projectname + "-master lbs-" + projectname
+      cmd+="tar xzf master.tar.gz; mv lbs-" + gitprojectname + "-master lbs-" + projectname
       shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
       url=lbsproject + "/repository/archive.tar.gz?ref=master"
@@ -145,7 +148,7 @@ class LightBuildServer:
           url+="&private_token="+myfile.read().strip()
       cmd="cd " + pathSrc + ";";
       cmd+="curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\";"
-      cmd+="tar xzf source.tar.gz; mv lbs-" + projectname + ".git lbs-" + projectname
+      cmd+="tar xzf source.tar.gz; mv lbs-" + gitprojectname + ".git lbs-" + projectname
       shell.executeshell(cmd)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
