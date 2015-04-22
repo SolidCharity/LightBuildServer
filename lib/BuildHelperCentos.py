@@ -31,9 +31,9 @@ import logging
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
-  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
+  def __init__(self, container, username, projectname, packagename):
     self.dist='centos'
-    BuildHelper.__init__(self, container, pathInsideContainer, username, projectname, packagename)
+    BuildHelper.__init__(self, container, username, projectname, packagename)
 
   def PrepareMachineBeforeStart(self):
     return True

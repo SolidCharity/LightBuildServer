@@ -160,7 +160,7 @@ class LightBuildServer:
     # get the sources of the packaging instructions
     self.getPackagingInstructions(userconfig, username, projectname)
 
-    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, None, username, projectname, None)
+    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
 
   def AddToBuildQueue(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):

@@ -25,7 +25,7 @@ from collections import deque
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
-  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
+  def __init__(self, container, username, projectname, packagename):
     self.container = container
     self.fedora = 0
     self.suse_version = 0
@@ -35,7 +35,6 @@ class BuildHelper:
       self.arch = container.arch
       self.release = container.release
       self.rhel = self.release
-    self.pathInsideContainer = pathInsideContainer
     self.username = username
     self.projectname = projectname
     self.packagename = packagename

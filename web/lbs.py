@@ -261,7 +261,7 @@ class LightBuildServerWeb:
           for buildtarget in package['Distros']:
             package["logs"][buildtarget+"-"+branchname] = Logger().getBuildNumbers(username, projectname, packagename, branchname, buildtarget)
         for buildtarget in package['Distros']:
-          buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, "", username, projectname, packagename)
+          buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, username, projectname, packagename)
           package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, self.config['lbs']['DownloadUrl'], buildtarget)
           package["srcinstructions"][buildtarget] = buildHelper.GetSrcInstructions(self.config, self.config['lbs']['DownloadUrl'], buildtarget)
         return template('package', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())

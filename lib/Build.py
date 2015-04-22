@@ -64,7 +64,7 @@ class Build:
         self.container.installmount("/root/tarball", "/var/www/tarballs/" + myPath)
       
         # prepare container, install packages that the build requires; this is specific to the distro
-        self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, "lbs-" + projectname + "-master", username, projectname, packagename)
+        self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, username, projectname, packagename)
         if not self.buildHelper.PrepareMachineBeforeStart():
           raise Exception("Problem with PrepareMachineBeforeStart")
         if self.container.startmachine():

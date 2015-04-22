@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Fedora: knows how to build packages for Fedora"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -26,8 +26,8 @@ import yaml
 class BuildHelperFedora(BuildHelperCentos):
   'build packages for Fedora'
 
-  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
-    BuildHelperCentos.__init__(self, container, pathInsideContainer, username, projectname, packagename)
+  def __init__(self, container, username, projectname, packagename):
+    BuildHelperCentos.__init__(self, container, username, projectname, packagename)
     self.dist='fedora'
     self.fedora = self.release
     self.rhel = 0

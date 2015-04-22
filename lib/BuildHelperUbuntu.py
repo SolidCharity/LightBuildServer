@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Ubuntu: knows how to build packages for Ubuntu"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2015 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,6 @@ import yaml
 class BuildHelperUbuntu(BuildHelperDebian):
   'build packages for Ubuntu'
 
-  def __init__(self, container, pathInsideContainer, username, projectname, packagename):
-    BuildHelperDebian.__init__(self, container, pathInsideContainer, username, projectname, packagename)
+  def __init__(self, container, username, projectname, packagename):
+    BuildHelperDebian.__init__(self, container, username, projectname, packagename)
     self.dist='ubuntu'
