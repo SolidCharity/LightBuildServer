@@ -180,7 +180,7 @@ class BuildHelperDebian(BuildHelper):
       # add result to repo
       self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
       self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
-      if not self.run("cd repo && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"):
+      if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
         return False
     return True
 
