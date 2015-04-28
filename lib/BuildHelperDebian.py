@@ -42,7 +42,8 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro"):
+      #apt-utils
       return False
     # make sure we have a fully qualified hostname
     self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
@@ -177,11 +178,22 @@ class BuildHelperDebian(BuildHelper):
       if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
         return False
 
-      # add result to repo
-      self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
-      self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
-      if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
-        return False
+      # import the private key for signing the package if the file privateLBSkey exists
+      sshContainerPath = config['lbs']['SSHContainerPath']
+      if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
+        self.run("gpg --import < ~/.ssh/privateLBSkey; mkdir -p repo/conf; cp .ssh/distributions repo/conf")
+        if not self.run("cd lbs-" + self.projectname + "; dpkg-sig --sign builder *.deb"):
+          return False
+        if not self.run("cd repo; for f in ~/lbs-" + self.projectname + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/lbs-" + self.projectname + "/\`basename \$f\`; done"):
+          return False
+        self.run("rm -Rf repo/conf")
+      else:
+        # add result to repo
+        self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
+        self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
+        if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
+          return False
+
     return True
 
   def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
@@ -189,22 +201,29 @@ class BuildHelperDebian(BuildHelper):
 
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
+
+    # check if there is such a package at all
+    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
+    if glob.glob(checkfile):
+      path = "/ /"
+    else:
+      checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/*/*/*/" + self.GetDscFilename()[:-4] + "*"
+      if glob.glob(checkfile):
+        path = " " + buildtarget[1] + " main"
+      else:
+        return None
+   
     result = ""
     result += "apt-get install apt-transport-https\n"
     result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" 
     if 'Secret' in config['lbs']['Users'][self.username]:
         result += config['lbs']['Users'][self.username]['Secret'] + "/"
-    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/ /' >> /etc/apt/sources.list\n"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
     result += "apt-get install " + self.GetDscFilename()[:-4]
 
-    # check if there is such a package at all
-    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
-    if glob.glob(checkfile):
-      return result
-
-    return None
+    return result
 
   def GetDependanciesAndProvides(self):
     pathSrc="/var/lib/lbs/src/"+self.username
