@@ -156,7 +156,10 @@ class BuildHelperCentos(BuildHelper):
         for file in os.listdir(repopath + "/" + arch):
           # TODO use GetSpecFilename, without spec, instead of packagename
           if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
-            oldnumber=int(file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")])
+            oldnumber=file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")]
+            if '.' in oldnumber:
+              oldnumber=oldnumber[:oldnumber.find('.')]
+            oldnumber=int(oldnumber)
             rpmfiles.append(str(oldnumber).zfill(6) + ":" + file)
             if oldnumber >= buildnumber:
               buildnumber = oldnumber + 1
