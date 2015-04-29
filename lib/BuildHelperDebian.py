@@ -202,6 +202,8 @@ class BuildHelperDebian(BuildHelper):
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
 
+    keyinstructions = ""
+
     # check if there is such a package at all
     checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
     if glob.glob(checkfile):
@@ -210,11 +212,15 @@ class BuildHelperDebian(BuildHelper):
       checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/*/*/*/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
         path = " " + buildtarget[1] + " main"
+        if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+          keyinstructions += "wget -O Release.key " + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
+          keyinstructions += "apt-key add Release.key; rm -rf Release.key\n"
       else:
         return None
    
     result = ""
     result += "apt-get install apt-transport-https\n"
+    result += keyinstructions
     result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" 
     if 'Secret' in config['lbs']['Users'][self.username]:
         result += config['lbs']['Users'][self.username]['Secret'] + "/"
