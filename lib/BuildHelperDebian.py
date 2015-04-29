@@ -209,7 +209,8 @@ class BuildHelperDebian(BuildHelper):
     if glob.glob(checkfile):
       path = "/ /"
     else:
-      checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/*/*/*/" + self.GetDscFilename()[:-4] + "*"
+      # repo has been created with reprepro
+      checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
       if glob.glob(checkfile):
         path = " " + buildtarget[1] + " main"
         if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
@@ -227,7 +228,7 @@ class BuildHelperDebian(BuildHelper):
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end
-    result += "apt-get install " + self.GetDscFilename()[:-4]
+    result += "apt-get install " + self.GetDscFilename()[:-4].lower()
 
     return result
 
