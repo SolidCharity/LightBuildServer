@@ -68,12 +68,21 @@ class BuildHelperDebian(BuildHelper):
         repos = config['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
           self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
+        if 'keys' in config['lbs'][self.dist][str(self.release)]:
+          keys = config['lbs'][self.dist][str(self.release)]['keys']
+          for key in keys:
+            if not self.run("wget -O Release.key '" + key + "' && apt-key add Release.key && rm -rf Release.key"):
+              return False
 
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
+    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
+    if os.path.isfile(repofile):
+      repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
+      self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " " + self.container.release + " main' > lbs-" + self.username + "-" + self.projectname + ".list")
 
     # update the repository information
     self.run("apt-get update")
