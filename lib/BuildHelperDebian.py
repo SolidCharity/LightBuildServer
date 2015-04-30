@@ -223,7 +223,7 @@ class BuildHelperDebian(BuildHelper):
       if glob.glob(checkfile):
         path = " " + buildtarget[1] + " main"
         if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-          keyinstructions += "wget -O Release.key " + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
+          keyinstructions += "wget -O Release.key '" + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
           keyinstructions += "apt-key add Release.key; rm -rf Release.key\n"
       else:
         return None
