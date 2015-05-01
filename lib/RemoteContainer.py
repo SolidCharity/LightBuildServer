@@ -95,7 +95,7 @@ class RemoteContainer:
     if result == True:
      result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
     if result == True:
-      result = self.executeOnLxcHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys2 && rm authorized_keys2")
+      result = self.executeOnLxcHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
     if result == True:
       result = self.executeOnLxcHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
