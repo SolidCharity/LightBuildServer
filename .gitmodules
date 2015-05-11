@@ -1,0 +1,3 @@
+[submodule "docker-scripts"]
+	path = docker-scripts
+	url = https://github.com/tpokorra/docker-scripts.git
