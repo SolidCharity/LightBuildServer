@@ -49,8 +49,11 @@ lbs:
    Machines:
        # IP is resolved through DNS
        mybuild01.lbs.example.org: 
+          type: lxc
           port: 2222
           cid: 10
           priority: 1
-       mybuild02.lbs.example.org: 
+       mybuild02.lbs.example.org:
+       mybuild03.lbs.example.org:
+          type: docker
 

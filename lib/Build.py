@@ -20,6 +20,8 @@
 #
 
 from RemoteContainer import RemoteContainer
+from DockerContainer import DockerContainer
+from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from time import gmtime, strftime
@@ -45,7 +47,11 @@ class Build:
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     # create a container on a remote machine
     self.buildmachine = buildmachine
-    self.container = RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], self.logger)
+    conf = self.config['lbs']['Machines'][buildmachine]
+    if 'type' in conf and conf['type'] == 'lxc':
+      self.container = LXCContainer(buildmachine, conf, self.logger)
+    else:
+      self.container = DockerContainer(buildmachine, conf, self.logger)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):

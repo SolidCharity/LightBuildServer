@@ -20,6 +20,8 @@
 #
 
 from RemoteContainer import RemoteContainer
+from DockerContainer import DockerContainer
+from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
@@ -94,7 +96,11 @@ class LightBuildServer:
   def ReleaseMachine(self, buildmachine):
     self.buildqueueLock.acquire()
     try:
-      RemoteContainer(buildmachine, self.config['lbs']['Machines'][buildmachine], Logger()).stop()
+      conf=self.config['lbs']['Machines'][buildmachine]
+      if 'type' in conf and conf['type'] == 'lxc':
+        LXCContainer(buildmachine, conf, Logger()).stop()
+      else:
+        DockerContainer(buildmachine, conf, Logger()).stop()
       self.machines[buildmachine]['status'] = 'available'
     finally:
       self.buildqueueLock.release()
