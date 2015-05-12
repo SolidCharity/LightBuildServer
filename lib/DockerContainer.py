@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wrapper for LXC Container Management"""
+"""Wrapper for Docker Container Management"""
 
 # Copyright (c) 2014-2015 Timotheus Pokorra
 
@@ -27,58 +27,62 @@ from RemoteContainer import RemoteContainer
 from Logger import Logger
 from Shell import Shell
 
-class LXCContainer(RemoteContainer):
+class DockerContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger):
     RemoteContainer.__init__(self, containername, configBuildMachine, logger)
-    self.LXCHOME_PATH = "/var/lib/lxc/"
 
   def executeOnHost(self, command):
     return RemoteContainer.executeOnHost(self, command)
 
   def createmachine(self, distro, release, arch, staticIP):
-    # create lxc container with specified OS
+    # create docker container with specified OS
     self.distro = distro
     self.release = release
     self.arch = arch
     self.staticIP = staticIP
-    if self.executeOnHost("if [ -d /var/lib/lxc/" + self.name + " ]; then lxc-destroy --name " + self.name + "; fi") == False:
+
+    # TODO: somehow docker stop does not succeed. the current solution only works with CentOS host...
+    if self.executeOnHost("if [ ! -z \\\"\`docker ps -a | grep " + self.name + "\`\\\" ]; then service docker restart && docker stop " + self.name + " && docker rm " + self.name + "; fi") == False:
       return False
+
+    if arch != 'amd64':
+      # TODO: we do not support 32 bit builds with docker currently
+      # perhaps: http://stackoverflow.com/a/26729010 ENTRYPOINT ["linux32"]
+      print("we do not support 32 bit (" + arch + ") containers yet")
+      return False
+
     result = False
     if distro == "centos":
-      result = self.executeOnHost("./scripts/initCentOS.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      release=release
     if distro == "fedora":
       if release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
         release = "21"
-      result = self.executeOnHost("./scripts/initFedora.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "debian":
-      result = self.executeOnHost("./scripts/initDebian.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      if release == 'wheezy':
+        release = 7
+      elif release == 'jessie':
+        release = 8
     if distro == "ubuntu":
-      result = self.executeOnHost("./scripts/initUbuntu.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
-    if result == True:
-      result = self.executeOnHost("./scripts/tunnelport.sh " + str(self.cid) + " 22")
-    sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
-    if result == True:
-      result = self.executeOnHost("mkdir -p " + sshpath)
-    if result == True:
-     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
-    if result == True:
-      result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
-    if result == True:
-      result = self.executeOnHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
+      if release == 'trusty':
+        release = 14.04
+      elif release == 'precise':
+        release = 12.04
+
+    result = self.executeOnHost("cd docker-scripts && ./initDockerContainer.sh " + self.name + " " + str(self.cid) + " Dockerfiles/Dockerfile." + distro + release)
+
     return result
 
   def startmachine(self):
-    if self.executeOnHost("lxc-start -d -n " + self.name):
-      # remove the ip address
-      if self.containerPort == "22":
-        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.containerIP)
-      else:
-        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
-      # wait until ssh server is running
-      result = self.executeInContainer('echo "container is running"')
-      return result
-    return False
+    # remove the ip address
+    if self.containerPort == "22":
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.containerIP)
+    else:
+      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
+
+    # wait until ssh server is running
+    result = self.executeInContainer('echo "container is running"')
+    return result
 
   def executeInContainer(self, command):
     """Execute a command in a container via SSH"""
@@ -98,21 +102,27 @@ class LXCContainer(RemoteContainer):
     return False
 
   def destroy(self):
-    return self.executeOnHost("lxc-destroy --name " + self.name)
+    return self.executeOnHost("docker rm " + self.name)
 
   def stop(self):
-    return self.executeOnHost("lxc-stop --name " + self.name)
+    return self.executeOnHost("docker stop " + self.name)
 
   def copytree(self, src, dest):
+    # TODO
+    return False
     return self.rsyncHostPut(src, "/var/lib/lxc/" + self.name + "/rootfs" + dest)
 
   def rsyncContainerGet(self, path, dest = None):
+    # TODO
+    return False
     if dest == None:
       dest = path[:path.rindex("/")]
     result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
+    # TODO
+    return False
     if dest == None:
       dest = src
     dest = dest[:dest.rindex("/")]
@@ -120,12 +130,16 @@ class LXCContainer(RemoteContainer):
     return result 
 
   def rsyncHostGet(self, path, dest = None):
+    # TODO
+    return False
     if dest == None:
       dest = path[:path.rindex("/")]
     result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):
+    # TODO
+    return False
     if hostpath is None:
       hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
     result = self.executeOnHost("./scripts/initMount.sh " + hostpath + " " + self.name + " " + localpath)

@@ -60,8 +60,11 @@ class RemoteContainer:
     self.arch = ""
     self.staticIP = ""
 
+    self.LBSHOME_PATH = "/var/lib/lbs/"
+
   def executeOnHost(self, command):
-    # not implemented here
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+      return self.logger.getLastLine() == "0"
     return False
 
   def createmachine(self, distro, release, arch, staticIP):
