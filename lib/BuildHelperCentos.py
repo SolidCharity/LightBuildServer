@@ -43,7 +43,7 @@ class BuildHelperCentos(BuildHelper):
     if not self.run("yum -y update"):
       if not self.run("yum clean all && yum -y update"):
         return False
-    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg make curl"):
+    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg make curl rsync"):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -90,7 +90,7 @@ class BuildHelperCentos(BuildHelper):
     # install own repo as well if it exists
     repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
-      self.container.copytree(repofile,"/etc/yum.repos.d/")
+      self.container.rsyncContainerPut(repofile,"/etc/yum.repos.d/")
 
     self.run("yum clean metadata")
     return True

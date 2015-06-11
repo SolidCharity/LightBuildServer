@@ -88,7 +88,7 @@ class RemoteContainer:
     # not implemented here
     return False
 
-  def copytree(self, src, dest):
+  def rsyncContainerPut(self, src, dest):
     # not implemented here
     return False
 

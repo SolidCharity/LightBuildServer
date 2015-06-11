@@ -103,7 +103,7 @@ class LXCContainer(RemoteContainer):
   def stop(self):
     return self.executeOnHost("lxc-stop --name " + self.name)
 
-  def copytree(self, src, dest):
+  def rsyncContainerPut(self, src, dest):
     return self.rsyncHostPut(src, "/var/lib/lxc/" + self.name + "/rootfs" + dest)
 
   def rsyncContainerGet(self, path, dest = None):

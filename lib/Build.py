@@ -83,11 +83,11 @@ class Build:
         # get the sources of the packaging instructions
         pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname)
         # copy the repo to the container
-        self.container.copytree(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
+        self.container.rsyncContainerPut(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
         # copy the keys to the container
         sshContainerPath = self.config['lbs']['SSHContainerPath']
         if os.path.exists(sshContainerPath + '/' + username + '/' + projectname):
-          self.container.copytree(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/');
+          self.container.rsyncContainerPut(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/');
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
