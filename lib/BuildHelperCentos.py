@@ -250,7 +250,26 @@ class BuildHelperCentos(BuildHelper):
         result = (srcurl + "/src/" + latestFile, latestFile)
     return result
 
+  def GetWinInstructions(self, config, DownloadUrl, buildtarget):
+    repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+    buildtarget = buildtarget.split("/")
+    # check if there is such a package at all
+    checkfile = "/var/www/repos/" + self.username + "/"
+    if 'Secret' in config['lbs']['Users'][self.username]:
+      checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
+    checkfile += self.projectname + "/" + self.dist
+    # perhaps we have built a Windows installer with NSIS
+    windowsfile = checkfile + "/" + buildtarget[1] + "/windows/" + self.packagename + "/*.exe"
+    if glob.glob(windowsfile):
+      newest = max(glob.iglob(windowsfile), key=os.path.getctime)
+      winurl = repourl + "/windows/" + self.packagename + "/"
+      winurl += os.path.basename(newest) 
+      return (winurl, os.path.basename(newest))
+    return None
+
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
+    if self.GetWinInstructions(config, DownloadUrl, buildtarget):
+      return None
     repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
     repourl += "/lbs-"+self.username + "-"+self.projectname +".repo"
     buildtarget = buildtarget.split("/")
@@ -273,7 +292,7 @@ class BuildHelperCentos(BuildHelper):
     checkfile += self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
     if glob.glob(checkfile):
       return result
-    
+ 
     return None
 
   def GetDependanciesAndProvides(self):

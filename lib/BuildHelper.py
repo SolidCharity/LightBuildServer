@@ -101,6 +101,9 @@ class BuildHelper:
       return False
     return True
 
+  def GetWinInstructions(self, config, DownloadUrl, buildtarget):
+    return None
+
   def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
     return "not implemented"
 

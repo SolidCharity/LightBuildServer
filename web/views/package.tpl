@@ -40,6 +40,11 @@
 					<a href="{{package['srcinstructions'][buildtarget][0]}}">{{package['srcinstructions'][buildtarget][1]}}</a>
 					</li>
 				% end
+				% if package['wininstructions'][buildtarget] is not None:
+					<li>Download Windows Installer:
+					<a href="{{package['wininstructions'][buildtarget][0]}}">{{package['wininstructions'][buildtarget][1]}}</a>
+					</li>
+				% end
 			</ul>
 			%end
               	% end
