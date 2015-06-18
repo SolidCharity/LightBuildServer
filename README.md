@@ -31,3 +31,8 @@ The server will use a MySQL database for the storage of users and projects, and 
 The generated packages are delivered from the server directly, via apt or yum repositories.
 
 We are using LXC to build the packages. We are mounting network shares to reduce the amount of downloading required packages.
+
+License
+-------
+
+the LightBuildServer is published with the GNU Lesser General Public License v2 (or 2.1) or later.
