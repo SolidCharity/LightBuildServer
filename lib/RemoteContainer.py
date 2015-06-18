@@ -51,6 +51,16 @@ class RemoteContainer:
         self.containerIP='.'.join(buildserveraddress) + "." + str(self.cid)
         self.containerPort="22"
 
+    # or if the container is running on localhost
+    if socket.gethostbyname(containername) == "127.0.0.1":
+      if os.path.isfile("/etc/libvirt/qemu/networks/default.xml"):
+        # Fedora
+        self.containerIP="192.168.122." + str(self.cid)
+      elif os.path.isfile("/etc/init/lxc-net.conf"):
+        # Ubuntu
+        self.containerIP="10.0.3." + str(self.cid)
+      self.containerPort="22"
+
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc
