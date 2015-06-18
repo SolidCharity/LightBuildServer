@@ -319,5 +319,8 @@ bottle.route('/machines')(myApp.listMachines)
 bottle.route('/machines/<action>/<buildmachine>')(myApp.manageBuildMachines)
 bottle.route('/css/<filename>')(myApp.css)
 bottle.route('/ext/<filepath:path>')(myApp.ext)
-ipaddress=socket.gethostbyname(socket.gethostname()) 
-bottle.run(host=ipaddress, port=80, debug=False) 
+if __name__ == '__main__':
+  ipaddress=socket.gethostbyname(socket.gethostname())
+  bottle.run(host=ipaddress, port=80, debug=False)
+else:
+  app = application = bottle.default_app()
