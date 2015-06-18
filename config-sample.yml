@@ -35,13 +35,14 @@ lbs:
          # mono will resolve automatically to https://github.com/myusername/lbs-mono
          mono:
            PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
-           monodevelop-opt:
-             Distros: ["centos/6/amd64"]
-           monodevelop-tarball:
-             Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]
-           monodevelop-nightly:
-             Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
-             Distros: ["fedora/20/amd64"]
+           Packages:
+             monodevelop-opt:
+               Distros: ["centos/6/amd64"]
+             monodevelop-tarball:
+               Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]
+             monodevelop-nightly:
+               Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
+               Distros: ["fedora/20/amd64"]
          test:
            test:
              Distros: ["centos/6/amd64", "debian/wheezy/amd64", "fedora/rawhide/amd64", "ubuntu/trusty/amd64"]
