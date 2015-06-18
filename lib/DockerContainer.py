@@ -30,6 +30,7 @@ from Shell import Shell
 class DockerContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger):
     RemoteContainer.__init__(self, containername, configBuildMachine, logger)
+    self.SCRIPTS_PATH = "/usr/share/docker-scripts/"
 
   def executeOnHost(self, command):
     return RemoteContainer.executeOnHost(self, command)
@@ -72,7 +73,7 @@ class DockerContainer(RemoteContainer):
     return True
 
   def startmachine(self):
-    result = self.executeOnHost("cd docker-scripts && ./initDockerContainer.sh " + self.name + " " + str(self.cid) + " Dockerfiles/Dockerfile." + self.distro + self.release + ' ' + self.mount)
+    result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.name + " " + str(self.cid) + " Dockerfiles/Dockerfile." + self.distro + self.release + ' ' + self.mount)
     if result == False:
       return False
 

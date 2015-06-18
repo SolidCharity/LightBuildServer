@@ -31,6 +31,7 @@ class LXCContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger):
     RemoteContainer.__init__(self, containername, configBuildMachine, logger)
     self.LXCHOME_PATH = "/var/lib/lxc/"
+    self.SCRIPTS_PATH = "/usr/share/lxc-scripts/"
 
   def executeOnHost(self, command):
     return RemoteContainer.executeOnHost(self, command)
@@ -45,18 +46,18 @@ class LXCContainer(RemoteContainer):
       return False
     result = False
     if distro == "centos":
-      result = self.executeOnHost("./scripts/initCentOS.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "fedora":
       if release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
         release = "21"
-      result = self.executeOnHost("./scripts/initFedora.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "debian":
-      result = self.executeOnHost("./scripts/initDebian.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "ubuntu":
-      result = self.executeOnHost("./scripts/initUbuntu.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if result == True:
-      result = self.executeOnHost("./scripts/tunnelport.sh " + str(self.cid) + " 22")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "tunnelport.sh " + str(self.cid) + " 22")
     sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
@@ -128,7 +129,7 @@ class LXCContainer(RemoteContainer):
   def installmount(self, localpath, hostpath = None):
     if hostpath is None:
       hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
-    result = self.executeOnHost("./scripts/initMount.sh " + hostpath + " " + self.name + " " + localpath)
+    result = self.executeOnHost(self.SCRIPTS_PATH + "initMount.sh " + hostpath + " " + self.name + " " + localpath)
     if result:
       if not os.path.exists(hostpath):
           self.shell.executeshell("mkdir -p " + hostpath)
