@@ -36,25 +36,59 @@ from Shell import Shell
 import logging
 from threading import Thread, Lock
 from collections import deque
+import sqlite3
 
 class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
     self.config = Config.LoadConfig()
+ 
+    if not os.path.isfile(self.config['lbs']['SqliteFile']):
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      createTableStmt = """
+CREATE TABLE build (
+  id INTEGER PRIMARY KEY,
+  status char(20) NOT NULL,
+  username char(100) NOT NULL,
+  projectname char(100) NOT NULL,
+  packagename char(100) NOT NULL,
+  branchname char(100) NOT NULL,
+  distro char(20) NOT NULL,
+  release char(20) NOT NULL,
+  arch char(10) NOT NULL,
+  dependsOnOtherProjects char(400) NOT NULL)
+"""
+      con.execute(createTableStmt)
+      createTableStmt = """
+CREATE TABLE machine (
+  id INTEGER PRIMARY KEY,
+  name char(100) NOT NULL,
+  status char(40) NOT NULL,
+  buildjob char(400),
+  queue char(400),
+  username char(100),
+  projectname char(100),
+  packagename char(100))
+"""
+      con.execute(createTableStmt)
+      con.commit()
+    else:
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
 
-    self.machines = {}
+    con.execute("DELETE FROM machine")
+    con.execute("DELETE FROM build WHERE status = 'WAITING' OR status='BUILDING'")
     for buildmachine in self.config['lbs']['Machines']:
       # init the machine
-      self.machines[buildmachine] = { }
-      self.machines[buildmachine]['status'] = 'available'
+      con.execute("INSERT INTO machine('name', 'status') VALUES('%s', '%s')" % (buildmachine, 'available'))
+    con.commit()
+    con.close()
 
     self.lbsList = {}
     self.recentlyFinishedLbsList = {}
-    self.buildqueue = deque()
-    self.buildqueueLock = Lock()
-    self.ToBuild = deque()
-    self.finishedqueue = deque()
+# TODO    self.buildqueue = deque()
+# TODO    self.finishedqueue = deque()
+
     thread = Thread(target = self.buildqueuethread, args=())
     thread.start()
 
@@ -104,10 +138,19 @@ class LightBuildServer:
       self.buildqueueLock.release()
 
   def GetBuildMachineState(self, buildmachine):
-    if self.machines[buildmachine]['status'] == 'building':
-      return ("building", self.machines[buildmachine]['buildjob'])
-    if self.machines[buildmachine]['status'] == 'available':
-      return "available"
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    cursor = con.cursor()
+    stmt = "SELECT status, buildjob FROM machine WHERE name = '%s'"
+    cursor.execute(stmt % (buildmachine))
+    data = cursor.fetchone()
+    cursor.close()
+    con.close()
+
+    if data:
+      if data[0] == 'building':
+        return ("building", data[1])
+      if data[0] == 'available':
+        return "available"
     return "undefined"
 
   def CanFindMachineBuildingOnSameQueue(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
@@ -167,12 +210,18 @@ class LightBuildServer:
     buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
 
-  def AddToBuildQueue(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+  def AddToBuildQueue(self, username, projectname, packagename, branchname, distro, release, arch):
     # find if this project depends on other projects
     DependsOnOtherProjects={}
     if 'DependsOn' in self.config['lbs']['Users'][username]['Projects'][projectname]:
       DependsOnOtherProjects=self.config['lbs']['Users'][username]['Projects'][projectname]['DependsOn']
-    self.buildqueue.append((username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, DependsOnOtherProjects))
+
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    cursor = con.cursor()
+    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProj) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)"
+    cursor.execute(stmt % ('WAITING', username, projectname, packagename, branchname, distro, release, arch, DependsOnOtherProj))
+    cursor.close()
+    con.close()
 
   def BuildProject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
     packages=self.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
@@ -189,7 +238,6 @@ class LightBuildServer:
         if lbsName in self.recentlyFinishedLbsList:
           del self.recentlyFinishedLbsList[lbsName]
         if not lbsName in self.lbsList:
-          self.ToBuild.append(lbsName)
           self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
     return message
@@ -199,13 +247,11 @@ class LightBuildServer:
     if lbsName in self.recentlyFinishedLbsList:
       del self.recentlyFinishedLbsList[lbsName]
     if not lbsName in self.lbsList:
-       self.ToBuild.append(lbsName)
        self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
   def BuildProjectWithBranchAndPwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     if not lbsName in self.lbsList:
-      self.ToBuild.append(lbsName)
       self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
       return "Build for {{lbsName}} has been triggered."
     else:
@@ -222,7 +268,7 @@ class LightBuildServer:
         self.finishedqueue.pop()
       del self.lbsList[lbsName]
 
-  def attemptToFindBuildMachine(self, item):
+  def attemptToFindBuildMachine(self, con, item):
     username = item[0]
     projectname = item[1]
     packagename = item[2]
@@ -251,48 +297,74 @@ class LightBuildServer:
       thread.start()
       threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
       threadWait.start()
-      self.ToBuild.remove(lbsName)
       self.buildqueue.remove(item)
       return True
     return False
 
   def buildqueuethread(self):
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      cursor = con.cursor()
+
       while True:
         # loop from left to right
         # check if a project might be ready to build
-        # use locking for buildqueue: avoid: a build machine is released when I am just checking for a project quite down the queue
-        self.buildqueueLock.acquire()
-        try:
-          count=0
-          while count<len(self.buildqueue):
-            if self.attemptToFindBuildMachine(self.buildqueue[count]):
-              break
-            count=count+1
-        finally:
-          self.buildqueueLock.release()
+        cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+        data = cursor.fetchall()
+        for row in data:
+          if self.attemptToFindBuildMachine(con, row):
+            break
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
 
-  def LiveLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-        lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if lbsName in self.lbsList:
-          lbs = self.lbsList[lbsName]
-        elif lbsName in self.recentlyFinishedLbsList:
-          lbs = self.recentlyFinishedLbsList[lbsName]
-        else:
-          if lbsName in self.ToBuild:
-            return ("We are waiting for a build machine to become available...", 10)
-          else:
-            return ("No build is planned for this package at the moment...", -1)
+      cursor.close()
+      con.close()
 
-        if lbs.finished:
-          output = lbs.logger.get()
-          # stop refreshing
-          timeout=-1
-        else:
-          output = lbs.logger.get(4000)
-          timeout = 2
+  def LiveLog(self, username, projectname, packagename, branchname, distro, release, arch):
+      lbsName=self.GetLbsName(username,projectname,packagename,branchname,distro,release,arch)
 
-        return (output, timeout)
+      if lbsName in self.lbsList:
+        lbs = self.lbsList[lbsName]
+      elif lbsName in self.recentlyFinishedLbsList:
+        lbs = self.recentlyFinishedLbsList[lbsName]
+      else:
+        con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+        cursor = con.cursor()
+        stmt = """
+SELECT * FROM build 
+WHERE username = '%s' 
+AND projectname = '%s'
+AND packagename = '%s'
+AND branchname = '%s'
+AND distro = '%s'
+AND release = '%s'
+AND arch = '%s'
+ORDER BY id DESC
+"""
+        cursor.execute(stmt % (username, projectname, packagename, branchname, distro, release, arch))
+        data = cursor.fetchone()
+        cursor.close()
+        con.close()
+        if data is None or data['status'] != 'Waiting':
+          return ("No build is planned for this package at the moment...", -1)
+        else:
+          return ("We are waiting for a build machine to become available...", 10)
+
+      if lbs.finished:
+        output = lbs.logger.get()
+        # stop refreshing
+        timeout=-1
+      else:
+        output = lbs.logger.get(4000)
+        timeout = 2
+
+      return (output, timeout)
+
+  def GetBuildQueue(self):
+      # TODO
+      return deque()
+
+  def GetFinishedQueue(self):
+      # TODO
+      return deque()
 

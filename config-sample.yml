@@ -15,6 +15,7 @@ lbs:
    LBSUrl: http://lbs.example.org
    DownloadUrl: http://download.lbs.example.org
    SSHContainerPath: /root/.sshcontainer
+   SqliteFile: /var/tmp/lightbuildserver.db
    Users:
      business:
        Password: demo
