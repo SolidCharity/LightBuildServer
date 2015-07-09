@@ -29,14 +29,12 @@ from LightBuildServer import LightBuildServer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
-import yaml
+import Config
 import copy
 
 class LightBuildServerWeb:
     def __init__(self):
-        configfile="../config.yml"
-        stream = open(configfile, 'r')
-        self.config = yaml.load(stream)
+        self.config = Config.LoadConfig()
         self.LBS = LightBuildServer()
 
     def check_login(self, username, password):

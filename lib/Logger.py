@@ -26,7 +26,7 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from collections import OrderedDict
-import yaml
+import Config
 
 class Logger:
   'collect all the output'
@@ -35,9 +35,7 @@ class Logger:
     self.logspath = "/var/www/logs"
     self.lastTimeUpdate = int(time.time())
     self.startTimer()
-    configfile="../config.yml"
-    stream = open(configfile, 'r')
-    config = yaml.load(stream)
+    config = Config.LoadConfig()
     self.emailserver = config['lbs']['EmailServer']
     self.emailport = config['lbs']['EmailPort']
     self.emailuser = config['lbs']['EmailUser']

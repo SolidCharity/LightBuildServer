@@ -24,8 +24,8 @@ from DockerContainer import DockerContainer
 from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
+import Config
 from time import gmtime, strftime
-import yaml
 import os
 import shutil
 from Shell import Shell
@@ -40,9 +40,7 @@ class Build:
     self.container = None
     self.finished = False
     self.buildmachine = None
-    configfile="../config.yml"
-    stream = open(configfile, 'r')
-    self.config = yaml.load(stream)
+    self.config = Config.LoadConfig()
 
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
     # create a container on a remote machine

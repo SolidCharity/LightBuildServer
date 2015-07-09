@@ -25,9 +25,9 @@ from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
+import Config
 from Build import Build
 from time import gmtime, strftime
-import yaml
 import os
 import shutil
 import time
@@ -41,9 +41,7 @@ class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
-    configfile="../config.yml"
-    stream = open(configfile, 'r')
-    self.config = yaml.load(stream)
+    self.config = Config.LoadConfig()
 
     self.machines = {}
     for buildmachine in self.config['lbs']['Machines']:
