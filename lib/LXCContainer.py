@@ -48,9 +48,6 @@ class LXCContainer(RemoteContainer):
     if distro == "centos":
       result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "fedora":
-      if release == "rawhide":
-        # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        release = "21"
       result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "debian":
       result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
