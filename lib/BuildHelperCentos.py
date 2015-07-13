@@ -277,13 +277,19 @@ class BuildHelperCentos(BuildHelper):
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
       if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
         result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+    # packagename: name of spec file, without .spec at the end
+    packagename=self.GetSpecFilename()[:-5]
     if buildtarget[0] == "centos" and buildtarget[1] == "5":
       result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
+      result += "yum install " + packagename
+    elif buildtarget[0] == "fedora" and (buildtarget[1] == "rawhide" or int(buildtarget[1]) >= 22):
+      result += "dnf install 'dnf-command(config-manager)'\n"
+      result += "dnf config-manager --add-repo " + repourl + "\n"
+      result += "dnf install " + packagename
     else:
       result += "yum install yum-utils\n"
       result += "yum-config-manager --add-repo " + repourl + "\n"
-    # packagename: name of spec file, without .spec at the end
-    result += "yum install " + self.GetSpecFilename()[:-5]
+      result += "yum install " + packagename
 
     # check if there is such a package at all
     checkfile = "/var/www/repos/" + self.username + "/"
