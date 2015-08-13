@@ -291,6 +291,7 @@ CREATE TABLE log (
       lastBuild = Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6])
       con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
       con.commit()
+      con.close()
 
   def attemptToFindBuildMachine(self, con, item):
     username = item["username"]
@@ -327,24 +328,23 @@ CREATE TABLE log (
     return False
 
   def buildqueuethread(self):
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
-      con.row_factory = sqlite3.Row
-      cursor = con.cursor()
-
       while True:
         # loop from left to right
         # check if a project might be ready to build
+        con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+        con.row_factory = sqlite3.Row
+        cursor = con.cursor()
         cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
         data = cursor.fetchall()
         for row in data:
           if self.attemptToFindBuildMachine(con, row):
             break
+        cursor.close()
+        con.close()
         self.CheckForHangingBuild()
         # sleep two seconds before looping through buildqueue again
         time.sleep(2)
 
-      cursor.close()
-      con.close()
 
   def LiveLog(self, username, projectname, packagename, branchname, distro, release, arch):
       data = self.GetJob(username, projectname, packagename, branchname, distro, release, arch, "")
@@ -358,6 +358,7 @@ CREATE TABLE log (
         stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC LIMIT ?"
         cursor.execute(stmt, (data['id'], rowsToShow))
         data = cursor.fetchall()
+        con.close()
         output = ""
         for row in data:
           output = row['line'] + output
@@ -391,6 +392,7 @@ CREATE TABLE log (
       cursor = con.cursor()
       cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
       data = cursor.fetchall()
+      con.close()
       result = deque()
       for row in data:
         result.append(row)
@@ -402,6 +404,7 @@ CREATE TABLE log (
       cursor = con.cursor()
       cursor.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
       data = cursor.fetchall()
+      con.close()
       result = deque()
       for row in data:
         result.append(row)
