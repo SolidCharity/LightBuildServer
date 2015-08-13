@@ -26,20 +26,22 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from collections import OrderedDict
+import sqlite3
 import Config
 
 class Logger:
   'collect all the output'
 
-  def __init__(self):
+  def __init__(self, buildid=-1):
     self.logspath = "/var/www/logs"
     self.lastTimeUpdate = int(time.time())
     self.startTimer()
-    config = Config.LoadConfig()
-    self.emailserver = config['lbs']['EmailServer']
-    self.emailport = config['lbs']['EmailPort']
-    self.emailuser = config['lbs']['EmailUser']
-    self.emailpassword = config['lbs']['EmailPassword']
+    self.config = Config.LoadConfig()
+    self.emailserver = self.config['lbs']['EmailServer']
+    self.emailport = self.config['lbs']['EmailPort']
+    self.emailuser = self.config['lbs']['EmailUser']
+    self.emailpassword = self.config['lbs']['EmailPassword']
+    self.buildid = buildid
 
   def startTimer(self):
     self.starttime = time.time()
@@ -63,9 +65,19 @@ class Logger:
       if "LBSERROR" in newOutput:
         self.error = True
       self.output += timeprefix + newOutput
+
+      # write each line to database, and then dump to file when build is finished
+      if self.buildid != -1:
+        con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
+        stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
+        con.execute(stmt, (self.buildid, timeprefix + newOutput))
+        con.commit()
+        con.close()
+
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
       # just ignore the exception...
       try:
+        # TODO define in config.yml if we really want the output to the screen (ie uwsgi.log) or just to the log system
         sys.stdout.write(timeprefix + newOutput)
       finally:
         sys.stdout.flush() 
@@ -124,11 +136,23 @@ class Logger:
     self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
     with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'a') as f:
       f.write(self.get())
+
+    # clear log from database
+    if self.buildid != -1:
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+      stmt = "DELETE FROM log WHERE buildid = ?"
+      con.execute(stmt, (self.buildid, ))
+      con.commit()
+      con.close()
+
     return buildnumber 
 
-  def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
+  def getLogFile(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
     LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    filename=LogPath + "/build-" + str(buildnumber).zfill(6) + ".log"
+    return LogPath + "/build-" + str(buildnumber).zfill(6) + ".log"
+
+  def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
+    filename=self.getLogFile(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
     if os.path.isfile(filename):
       with open(filename, 'r') as content_file:
         return content_file.read()

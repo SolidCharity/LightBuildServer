@@ -45,10 +45,10 @@ class LightBuildServer:
     self.config = Config.LoadConfig()
  
     if not os.path.isfile(self.config['lbs']['SqliteFile']):
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
       createTableStmt = """
 CREATE TABLE build (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   status char(20) NOT NULL,
   username char(100) NOT NULL,
   projectname char(100) NOT NULL,
@@ -58,15 +58,16 @@ CREATE TABLE build (
   release char(20) NOT NULL,
   arch char(10) NOT NULL,
   dependsOnOtherProjects char(400) NOT NULL,
-  started DATETIME,
-  finished DATETIME,
+  buildmachine char(100),
+  started TIMESTAMP,
+  finished TIMESTAMP,
   buildsuccess char(20),
   buildnumber INTEGER)
 """
       con.execute(createTableStmt)
       createTableStmt = """
 CREATE TABLE machine (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   name char(100) NOT NULL,
   status char(40) NOT NULL,
   buildjob char(400),
@@ -76,20 +77,26 @@ CREATE TABLE machine (
   packagename char(100))
 """
       con.execute(createTableStmt)
+      createTableStmt = """
+CREATE TABLE log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  buildid INTEGER,
+  line TEXT,
+  created TIMESTAMP DEFAULT (datetime('now','localtime')))
+"""
+      con.execute(createTableStmt)
       con.commit()
     else:
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
 
     con.execute("DELETE FROM machine")
     con.execute("DELETE FROM build WHERE status = 'WAITING' OR status='BUILDING'")
+    con.execute("DELETE FROM log")
     for buildmachine in self.config['lbs']['Machines']:
       # init the machine
       con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'AVAILABLE'))
     con.commit()
     con.close()
-
-# TODO still needed?
-    self.lbsList = {}
 
     thread = Thread(target = self.buildqueuethread, args=())
     thread.start()
@@ -120,10 +127,29 @@ CREATE TABLE machine (
 
   def CheckForHangingBuild(self):
       # check for hanging build (BuildingTimeout in config.yml)
-      for lbsName in self.lbsList:
-        lbs = self.lbsList[lbsName]
-        if (lbs.logger.lastTimeUpdate + self.config['lbs']['BuildingTimeout'] < int(time.time())):
-          self.ReleaseMachine(lbs.buildmachine)
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES, timeout=10)
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      stmt = "SELECT * FROM build "
+      stmt += "WHERE status = 'BUILDING' "
+      stmt += "AND date(started,'+" + str(self.config['lbs']['BuildingTimeout']) + " second') < date('now') "
+      stmt += " ORDER BY id DESC"
+      cursor.execute(stmt)
+      data = cursor.fetchall()
+      cursor.close()
+      for row in data:
+        stmt = "SELECT * FROM log WHERE buildid=? AND created > ?"
+        cursor = con.cursor()
+        cursor.execute(stmt, (row['id'], datetime.now() - timedelta(seconds=self.config['lbs']['BuildingTimeout'])))
+        if not cursor.fetchone() is None:
+          # mark build as failed
+          stmt = "UPDATE build SET status='FINISHED', success='Failure' WHERE id = ?"
+          con.execute(stmt, (row['id'],))
+          stmt = "DELETE FROM log WHERE buildid=?"
+          con.execute(stmt, (row['id'],))
+          con.commit()
+          self.ReleaseMachine(data["buildmachine"])
+      con.close()
 
   def ReleaseMachine(self, buildmachine):
     conf=self.config['lbs']['Machines'][buildmachine]
@@ -131,14 +157,14 @@ CREATE TABLE machine (
       LXCContainer(buildmachine, conf, Logger()).stop()
     else:
       DockerContainer(buildmachine, conf, Logger()).stop()
-    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
     stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
     con.execute(stmt, (buildmachine,))
     con.commit()
     con.close()
 
   def GetBuildMachineState(self, buildmachine):
-    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
     con.row_factory = sqlite3.Row
     cursor = con.cursor()
     stmt = "SELECT status, buildjob, queue FROM machine WHERE name = ?"
@@ -221,7 +247,7 @@ CREATE TABLE machine (
       DependsOnOtherProjects=self.config['lbs']['Users'][username]['Projects'][projectname]['DependsOn']
     dependsOnString=','.join(DependsOnOtherProjects)
 
-    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
     stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
     con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, dependsOnString))
     con.commit()
@@ -238,20 +264,20 @@ CREATE TABLE machine (
       for packagename in packages:
         # add package to build queue
         message += packagename + ", "
-        lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if not lbsName in self.lbsList:
+        job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")
+        if job is None:
           self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
     return message
 
   def BuildProjectWithBranch(self, username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch):
-    lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-    if not lbsName in self.lbsList:
-       self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
+    job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")
+    if job is None:
+      self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
   def BuildProjectWithBranchAndPwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
-    lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-    if not lbsName in self.lbsList:
+    job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")
+    if job is None:
       self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
       return "Build for {{lbsName}} has been triggered."
     else:
@@ -259,13 +285,12 @@ CREATE TABLE machine (
 
   def WaitForBuildJobFinish(self, thread, lbsName, jobId):
       thread.join()
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
       stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
       listLbsName=lbsName.split('/')
       lastBuild = Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6])
       con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
       con.commit()
-      del self.lbsList[lbsName]
 
   def attemptToFindBuildMachine(self, con, item):
     username = item["username"]
@@ -286,24 +311,23 @@ CREATE TABLE machine (
       if self.CanFindMachineBuildingProject(username, DependantProjectName):
         return False
 
-    lbs = Build(self, Logger())
+    lbs = Build(self, Logger(item['id']))
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
     buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     if not buildmachine == None:
-      self.lbsList[lbsName] = lbs
+      stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
+      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
+      con.commit()
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
       thread.start()
       threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName, item['id']))
       threadWait.start()
-      stmt = "UPDATE build SET status='BUILDING', started=? WHERE id = ?"
-      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), item['id']))
-      con.commit()
       return True
     return False
 
   def buildqueuethread(self):
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
       con.row_factory = sqlite3.Row
       cursor = con.cursor()
 
@@ -323,44 +347,46 @@ CREATE TABLE machine (
       con.close()
 
   def LiveLog(self, username, projectname, packagename, branchname, distro, release, arch):
-      lbsName=self.GetLbsName(username,projectname,packagename,branchname,distro,release,arch)
-
-      if lbsName in self.lbsList:
-        lbs = self.lbsList[lbsName]
-        output = lbs.logger.get(4000)
-        timeout = 2
-      else:
-        con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      data = self.GetJob(username, projectname, packagename, branchname, distro, release, arch, "")
+      if data is None:
+        return ("No build is planned for this package at the moment...", -1)
+      elif data['status'] == 'BUILDING':
+        rowsToShow=40
+        con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
         con.row_factory = sqlite3.Row
         cursor = con.cursor()
-        stmt = """
-SELECT * FROM build 
-WHERE username = ? 
-AND projectname = ?
-AND packagename = ?
-AND branchname = ?
-AND distro = ?
-AND release = ?
-AND arch = ?
-ORDER BY id DESC
-"""
-        cursor.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
-        data = cursor.fetchone()
-        cursor.close()
-        con.close()
-        if data is None:
-          return ("No build is planned for this package at the moment...", -1)
-        elif data['status'] == 'WAITING':
-          return ("We are waiting for a build machine to become available...", 10)
-        elif data['status'] == 'FINISHED':
-          output = Logger().getLog(username, projectname, packagename, branchname, distro, release, arch, data['buildnumber'])
-          # stop refreshing
-          timeout=-1
+        stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC LIMIT ?"
+        cursor.execute(stmt, (data['id'], rowsToShow))
+        data = cursor.fetchall()
+        output = ""
+        for row in data:
+          output = row['line'] + output
+        timeout = 2
+      elif data['status'] == 'WAITING':
+        return ("We are waiting for a build machine to become available...", 10)
+      elif data['status'] == 'FINISHED':
+        output = Logger().getLog(username, projectname, packagename, branchname, distro, release, arch, data['buildnumber'])
+        # stop refreshing
+        timeout=-1
 
       return (output, timeout)
 
+  def GetJob(self,username, projectname, packagename, branchname, distro, release, arch, where):
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      stmt = "SELECT * FROM build "
+      stmt += "WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ? AND distro = ? AND release = ? AND arch = ? "
+      stmt += where
+      stmt += " ORDER BY id DESC"
+      cursor.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
+      data = cursor.fetchone()
+      cursor.close()
+      con.close()
+      return data
+
   def GetBuildQueue(self):
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
       con.row_factory = sqlite3.Row
       cursor = con.cursor()
       cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
@@ -371,7 +397,7 @@ ORDER BY id DESC
       return result
 
   def GetFinishedQueue(self):
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
       con.row_factory = sqlite3.Row
       cursor = con.cursor()
       cursor.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
