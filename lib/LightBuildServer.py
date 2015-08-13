@@ -140,8 +140,8 @@ CREATE TABLE machine (
   def GetBuildMachineState(self, buildmachine):
     con = sqlite3.connect(self.config['lbs']['SqliteFile'])
     cursor = con.cursor()
-    stmt = "SELECT status, buildjob FROM machine WHERE name = '%s'"
-    cursor.execute(stmt % (buildmachine))
+    stmt = "SELECT status, buildjob FROM machine WHERE name = ?"
+    cursor.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
     con.close()
@@ -333,16 +333,16 @@ CREATE TABLE machine (
         cursor = con.cursor()
         stmt = """
 SELECT * FROM build 
-WHERE username = '%s' 
-AND projectname = '%s'
-AND packagename = '%s'
-AND branchname = '%s'
-AND distro = '%s'
-AND release = '%s'
-AND arch = '%s'
+WHERE username = ? 
+AND projectname = ?
+AND packagename = ?
+AND branchname = ?
+AND distro = ?
+AND release = ?
+AND arch = ?
 ORDER BY id DESC
 """
-        cursor.execute(stmt % (username, projectname, packagename, branchname, distro, release, arch))
+        cursor.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
         data = cursor.fetchone()
         cursor.close()
         con.close()
