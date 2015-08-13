@@ -101,19 +101,6 @@ class Logger:
   def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
      return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
 
-  def getLastBuildLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-    logpath=self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    LogPath = self.logspath + "/" + logpath
-    if not os.path.exists(LogPath):
-      os.makedirs( LogPath )
-    buildnumber=0
-    for file in os.listdir(LogPath):
-      if file.endswith(".log"):
-        oldnumber=int(file[6:-4])
-        if oldnumber >= buildnumber:
-          buildnumber = oldnumber
-    return self.getLog(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
-
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):

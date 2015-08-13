@@ -5,11 +5,11 @@
         <ul>
             % for buildmachine in sorted(buildmachines):
               <li>Container {{buildmachine}}: 
-		% if buildmachines[buildmachine]["status"] == "building":
+		% if buildmachines[buildmachine]["status"] == "BUILDING":
                   {{buildmachines[buildmachine]["status"]}} <br/>
 		  Currently building {{buildmachines[buildmachine]["buildjob"]}}: <a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
                 % end
-                % if not buildmachines[buildmachine]["status"] == "building": 
+                % if not buildmachines[buildmachine]["status"] == "BUILDING": 
                    {{buildmachines[buildmachine]["status"]}} <br/>
 		% end
 
@@ -23,22 +23,22 @@
 	<h2>Planned Jobs</h2>
 	<ul>
 		% for job in jobs:
-		<li>{{job[0]}}-{{job[1]}}-{{job[2]}}-{{job[3]}}-{{job[4]}}-{{job[5]}}</li>
+		<li>{{job["username"]}}-{{job["projectname"]}}-{{job["packagename"]}}-{{job["branchname"]}}-{{job["distro"]}}-{{job["release"]}}</li>
 		% end
 	</ul>
 	<h2>Recent Jobs</h2>
 	<table class="table">
 		% for job in finishedjobs:
 		<tr>
-			<td>{{job[8]}}</td>
+			<td>{{job["finished"]}}</td>
 			<td>
-				<a href="/package/{{job[0]}}/{{job[1]}}/{{job[2]}}#{{job[3]}}_{{job[4]}}/{{job[5]}}/{{job[6]}}">
-				{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}-{{job[5]}}-{{job[6]}}</a>
+				<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
+				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>
 			</td>
-			<td><a href="/logs/{{job[0]}}/{{job[1]}}/{{job[2]}}/{{job[3]}}/{{job[4]}}/{{job[5]}}/{{job[6]}}/{{job[7]["number"]}}">
-				build {{job[7]["number"]}}</a></td>
+			<td><a href="/logs/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}/{{job["buildnumber"]}}">
+				build {{job["buildnumber"]}}</a></td>
 			<td>
-			<code class="{{job[7]["resultcode"]}}">{{"Succeeded" if job[7]["resultcode"] == "success" else "Failure"}}</code></td>
+			<code class="{{job["buildsuccess"]}}">{{"Succeeded" if job["buildsuccess"] == "success" else "Failure"}}</code></td>
 		</tr>
 		% end
 	</table>

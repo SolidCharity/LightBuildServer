@@ -59,7 +59,9 @@ CREATE TABLE build (
   arch char(10) NOT NULL,
   dependsOnOtherProjects char(400) NOT NULL,
   started DATETIME,
-  finished DATETIME)
+  finished DATETIME,
+  buildsuccess char(20),
+  buildnumber INTEGER)
 """
       con.execute(createTableStmt)
       createTableStmt = """
@@ -88,8 +90,6 @@ CREATE TABLE machine (
 
 # TODO still needed?
     self.lbsList = {}
-# TODO    self.buildqueue = deque()
-# TODO    self.finishedqueue = deque()
 
     thread = Thread(target = self.buildqueuethread, args=())
     thread.start()
@@ -260,8 +260,10 @@ CREATE TABLE machine (
   def WaitForBuildJobFinish(self, thread, lbsName, jobId):
       thread.join()
       con = sqlite3.connect(self.config['lbs']['SqliteFile'])
-      stmt = "UPDATE build SET status='FINISHED', finished=? WHERE id = ?"
-      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), jobId))
+      stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
+      listLbsName=lbsName.split('/')
+      lastBuild = Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6])
+      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
       con.commit()
       del self.lbsList[lbsName]
 
@@ -351,18 +353,31 @@ ORDER BY id DESC
         elif data['status'] == 'WAITING':
           return ("We are waiting for a build machine to become available...", 10)
         elif data['status'] == 'FINISHED':
-          output = Logger().getLastBuildLog(username, projectname, packagename, branchname, distro, release, arch)
+          output = Logger().getLog(username, projectname, packagename, branchname, distro, release, arch, data['buildnumber'])
           # stop refreshing
           timeout=-1
 
       return (output, timeout)
 
   def GetBuildQueue(self):
-      # TODO
-      return deque()
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+      data = cursor.fetchall()
+      result = deque()
+      for row in data:
+        result.append(row)
+      return result
 
   def GetFinishedQueue(self):
-      # TODO
-      # only get last jobs that have finished, self.config['lbs']['ShowNumberOfFinishedJobs']
-      return deque()
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      cursor.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
+      data = cursor.fetchall()
+      result = deque()
+      for row in data:
+        result.append(row)
+      return result
 
