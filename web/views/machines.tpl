@@ -5,12 +5,12 @@
         <ul>
             % for buildmachine in sorted(buildmachines):
               <li>Container {{buildmachine}}: 
-		% if buildmachines[buildmachine][0] == "building":
-                  {{buildmachines[buildmachine][0]}} <br/>
-		  Currently building {{buildmachines[buildmachine][1]}}: <a href="/livelog/{{buildmachines[buildmachine][1]}}">View live log</a><br/>
+		% if buildmachines[buildmachine]["status"] == "building":
+                  {{buildmachines[buildmachine]["status"]}} <br/>
+		  Currently building {{buildmachines[buildmachine]["buildjob"]}}: <a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
                 % end
-                % if not buildmachines[buildmachine][0] == "building": 
-                   {{buildmachines[buildmachine]}} <br/>
+                % if not buildmachines[buildmachine]["status"] == "building": 
+                   {{buildmachines[buildmachine]["status"]}} <br/>
 		% end
 
 		&nbsp; &nbsp; Action: <ul>

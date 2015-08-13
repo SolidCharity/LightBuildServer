@@ -57,7 +57,9 @@ CREATE TABLE build (
   distro char(20) NOT NULL,
   release char(20) NOT NULL,
   arch char(10) NOT NULL,
-  dependsOnOtherProjects char(400) NOT NULL)
+  dependsOnOtherProjects char(400) NOT NULL,
+  started DATETIME,
+  finished DATETIME)
 """
       con.execute(createTableStmt)
       createTableStmt = """
@@ -80,12 +82,12 @@ CREATE TABLE machine (
     con.execute("DELETE FROM build WHERE status = 'WAITING' OR status='BUILDING'")
     for buildmachine in self.config['lbs']['Machines']:
       # init the machine
-      con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'available'))
+      con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'AVAILABLE'))
     con.commit()
     con.close()
 
+# TODO still needed?
     self.lbsList = {}
-    self.recentlyFinishedLbsList = {}
 # TODO    self.buildqueue = deque()
 # TODO    self.finishedqueue = deque()
 
@@ -102,7 +104,7 @@ CREATE TABLE machine (
     machinePriorityToUse=101
     for buildmachine in self.config['lbs']['Machines']:
       state = self.GetBuildMachineState(buildmachine)
-      if state['status'] == 'available':
+      if state['status'] == 'AVAILABLE':
         buildmachinePriority=100
         if 'priority' in self.config['lbs']['Machines'][buildmachine]:
           buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
@@ -111,7 +113,7 @@ CREATE TABLE machine (
           machineToUse = buildmachine
     if machineToUse is not None:
       stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=?"
-      con.execute(stmt, ('building', buildjob, queue, username, projectname, packagename, machineToUse))
+      con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
       con.commit()
       return machineToUse
     return None
@@ -124,16 +126,16 @@ CREATE TABLE machine (
           self.ReleaseMachine(lbs.buildmachine)
 
   def ReleaseMachine(self, buildmachine):
-    self.buildqueueLock.acquire()
-    try:
-      conf=self.config['lbs']['Machines'][buildmachine]
-      if 'type' in conf and conf['type'] == 'lxc':
-        LXCContainer(buildmachine, conf, Logger()).stop()
-      else:
-        DockerContainer(buildmachine, conf, Logger()).stop()
-      self.machines[buildmachine]['status'] = 'available'
-    finally:
-      self.buildqueueLock.release()
+    conf=self.config['lbs']['Machines'][buildmachine]
+    if 'type' in conf and conf['type'] == 'lxc':
+      LXCContainer(buildmachine, conf, Logger()).stop()
+    else:
+      DockerContainer(buildmachine, conf, Logger()).stop()
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
+    con.execute(stmt, (buildmachine,))
+    con.commit()
+    con.close()
 
   def GetBuildMachineState(self, buildmachine):
     con = sqlite3.connect(self.config['lbs']['SqliteFile'])
@@ -146,9 +148,9 @@ CREATE TABLE machine (
     con.close()
 
     if data:
-      if data["status"] == 'building':
+      if data["status"] == 'BUILDING':
         return data
-      if data["status"] == 'available':
+      if data["status"] == 'AVAILABLE':
         return data
     undefined = {}
     undefined["status"] = "undefined"
@@ -158,7 +160,7 @@ CREATE TABLE machine (
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     for buildmachine in self.config['lbs']['Machines']:
       state = self.GetBuildMachineState(buildmachine)
-      if state['status'] == 'building':
+      if state['status'] == 'BUILDING':
         if state['queue'] == queue:
           # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
           return True
@@ -166,7 +168,7 @@ CREATE TABLE machine (
 
   def CanFindMachineBuildingProject(self, username, projectname):
     for buildmachine in self.config['lbs']['Machines']:
-      if self.machines[buildmachine]['status'] == 'building':
+      if self.machines[buildmachine]['status'] == 'BUILDING':
         if self.machines[buildmachine]['username'] == username and self.machines[buildmachine]['projectname'] == projectname:
           # there is a machine building a package of the specified project
           return True
@@ -237,8 +239,6 @@ CREATE TABLE machine (
         # add package to build queue
         message += packagename + ", "
         lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-        if lbsName in self.recentlyFinishedLbsList:
-          del self.recentlyFinishedLbsList[lbsName]
         if not lbsName in self.lbsList:
           self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
@@ -246,8 +246,6 @@ CREATE TABLE machine (
 
   def BuildProjectWithBranch(self, username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch):
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
-    if lbsName in self.recentlyFinishedLbsList:
-      del self.recentlyFinishedLbsList[lbsName]
     if not lbsName in self.lbsList:
        self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
 
@@ -259,15 +257,12 @@ CREATE TABLE machine (
     else:
       return "{{lbsName}} is already in the build queue."
 
-  def WaitForBuildJobFinish(self, thread, lbsName):
+  def WaitForBuildJobFinish(self, thread, lbsName, jobId):
       thread.join()
-      self.recentlyFinishedLbsList[lbsName] = self.lbsList[lbsName]
-      listLbsName=lbsName.split('/')
-      listLbsName.append(Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6]))
-      listLbsName.append(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-      self.finishedqueue.appendleft(listLbsName)
-      if len(self.finishedqueue) > self.config['lbs']['ShowNumberOfFinishedJobs']:
-        self.finishedqueue.pop()
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      stmt = "UPDATE build SET status='FINISHED', finished=? WHERE id = ?"
+      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), jobId))
+      con.commit()
       del self.lbsList[lbsName]
 
   def attemptToFindBuildMachine(self, con, item):
@@ -297,9 +292,11 @@ CREATE TABLE machine (
       self.lbsList[lbsName] = lbs
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
       thread.start()
-      threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName))
+      threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName, item['id']))
       threadWait.start()
-      self.buildqueue.remove(item)
+      stmt = "UPDATE build SET status='BUILDING', started=? WHERE id = ?"
+      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), item['id']))
+      con.commit()
       return True
     return False
 
@@ -328,8 +325,8 @@ CREATE TABLE machine (
 
       if lbsName in self.lbsList:
         lbs = self.lbsList[lbsName]
-      elif lbsName in self.recentlyFinishedLbsList:
-        lbs = self.recentlyFinishedLbsList[lbsName]
+        output = lbs.logger.get(4000)
+        timeout = 2
       else:
         con = sqlite3.connect(self.config['lbs']['SqliteFile'])
         con.row_factory = sqlite3.Row
@@ -349,18 +346,14 @@ ORDER BY id DESC
         data = cursor.fetchone()
         cursor.close()
         con.close()
-        if data is None or data['status'] != 'Waiting':
+        if data is None:
           return ("No build is planned for this package at the moment...", -1)
-        else:
+        elif data['status'] == 'WAITING':
           return ("We are waiting for a build machine to become available...", 10)
-
-      if lbs.finished:
-        output = lbs.logger.get()
-        # stop refreshing
-        timeout=-1
-      else:
-        output = lbs.logger.get(4000)
-        timeout = 2
+        elif data['status'] == 'FINISHED':
+          output = Logger().getLastBuildLog(username, projectname, packagename, branchname, distro, release, arch)
+          # stop refreshing
+          timeout=-1
 
       return (output, timeout)
 
@@ -370,5 +363,6 @@ ORDER BY id DESC
 
   def GetFinishedQueue(self):
       # TODO
+      # only get last jobs that have finished, self.config['lbs']['ShowNumberOfFinishedJobs']
       return deque()
 
