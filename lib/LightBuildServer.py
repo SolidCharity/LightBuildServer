@@ -80,7 +80,7 @@ CREATE TABLE machine (
     con.execute("DELETE FROM build WHERE status = 'WAITING' OR status='BUILDING'")
     for buildmachine in self.config['lbs']['Machines']:
       # init the machine
-      con.execute("INSERT INTO machine('name', 'status') VALUES('%s', '%s')" % (buildmachine, 'available'))
+      con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'available'))
     con.commit()
     con.close()
 
@@ -215,11 +215,12 @@ CREATE TABLE machine (
     DependsOnOtherProjects={}
     if 'DependsOn' in self.config['lbs']['Users'][username]['Projects'][projectname]:
       DependsOnOtherProjects=self.config['lbs']['Users'][username]['Projects'][projectname]['DependsOn']
+    dependsOnString=','.join(DependsOnOtherProjects)
 
     con = sqlite3.connect(self.config['lbs']['SqliteFile'])
     cursor = con.cursor()
-    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProj) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)"
-    cursor.execute(stmt % ('WAITING', username, projectname, packagename, branchname, distro, release, arch, DependsOnOtherProj))
+    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
+    cursor.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, dependsOnString))
     cursor.close()
     con.close()
 
