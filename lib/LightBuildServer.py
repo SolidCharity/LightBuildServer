@@ -95,13 +95,14 @@ CREATE TABLE machine (
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
-  def GetAvailableBuildMachine(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
     for buildmachine in self.config['lbs']['Machines']:
-      if self.machines[buildmachine]['status'] == 'available':
+      state = self.GetBuildMachineState(buildmachine)
+      if state['status'] == 'available':
         buildmachinePriority=100
         if 'priority' in self.config['lbs']['Machines'][buildmachine]:
           buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
@@ -109,12 +110,9 @@ CREATE TABLE machine (
           machinePriorityToUse = buildmachinePriority
           machineToUse = buildmachine
     if machineToUse is not None:
-      self.machines[machineToUse]['status'] = 'building'
-      self.machines[machineToUse]['buildjob'] = buildjob
-      self.machines[machineToUse]['queue'] = queue
-      self.machines[machineToUse]['username'] = username
-      self.machines[machineToUse]['projectname'] = projectname
-      self.machines[machineToUse]['packagename'] = packagename
+      stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=?"
+      con.execute(stmt, ('building', buildjob, queue, username, projectname, packagename, machineToUse))
+      con.commit()
       return machineToUse
     return None
 
@@ -139,25 +137,29 @@ CREATE TABLE machine (
 
   def GetBuildMachineState(self, buildmachine):
     con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+    con.row_factory = sqlite3.Row
     cursor = con.cursor()
-    stmt = "SELECT status, buildjob FROM machine WHERE name = ?"
+    stmt = "SELECT status, buildjob, queue FROM machine WHERE name = ?"
     cursor.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
     con.close()
 
     if data:
-      if data[0] == 'building':
-        return ("building", data[1])
-      if data[0] == 'available':
-        return "available"
-    return "undefined"
+      if data["status"] == 'building':
+        return data
+      if data["status"] == 'available':
+        return data
+    undefined = {}
+    undefined["status"] = "undefined"
+    return undefined
 
   def CanFindMachineBuildingOnSameQueue(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     for buildmachine in self.config['lbs']['Machines']:
-      if self.machines[buildmachine]['status'] == 'building':
-        if self.machines[buildmachine]['queue'] == queue:
+      state = self.GetBuildMachineState(buildmachine)
+      if state['status'] == 'building':
+        if state['queue'] == queue:
           # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
           return True
     return False
@@ -218,10 +220,9 @@ CREATE TABLE machine (
     dependsOnString=','.join(DependsOnOtherProjects)
 
     con = sqlite3.connect(self.config['lbs']['SqliteFile'])
-    cursor = con.cursor()
     stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
-    cursor.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, dependsOnString))
-    cursor.close()
+    con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, dependsOnString))
+    con.commit()
     con.close()
 
   def BuildProject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
@@ -270,14 +271,14 @@ CREATE TABLE machine (
       del self.lbsList[lbsName]
 
   def attemptToFindBuildMachine(self, con, item):
-    username = item[0]
-    projectname = item[1]
-    packagename = item[2]
-    branchname = item[3]
-    lxcdistro = item[4]
-    lxcrelease = item[5]
-    lxcarch = item[6]
-    DependsOnOtherProjects = item[7]
+    username = item["username"]
+    projectname = item["projectname"]
+    packagename = item["packagename"]
+    branchname = item["branchname"]
+    lxcdistro = item["distro"]
+    lxcrelease = item["release"]
+    lxcarch = item["arch"]
+    DependsOnOtherProjects = item["dependsOnOtherProjects"]
 
     # 1: check if there is a package building or waiting from the same user and buildtarget => return False
     if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
@@ -291,7 +292,7 @@ CREATE TABLE machine (
     lbs = Build(self, Logger())
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
-    buildmachine=self.GetAvailableBuildMachine(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     if not buildmachine == None:
       self.lbsList[lbsName] = lbs
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
@@ -304,6 +305,7 @@ CREATE TABLE machine (
 
   def buildqueuethread(self):
       con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+      con.row_factory = sqlite3.Row
       cursor = con.cursor()
 
       while True:
@@ -330,6 +332,7 @@ CREATE TABLE machine (
         lbs = self.recentlyFinishedLbsList[lbsName]
       else:
         con = sqlite3.connect(self.config['lbs']['SqliteFile'])
+        con.row_factory = sqlite3.Row
         cursor = con.cursor()
         stmt = """
 SELECT * FROM build 
