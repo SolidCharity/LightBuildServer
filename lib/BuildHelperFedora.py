@@ -37,9 +37,9 @@ class BuildHelperFedora(BuildHelperCentos):
 
   def PrepareMachineAfterStart(self):
     if self.container.release == "rawhide":
-      self.run("yum install -y fedora-release-rawhide yum-utils")
-      self.run("yum-config-manager --disable fedora updates updates-testing")
-      self.run("yum-config-manager --enable rawhide")
-      self.run("yum update -y yum")
-      self.run("yum --releasever=rawhide -y distro-sync --nogpgcheck")
+      self.run("dnf install -y fedora-repos-rawhide dnf-plugins-core")
+      self.run("dnf config-manager --set-disabled fedora updates updates-testing")
+      self.run("dnf config-manager --set-enabled rawhide")
+      self.run("dnf clean -q dbcache plugins metadata")
+      self.run("dnf  --releasever=rawhide --setopt=deltarpm=false distro-sync -y --nogpgcheck")
     return True
