@@ -42,24 +42,24 @@ class LXCContainer(RemoteContainer):
     self.release = release
     self.arch = arch
     self.staticIP = staticIP
-    if self.executeOnHost("if [ -d /var/lib/lxc/" + self.name + " ]; then lxc-destroy --name " + self.name + "; fi") == False:
+    if self.executeOnHost("if [ -d /var/lib/lxc/" + self.containername + " ]; then lxc-destroy --name " + self.containername + "; fi") == False:
       return False
     result = False
     if distro == "centos":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "fedora":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "debian":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "ubuntu":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.name + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if result == True:
       result = self.executeOnHost(self.SCRIPTS_PATH + "tunnelport.sh " + str(self.cid) + " 22")
-    sshpath="/var/lib/lxc/" + self.name + "/rootfs/root/.ssh/"
+    sshpath="/var/lib/lxc/" + self.containername + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa root@' + self.name + ':' + sshpath)
+     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa root@' + self.hostname + ':' + sshpath)
     if result == True:
       result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
     if result == True:
@@ -67,7 +67,7 @@ class LXCContainer(RemoteContainer):
     return result
 
   def startmachine(self):
-    if self.executeOnHost("lxc-start -d -n " + self.name):
+    if self.executeOnHost("lxc-start -d -n " + self.containername):
       # remove the ip address
       if self.containerPort == "22":
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
@@ -81,7 +81,7 @@ class LXCContainer(RemoteContainer):
   def executeInContainer(self, command):
     """Execute a command in a container via SSH"""
     print (" * Executing '%s' in %s..." % (command,
-                                             self.name))
+                                             self.containername))
     # wait until ssh server is running
     for x in range(0, 24):
       result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
@@ -96,37 +96,37 @@ class LXCContainer(RemoteContainer):
     return False
 
   def destroy(self):
-    return self.executeOnHost("lxc-destroy --name " + self.name)
+    return self.executeOnHost("lxc-destroy --name " + self.containername)
 
   def stop(self):
-    return self.executeOnHost("lxc-stop --name " + self.name)
+    return self.executeOnHost("lxc-stop --name " + self.containername)
 
   def rsyncContainerPut(self, src, dest):
-    return self.rsyncHostPut(src, "/var/lib/lxc/" + self.name + "/rootfs" + dest)
+    return self.rsyncHostPut(src, "/var/lib/lxc/" + self.containername + "/rootfs" + dest)
 
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':/var/lib/lxc/' + self.name + '/rootfs' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.hostname + ':/var/lib/lxc/' + self.containername + '/rootfs' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
     if dest == None:
       dest = src
     dest = dest[:dest.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.name + ':' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):
     if hostpath is None:
       hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
-    result = self.executeOnHost(self.SCRIPTS_PATH + "initMount.sh " + hostpath + " " + self.name + " " + localpath)
+    result = self.executeOnHost(self.SCRIPTS_PATH + "initMount.sh " + hostpath + " " + self.containername + " " + localpath)
     if result:
       if not os.path.exists(hostpath):
           self.shell.executeshell("mkdir -p " + hostpath)

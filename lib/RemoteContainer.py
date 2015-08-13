@@ -28,7 +28,7 @@ from Shell import Shell
 
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger):
-    self.name = containername
+    self.hostname = containername
 
     self.port=22
     if "port" in configBuildMachine:
@@ -37,7 +37,8 @@ class RemoteContainer:
     if "cid" in configBuildMachine:
       self.cid=configBuildMachine['cid']
 
-    self.containerIP=socket.gethostbyname(self.name)
+    self.containername = str(self.cid) + "-" + containername
+    self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
     # we just test if the host server for the build container is actually hosting the LBS application as well
@@ -73,7 +74,7 @@ class RemoteContainer:
     self.LBSHOME_PATH = "/var/lib/lbs/"
 
   def executeOnHost(self, command):
-    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.name + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
     return False
 

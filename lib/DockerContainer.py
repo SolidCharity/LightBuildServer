@@ -44,7 +44,7 @@ class DockerContainer(RemoteContainer):
     self.mount = ""
 
     # TODO: somehow docker stop does not succeed. the current solution only works with CentOS host...
-    if self.executeOnHost("if [ ! -z \\\"\`docker ps -a | grep " + self.name + "\`\\\" ]; then service docker restart && docker stop " + self.name + " && docker rm " + self.name + "; fi") == False:
+    if self.executeOnHost("if [ ! -z \\\"\`docker ps -a | grep " + self.containername + "\`\\\" ]; then service docker restart && docker stop " + self.containername + " && docker rm " + self.containername + "; fi") == False:
       return False
 
     if arch != 'amd64':
@@ -73,17 +73,17 @@ class DockerContainer(RemoteContainer):
     return True
 
   def startmachine(self):
-    result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.name + " " + str(self.cid) + " Dockerfiles/Dockerfile." + self.distro + self.release + ' ' + self.mount)
+    result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.containername + " " + str(self.cid) + " Dockerfiles/Dockerfile." + self.distro + self.release + ' ' + self.mount)
     if result == False:
       return False
 
     # remove the ip address
     if self.containerPort == "22":
       self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
-      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.name)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.hostname)
     else:
       self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
-      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.name + ']:' + self.containerPort)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.hostname + ']:' + self.containerPort)
 
     # wait until ssh server is running
     result = self.executeInContainer('echo "container is running"')
@@ -92,10 +92,10 @@ class DockerContainer(RemoteContainer):
   def executeInContainer(self, command):
     """Execute a command in a container via SSH"""
     print (" * Executing '%s' in %s..." % (command,
-                                             self.name))
+                                             self.containername))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:
@@ -107,22 +107,22 @@ class DockerContainer(RemoteContainer):
     return False
 
   def destroy(self):
-    return self.executeOnHost("docker rm " + self.name)
+    return self.executeOnHost("docker rm " + self.containername)
 
   def stop(self):
     #TODO docker stop does not work, not even for test job
-    #return self.executeOnHost("docker stop " + self.name)
+    #return self.executeOnHost("docker stop " + self.containername)
     return self.executeOnHost("systemctl restart docker")
 
   def rsyncContainerPut(self, src, dest):
     dest = dest[:dest.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.containerPort + '" ' + src + ' root@' + self.name + ':' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.containerPort + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result
 
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.containerPort + '" root@' + self.name + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.containerPort + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
@@ -130,13 +130,13 @@ class DockerContainer(RemoteContainer):
       dest = src
     dest = dest[:dest.rindex("/")]
     self.executeOnHost("mkdir -p `dirname " + dest + "`")
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.name + ':' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.name + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):
