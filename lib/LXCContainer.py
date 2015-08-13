@@ -59,7 +59,7 @@ class LXCContainer(RemoteContainer):
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa ' + self.name + ':' + sshpath)
+     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa root@' + self.name + ':' + sshpath)
     if result == True:
       result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
     if result == True:
@@ -70,9 +70,9 @@ class LXCContainer(RemoteContainer):
     if self.executeOnHost("lxc-start -d -n " + self.name):
       # remove the ip address
       if self.containerPort == "22":
-        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.containerIP)
+        self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
       else:
-        self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
+        self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
       # wait until ssh server is running
       result = self.executeInContainer('echo "container is running"')
       return result
@@ -84,7 +84,7 @@ class LXCContainer(RemoteContainer):
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:

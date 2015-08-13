@@ -79,11 +79,11 @@ class DockerContainer(RemoteContainer):
 
     # remove the ip address
     if self.containerPort == "22":
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.containerIP)
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R ' + self.name)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.name)
     else:
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
-      self.shell.executeshell('ssh-keygen -f "/root/.ssh/known_hosts" -R [' + self.name + ']:' + self.containerPort)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
+      self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.name + ']:' + self.containerPort)
 
     # wait until ssh server is running
     result = self.executeInContainer('echo "container is running"')
@@ -95,7 +95,7 @@ class DockerContainer(RemoteContainer):
                                              self.name))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa " + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.name + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:
