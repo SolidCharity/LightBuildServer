@@ -21,6 +21,7 @@
 import yaml
 import os.path
 from collections import deque
+import Config
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
@@ -38,6 +39,8 @@ class BuildHelper:
     self.username = username
     self.projectname = projectname
     self.packagename = packagename
+    self.config = Config.LoadConfig()
+    self.pathSrc=self.config['lbs']['GitSrcPath']+"/"+self.username
 
   def log(self, message):
     if self.container is not None:
@@ -61,8 +64,7 @@ class BuildHelper:
   def DownloadSources(self):
     # parse config.yml file and download the sources
     # unpacking and moving to the right place depends on the distro
-    pathSrc="/var/lib/lbs/src/"+self.username
-    file = pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
+    file = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
       config = yaml.load(stream)
@@ -89,9 +91,8 @@ class BuildHelper:
     return True
 
   def SetupEnvironment(self, branchname):
-    pathSrc="/var/lib/lbs/src/"+self.username
     setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
-    if os.path.isfile(pathSrc + "/" + setupfile):
+    if os.path.isfile(self.pathSrc + "/" + setupfile):
       if not self.run("cd " + os.path.dirname(setupfile) + "; ./setup.sh " + branchname):
         return False
     return True

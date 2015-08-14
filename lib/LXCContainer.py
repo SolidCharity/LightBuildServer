@@ -30,7 +30,6 @@ from Shell import Shell
 class LXCContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger):
     RemoteContainer.__init__(self, containername, configBuildMachine, logger)
-    self.LXCHOME_PATH = "/var/lib/lxc/"
     self.SCRIPTS_PATH = "/usr/share/lxc-scripts/"
 
   def executeOnHost(self, command):
@@ -59,7 +58,7 @@ class LXCContainer(RemoteContainer):
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.shell.executeshell('echo "put /var/lib/lbs/ssh/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i /var/lib/lbs/ssh/container_rsa root@' + self.hostname + ':' + sshpath)
+     result = self.shell.executeshell('echo "put ' + self.SSHContainerPath + '/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i ' + self.SSHContainerPath + '/container_rsa root@' + self.hostname + ':' + sshpath)
     if result == True:
       result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
     if result == True:
@@ -84,7 +83,7 @@ class LXCContainer(RemoteContainer):
                                              self.containername))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:
@@ -107,25 +106,25 @@ class LXCContainer(RemoteContainer):
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.hostname + ':/var/lib/lxc/' + self.containername + '/rootfs' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':/var/lib/lxc/' + self.containername + '/rootfs' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
     if dest == None:
       dest = src
     dest = dest[:dest.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.LBSHOME_PATH + "ssh/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):
     if hostpath is None:
-      hostpath = self.LBSHOME_PATH + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
+      hostpath = "/mnt/lbs/" + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
     result = self.executeOnHost(self.SCRIPTS_PATH + "initMount.sh " + hostpath + " " + self.containername + " " + localpath)
     if result:
       if not os.path.exists(hostpath):

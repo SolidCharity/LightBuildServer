@@ -33,10 +33,10 @@ class Logger:
   'collect all the output'
 
   def __init__(self, buildid=-1):
-    self.logspath = "/var/www/logs"
     self.lastTimeUpdate = int(time.time())
     self.startTimer()
     self.config = Config.LoadConfig()
+    self.logspath = self.config['lbs']['LogsPath']
     self.emailserver = self.config['lbs']['EmailServer']
     self.emailport = self.config['lbs']['EmailPort']
     self.emailuser = self.config['lbs']['EmailUser']

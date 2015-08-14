@@ -23,6 +23,7 @@ import sys
 import os
 import time
 import socket
+import Config
 from Logger import Logger
 from Shell import Shell
 
@@ -62,6 +63,8 @@ class RemoteContainer:
         self.containerIP="10.0.3." + str(self.cid)
       self.containerPort="22"
 
+    self.config = Config.LoadConfig()
+    self.SSHContainerPath = self.config['lbs']['SSHContainerPath']
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc
@@ -71,10 +74,8 @@ class RemoteContainer:
     self.arch = ""
     self.staticIP = ""
 
-    self.LBSHOME_PATH = "/var/lib/lbs/"
-
   def executeOnHost(self, command):
-    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.LBSHOME_PATH + "ssh/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
     return False
 

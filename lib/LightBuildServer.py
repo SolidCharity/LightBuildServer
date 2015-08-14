@@ -205,7 +205,7 @@ CREATE TABLE log (
     if 'GitProjectName' in userconfig['Projects'][projectname]:
       gitprojectname = userconfig['Projects'][projectname]['GitProjectName']
     lbsproject=userconfig['GitURL'] + 'lbs-' + gitprojectname
-    pathSrc="/var/lib/lbs/src/"+username+"/"
+    pathSrc=self.config['lbs']['GitSrcPath']+"/"+username+"/"
     os.makedirs(pathSrc, exist_ok=True)
     if os.path.isdir(pathSrc+'lbs-'+projectname):
         #we want a clean clone

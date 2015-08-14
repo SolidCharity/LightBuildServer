@@ -276,10 +276,10 @@ class LightBuildServerWeb:
       return template('buildresult', buildresult=content, timeoutInSeconds=-1, username=username, projectname=projectname, packagename=packagename, branchname=branchname, buildtarget=lxcdistro + "/" + lxcrelease + "/" + lxcarch, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def repo(self, filepath):
-      return static_file(filepath, root='/var/www/repos')
+      return static_file(filepath, root=self.config['lbs']['ReposPath'])
 
     def tarball(self, filepath):
-      return static_file(filepath, root='/var/www/tarballs')
+      return static_file(filepath, root=self.config['lbs']['TarballsPath'])
 
     def css(self, filename):
       return static_file(filename, root=os.path.dirname(os.path.realpath(__file__)) + "/css/")

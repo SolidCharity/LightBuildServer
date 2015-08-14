@@ -53,17 +53,15 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def GetSpecFilename(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
-    if os.path.isdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+    if os.path.isdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+      for file in os.listdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
         if file.endswith(".spec") and self.packagename.startswith(file.split('.')[0]):
           return file
     return self.packagename + ".spec"
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
-    pathSrc="/var/lib/lbs/src/"+self.username
-    configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
+    configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
@@ -88,7 +86,7 @@ class BuildHelperCentos(BuildHelper):
               return False
 
     # install own repo as well if it exists
-    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
+    repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
       self.container.rsyncContainerPut(repofile,"/etc/yum.repos.d/")
 
@@ -96,9 +94,8 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def InstallRequiredPackages(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
-    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run("sed -e 's/%{release}/0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
@@ -116,9 +113,8 @@ class BuildHelperCentos(BuildHelper):
     myPath = self.username + "/" + self.projectname
     if 'Secret' in config['lbs']['Users'][self.username]:
       myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
-    repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.release
-    pathSrc="/var/lib/lbs/src/"+self.username
-    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
+    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run('sed -i "s/0%{?suse_version}/' + str(self.suse_version) + '/g" ' + remoteSpecName)
@@ -206,7 +202,7 @@ class BuildHelperCentos(BuildHelper):
     myPath = self.username + "/" + self.projectname
     if 'Secret' in config['lbs']['Users'][self.username]:
       myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
-    repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.release
+    repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
@@ -232,7 +228,7 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     result = None
 
-    srcPath = "/var/www/repos/" + self.username + "/"
+    srcPath=self.pathSrc
     if 'Secret' in config['lbs']['Users'][self.username]:
       srcPath += config['lbs']['Users'][self.username]['Secret'] + "/"
 
@@ -254,7 +250,7 @@ class BuildHelperCentos(BuildHelper):
     repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
-    checkfile = "/var/www/repos/" + self.username + "/"
+    checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
       checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname + "/" + self.dist
@@ -292,7 +288,7 @@ class BuildHelperCentos(BuildHelper):
       result += "yum install " + packagename
 
     # check if there is such a package at all
-    checkfile = "/var/www/repos/" + self.username + "/"
+    checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
       checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
@@ -302,8 +298,7 @@ class BuildHelperCentos(BuildHelper):
     return None
 
   def GetDependanciesAndProvides(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
-    specfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     builddepends=[]
     provides={}
     if os.path.isfile(specfile):

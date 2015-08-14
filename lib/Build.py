@@ -64,8 +64,8 @@ class Build:
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
           myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        self.container.installmount("/root/repo", "/var/www/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease)
-        self.container.installmount("/root/tarball", "/var/www/tarballs/" + myPath)
+        self.container.installmount("/root/repo", self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease)
+        self.container.installmount("/root/tarball", self.config['lbs']['TarballsPath'] + "/" + myPath)
       
         # prepare container, install packages that the build requires; this is specific to the distro
         self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, username, projectname, packagename)
@@ -103,9 +103,9 @@ class Build:
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
           myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        if not self.container.rsyncHostGet("/var/www/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease):
+        if not self.container.rsyncHostGet(self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease):
           raise Exception("Problem with syncing repos")
-        if not self.container.rsyncHostGet("/var/www/tarballs/" + myPath):
+        if not self.container.rsyncHostGet(self.config['lbs']['TarballsPath'] + "/" + myPath):
           raise Exception("Problem with syncing tarballs")
         # create repo file
         self.buildHelper.CreateRepoFile(self.config)

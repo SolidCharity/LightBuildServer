@@ -50,17 +50,15 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def GetDscFilename(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
-    if os.path.isdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      for file in os.listdir(pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+    if os.path.isdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+      for file in os.listdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
         if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
           return file
     return self.packagename + ".dsc"
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
-    pathSrc="/var/lib/lbs/src/"+self.username
-    configfile=pathSrc + "/lbs-" + self.projectname + "/config.yml"
+    configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       config = yaml.load(stream)
@@ -75,11 +73,11 @@ class BuildHelperDebian(BuildHelper):
               return False
 
     # install own repo as well if it exists
-    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
+    repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
-    repofile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
+    repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " " + self.container.release + " main' > lbs-" + self.username + "-" + self.projectname + ".list")
@@ -89,9 +87,8 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def InstallRequiredPackages(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
     # now install required packages
-    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None
     # force-yes for packages from our own repository, they are not signed at the moment
     aptInstallFlags="--force-yes "
@@ -131,8 +128,7 @@ class BuildHelperDebian(BuildHelper):
 
   def BuildPackage(self, config):
     DownloadUrl = config['lbs']['DownloadUrl']
-    pathSrc="/var/lib/lbs/src/"+self.username
-    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
@@ -167,7 +163,7 @@ class BuildHelperDebian(BuildHelper):
       myPath = self.username + "/" + self.projectname
       if 'Secret' in config['lbs']['Users'][self.username]:
         myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
-      repopath="/var/www/repos/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
+      repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
       if os.path.isdir(repopath + "/" + arch + "/binary"):
         for file in os.listdir(repopath + "/" + arch + "/binary"):
           # TODO use GetDscFilename, without dsc, instead of packagename
@@ -214,12 +210,12 @@ class BuildHelperDebian(BuildHelper):
     keyinstructions = ""
 
     # check if there is such a package at all
-    checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
+    checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
     if glob.glob(checkfile):
       path = "/ /"
     else:
       # repo has been created with reprepro
-      checkfile="/var/www/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
+      checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
       if glob.glob(checkfile):
         path = " " + buildtarget[1] + " main"
         if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
@@ -242,8 +238,7 @@ class BuildHelperDebian(BuildHelper):
     return result
 
   def GetDependanciesAndProvides(self):
-    pathSrc="/var/lib/lbs/src/"+self.username
-    dscfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     builddepends=[]
     provides={}
     if os.path.isfile(dscfile):
@@ -267,7 +262,7 @@ class BuildHelperDebian(BuildHelper):
                 if len(word.strip()) > 0:
                   builddepends.append(word.split()[0])
 
-    controlfile=pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
+    controlfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
     recentpackagename=self.packagename
     nextLineDepends=False
     if os.path.isfile(controlfile):
