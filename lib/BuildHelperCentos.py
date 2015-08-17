@@ -159,7 +159,7 @@ class BuildHelperCentos(BuildHelper):
             rpmfiles.append(str(oldnumber).zfill(6) + ":" + file)
             if oldnumber >= buildnumber:
               buildnumber = oldnumber + 1
-      self.run("sed -i -e 's/Release: %{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
 
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
         return False
