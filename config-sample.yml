@@ -14,7 +14,7 @@ lbs:
    BuildingTimeout: 600
    LBSUrl: http://lbs.example.org
    DownloadUrl: http://lbs.example.org
-   SSHContainerPath: $HOME/.sshcontainer
+   SSHContainerPath: /etc/lightbuildserver/container
    SqliteFile: /var/lib/lightbuildserver/db/lightbuildserver.db
    GitSrcPath: /var/lib/lightbuildserver/src
    LogsPath: /var/lib/lightbuildserver/logs
