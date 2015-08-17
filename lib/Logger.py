@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
+import codecs
 import sys
 import time
 import smtplib
@@ -169,7 +170,7 @@ class Logger:
         result[number] = {}
         result[number]["timefinished"] = time.ctime( os.path.getmtime(LogPath + "/" + file))
         result[number]["resultcode"] = "success"
-        with open(LogPath + "/" + file, 'r') as f:
+        with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
           content = f.read()
           if content.find('LBSERROR') >= 0:
             result[number]["resultcode"] = "failure"
@@ -189,7 +190,7 @@ class Logger:
           result = {}
           result['number'] = number
           result['resultcode'] = "success"
-          with open(LogPath + "/" + file, 'r') as f:
+          with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
             content = f.read()
             if content.find('LBSERROR') >= 0:
               result['resultcode'] = "failure"
