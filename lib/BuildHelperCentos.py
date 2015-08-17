@@ -128,6 +128,12 @@ class BuildHelperCentos(BuildHelper):
       # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
       self.run("mv sources/* rpmbuild/SOURCES")
 
+      arch=self.arch
+      if arch == "amd64":
+        arch="x86_64"
+      elif arch == "i686":
+        arch="i386"
+
       # read version from spec file, that is on the build server
       # (setup.sh might overwrite the version number...)
       temppath = tempfile.mkdtemp()
@@ -136,16 +142,15 @@ class BuildHelperCentos(BuildHelper):
       for line in open(temppath + "/" + self.GetSpecFilename()):
         if line.startswith("%define version "):
           buildversion=line[len("%define version "):].strip()
-          break
+        if line.startswith("Version: ") and not "%{version}" in line:
+          buildversion=line[len("Version: "):].strip()
+        if line.startswith("BuildArch: "):
+          # deal with noarch
+          arch=line[len("BuildArch: "):].strip()
       shutil.rmtree(temppath)
 
       # build counter for automatically increasing the release number
       buildnumber=0
-      arch=self.arch
-      if arch == "amd64":
-        arch="x86_64"
-      elif arch == "i686":
-        arch="i386"
 
       rpmfiles=[]
       if os.path.isdir(repopath + "/" + arch):
