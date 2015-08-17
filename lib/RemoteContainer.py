@@ -31,7 +31,7 @@ class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger):
     self.hostname = containername
 
-    self.port=22
+    self.port="22"
     if "port" in configBuildMachine:
       self.port=str(configBuildMachine['port'])
     self.cid=10
