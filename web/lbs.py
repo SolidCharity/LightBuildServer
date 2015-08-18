@@ -80,6 +80,9 @@ class LightBuildServerWeb:
           return template("message", title="Error", message="You don't have the permissions to see this content", redirect="/")
         return None
 
+    def processbuildqueue(self):
+        self.LBS.ProcessBuildQueue()
+
     def buildproject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
         auth_username = request.get_cookie("account", secret='some-secret-key')
         if not auth_username:
@@ -299,6 +302,7 @@ myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
+bottle.route('/processbuildqueue')(myApp.processbuildqueue)
 bottle.route('/buildproject/<username>/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)

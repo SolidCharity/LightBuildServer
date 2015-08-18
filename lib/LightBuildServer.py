@@ -98,9 +98,6 @@ CREATE TABLE log (
     con.commit()
     con.close()
 
-    thread = Thread(target = self.buildqueuethread, args=())
-    thread.start()
-
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
@@ -327,24 +324,20 @@ CREATE TABLE log (
       return True
     return False
 
-  def buildqueuethread(self):
-      while True:
-        # loop from left to right
-        # check if a project might be ready to build
-        con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
-        con.row_factory = sqlite3.Row
-        cursor = con.cursor()
-        cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
-        data = cursor.fetchall()
-        for row in data:
-          if self.attemptToFindBuildMachine(con, row):
-            break
-        cursor.close()
-        con.close()
-        self.CheckForHangingBuild()
-        # sleep two seconds before looping through buildqueue again
-        time.sleep(2)
-
+  # needs to be called regularly from outside
+  def ProcessBuildQueue(self):
+      # loop from left to right
+      # check if a project might be ready to build
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+      data = cursor.fetchall()
+      for row in data:
+        self.attemptToFindBuildMachine(con, row)
+      cursor.close()
+      con.close()
+      self.CheckForHangingBuild()
 
   def LiveLog(self, username, projectname, packagename, branchname, distro, release, arch):
       data = self.GetJob(username, projectname, packagename, branchname, distro, release, arch, "")
