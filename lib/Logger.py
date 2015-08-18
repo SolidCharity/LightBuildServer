@@ -46,7 +46,7 @@ class Logger:
 
   def startTimer(self):
     self.starttime = time.time()
-    self.output = ""
+    self.linebuffer = []
     self.buffer = ""
     self.error = False
     self.lastLine = ""
@@ -62,18 +62,21 @@ class Logger:
       if newOutput[-1:] != "\n":
         newOutput += "\n"
       timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
-      self.lastTimeUpdate = int(time.time())
       if "LBSERROR" in newOutput:
         self.error = True
-      self.output += timeprefix + newOutput
+      self.linebuffer.append(timeprefix + newOutput)
 
-      # write each line to database, and then dump to file when build is finished
-      if self.buildid != -1:
+      # only write new lines every other second, to avoid putting locks on the database
+      if self.buildid != -1 and self.lastTimeUpdate + 2 < int(time.time()):
         con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
         stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
-        con.execute(stmt, (self.buildid, timeprefix + newOutput))
+        # write the lines to database, and then dump to file when build is finished
+        for line in self.linebuffer:
+          con.execute(stmt, (self.buildid, line))
+        self.linebuffer = []
         con.commit()
         con.close()
+      self.lastTimeUpdate = int(time.time())
 
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
       # just ignore the exception...
@@ -90,9 +93,25 @@ class Logger:
     return self.lastLine.strip()
 
   def get(self, limit=None):
-    if limit is None:
-      return self.output
-    return self.output[-1*limit:]
+    if self.buildid == -1:
+      return "no log available"
+
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
+    con.row_factory = sqlite3.Row
+    cursor = con.cursor()
+    stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC"
+    if limit is not None:
+      stmt = stmt + " LIMIT ?"
+      cursor.execute(stmt, (self.buildid, limit))
+    else:
+      cursor.execute(stmt, (self.buildid,))
+    data = cursor.fetchall()
+    con.close()
+    output = ""
+    for row in data:
+       output = row['line'] + output
+
+    return output
 
   def email(self, fromAddress, toAddress, subject, logurl):
     if self.hasLBSERROR():
@@ -115,6 +134,16 @@ class Logger:
      return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
 
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
+    if self.buildid != -1:
+      # store buffered lines to the database
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
+      stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
+      for line in self.linebuffer:
+        con.execute(stmt, (self.buildid, line))
+      self.linebuffer = []
+      con.commit()
+      con.close()
+
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
       os.makedirs( LogPath )
