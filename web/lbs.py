@@ -88,6 +88,12 @@ class LightBuildServerWeb:
         print(sys.exc_info())
 
     def cancelplannedbuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+      # for displaying the logout link
+      auth_username = request.get_cookie("account", secret='some-secret-key')
+
+      if auth_username is None:
+        return template('message', title="Error", message="You must be logged in to cancel a planned build", redirect="/login")
+
       try:
         self.LBS.CancelPlannedBuild(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
         return template("message", title="Success", message="Build job has been removed from the queue", redirect="/machines")
