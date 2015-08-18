@@ -81,7 +81,19 @@ class LightBuildServerWeb:
         return None
 
     def processbuildqueue(self):
+      try:
         self.LBS.ProcessBuildQueue()
+      except:
+        print("Unexpected error:", sys.exc_info()[0])
+        print(sys.exc_info())
+
+    def cancelplannedbuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+      try:
+        self.LBS.CancelPlannedBuild(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
+        return template("message", title="Success", message="Build job has been removed from the queue", redirect="/machines")
+      except:
+        print("Unexpected error:", sys.exc_info()[0])
+        print(sys.exc_info())
 
     def buildproject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
         auth_username = request.get_cookie("account", secret='some-secret-key')
@@ -303,6 +315,7 @@ bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
 bottle.route('/processbuildqueue')(myApp.processbuildqueue)
+bottle.route('/cancelplannedbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.cancelplannedbuild)
 bottle.route('/buildproject/<username>/<projectname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)

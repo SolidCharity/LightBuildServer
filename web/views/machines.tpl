@@ -6,8 +6,12 @@
             % for buildmachine in sorted(buildmachines):
               <li>Container {{buildmachine}}: 
 		% if buildmachines[buildmachine]["status"] == "BUILDING":
+                  % job = buildmachines[buildmachine]["buildjob"].split('/')
                   {{buildmachines[buildmachine]["status"]}} <br/>
-		  Currently building {{buildmachines[buildmachine]["buildjob"]}}: <a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
+		  Currently building
+			<a href="/package/{{job[0]}}/{{job[1]}}/{{job[2]}}#{{job[3]}}_{{job[4]}}/{{job[5]}}/{{job[6]}}">
+			{{buildmachines[buildmachine]["buildjob"]}}</a>:
+			<a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
                 % end
                 % if not buildmachines[buildmachine]["status"] == "BUILDING": 
                    {{buildmachines[buildmachine]["status"]}} <br/>
@@ -23,7 +27,14 @@
 	<h2>Planned Jobs</h2>
 	<ul>
 		% for job in jobs:
-		<li>{{job["username"]}}-{{job["projectname"]}}-{{job["packagename"]}}-{{job["branchname"]}}-{{job["distro"]}}-{{job["release"]}}</li>
+		<li>
+			<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
+				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}
+			</a>:
+			<a href="/cancelplannedbuild/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
+				Cancel this build
+			</a>
+		</li>
 		% end
 	</ul>
 	<h2>Recent Jobs</h2>

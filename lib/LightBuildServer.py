@@ -90,7 +90,8 @@ CREATE TABLE log (
       con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
 
     con.execute("DELETE FROM machine")
-    con.execute("DELETE FROM build WHERE status = 'WAITING' OR status='BUILDING'")
+    # keep WAITING build jobs
+    con.execute("DELETE FROM build WHERE status='BUILDING'")
     con.execute("DELETE FROM log")
     for buildmachine in self.config['lbs']['Machines']:
       # init the machine
@@ -148,6 +149,20 @@ CREATE TABLE log (
           self.ReleaseMachine(data["buildmachine"])
       con.close()
 
+  def CancelPlannedBuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      cursor.execute("SELECT * FROM build WHERE status='WAITING' AND username=? AND projectname=? AND packagename=? AND branchname=? AND distro=? AND release=? AND arch=? ORDER BY id ASC", (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+      data = cursor.fetchall()
+      for row in data:
+        con.execute("UPDATE build SET status = 'CANCELLED' WHERE id=?", (row['id'],))
+        # only remove one build job from the queue
+        break;
+      con.commit()
+      cursor.close()
+      con.close()
+
   def ReleaseMachine(self, buildmachine):
     conf=self.config['lbs']['Machines'][buildmachine]
     if 'type' in conf and conf['type'] == 'lxc':
@@ -190,9 +205,16 @@ CREATE TABLE log (
     return False
 
   def CanFindMachineBuildingProject(self, username, projectname):
-    for buildmachine in self.config['lbs']['Machines']:
-      if self.machines[buildmachine]['status'] == 'BUILDING':
-        if self.machines[buildmachine]['username'] == username and self.machines[buildmachine]['projectname'] == projectname:
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
+    con.row_factory = sqlite3.Row
+    cursor = con.cursor()
+    stmt = "SELECT * FROM machine WHERE status = ? AND username = ? AND projectname = ?"
+    cursor.execute(stmt, ('BUILDING', username, projectname))
+    data = cursor.fetchone()
+    cursor.close()
+    con.close()
+
+    if data is not None:
           # there is a machine building a package of the specified project
           return True
     return False
@@ -356,6 +378,8 @@ CREATE TABLE log (
         for row in data:
           output = row['line'] + output
         timeout = 2
+      elif data['status'] == 'CANCELLED':
+        return ("This build has been removed from the build queue...", -1)
       elif data['status'] == 'WAITING':
         return ("We are waiting for a build machine to become available...", 10)
       elif data['status'] == 'FINISHED':
