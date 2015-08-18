@@ -46,7 +46,7 @@ class BuildHelperDebian(BuildHelper):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
-    self.run("echo '127.0.0.1     " + self.container.name + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
+    self.run("echo '127.0.0.1     " + self.container.containername + "' > tmp; cat /etc/hosts >> tmp; mv tmp /etc/hosts")
     return True
 
   def GetDscFilename(self):
