@@ -43,7 +43,10 @@ class RemoteContainer:
     self.containerPort=str(2000+int(self.cid))
 
     # we just test if the host server for the build container is actually hosting the LBS application as well
-    lbsipaddress=socket.gethostbyname(socket.gethostname()).split('.')
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
+    s.connect((containername, 80))
+    lbsipaddress=s.getsockname()[0].split('.')
     buildserveraddress=socket.gethostbyname(containername).split('.')
 
     if buildserveraddress[3] == "1":
@@ -52,7 +55,6 @@ class RemoteContainer:
       if '.'.join(buildserveraddress) == '.'.join(lbsipaddress):
         self.containerIP='.'.join(buildserveraddress) + "." + str(self.cid)
         self.containerPort="22"
-
     # or if the container is running on localhost
     if socket.gethostbyname(containername) == "127.0.0.1":
       if os.path.isfile("/etc/libvirt/qemu/networks/default.xml"):
