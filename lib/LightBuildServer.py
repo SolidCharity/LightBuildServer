@@ -130,23 +130,20 @@ CREATE TABLE log (
       cursor = con.cursor()
       stmt = "SELECT * FROM build "
       stmt += "WHERE status = 'BUILDING' "
-      stmt += "AND date(started,'+" + str(self.config['lbs']['BuildingTimeout']) + " second') < date('now') "
+      stmt += "AND datetime(started,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') < '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
       stmt += " ORDER BY id DESC"
       cursor.execute(stmt)
       data = cursor.fetchall()
       cursor.close()
       for row in data:
-        stmt = "SELECT * FROM log WHERE buildid=? AND created > ?"
+        stmt = "SELECT * FROM log WHERE buildid=? AND datetime(created,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') > '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
         cursor = con.cursor()
-        cursor.execute(stmt, (row['id'], datetime.now() - timedelta(seconds=self.config['lbs']['BuildingTimeout'])))
-        if not cursor.fetchone() is None:
-          # mark build as failed
-          stmt = "UPDATE build SET status='FINISHED', success='Failure' WHERE id = ?"
-          con.execute(stmt, (row['id'],))
-          stmt = "DELETE FROM log WHERE buildid=?"
-          con.execute(stmt, (row['id'],))
-          con.commit()
-          self.ReleaseMachine(data["buildmachine"])
+        cursor.execute(stmt, (row['id'],))
+        if cursor.fetchone() is None:
+          self.ReleaseMachine(row["buildmachine"])
+          # when the build job realizes that the buildmachine is gone:
+          #   the log will be written, email sent, and logs cleared
+          #   the build will be marked as failed as well
       con.close()
 
   def CancelPlannedBuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
