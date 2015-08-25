@@ -117,7 +117,7 @@ class Logger:
     if self.hasLBSERROR():
       subject = "ERROR " + subject
     link="For details, see <a href='" + logurl + "'>" + logurl + "</a><br/>\n"
-    msg = MIMEText(("<html><body>" + link + "<pre>" + self.get(4000) + "</pre></body></html>").encode('utf-8'), 'html','utf-8')
+    msg = MIMEText(("<html><body>" + link + "<pre>" + self.get(40) + "</pre></body></html>").encode('utf-8'), 'html','utf-8')
     msg['From'] = fromAddress
     msg['To'] = toAddress
     msg['Subject'] = subject
@@ -167,6 +167,9 @@ class Logger:
     with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'a') as f:
       f.write(self.get())
 
+    return buildnumber
+
+  def clean(self):
     # clear log from database
     if self.buildid != -1:
       con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
@@ -174,8 +177,6 @@ class Logger:
       con.execute(stmt, (self.buildid, ))
       con.commit()
       con.close()
-
-    return buildnumber 
 
   def getLogFile(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
     LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)

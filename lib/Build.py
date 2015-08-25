@@ -125,5 +125,6 @@ class Build:
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
     if self.logger.hasLBSERROR() or not self.config['lbs']['SendEmailOnSuccess'] == False:
       self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+    self.logger.clean()
     return self.logger.get()
 
