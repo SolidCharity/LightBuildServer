@@ -73,6 +73,8 @@ class Build:
           raise Exception("Problem with PrepareMachineBeforeStart")
         if self.container.startmachine():
           self.logger.print("container has been started successfully")
+        else:
+          raise Exception("Problem with startmachine")
         if not self.buildHelper.PrepareMachineAfterStart():
           raise Exception("Problem with PrepareMachineAfterStart")
         if not self.buildHelper.PrepareForBuilding():

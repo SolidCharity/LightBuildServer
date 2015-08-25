@@ -58,7 +58,7 @@ class DockerContainer(RemoteContainer):
     if self.distro == "fedora":
       if self.release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        self.release = "21"
+        self.release = "24"
     if self.distro == "debian":
       if self.release == 'wheezy':
         self.release = 7
