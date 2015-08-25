@@ -34,16 +34,20 @@ class BuildHelperCentos(BuildHelper):
   def __init__(self, container, username, projectname, packagename):
     self.dist='centos'
     BuildHelper.__init__(self, container, username, projectname, packagename)
+    self.yumOrDnf = 'yum'
 
   def PrepareMachineBeforeStart(self):
     return True
 
   def PrepareForBuilding(self):
-    #self.run("yum clean headers dbcache rpmdb")
-    if not self.run("yum -y update"):
-      if not self.run("yum clean all && yum -y update"):
+    #self.run(self.yumOrDnf + " clean headers dbcache rpmdb")
+    if not self.run(self.yumOrDnf + " -y update"):
+      if not self.run(self.yumOrDnf + " clean all && " + self.yumOrDnf + " -y update"):
         return False
-    if not self.run("yum -y install tar createrepo gcc rpm-build rpm-sign yum-utils gnupg make curl rsync"):
+    yumUtils="yum-utils"
+    if self.yumOrDnf == "dnf":
+      yumUtils="'dnf-command(config-manager)'"
+    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl rsync " + yumUtils):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -71,13 +75,16 @@ class BuildHelperCentos(BuildHelper):
           if repo.endswith('.repo'):
             self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
           elif repo.endswith('.rpm'):
-            if not self.run("yum -y install " + repo):
+            if not self.run(self.yumOrDnf + " -y install " + repo):
               return False
           elif repo.startswith('http://') or repo.startswith('https://'):
-            if not self.run("yum-config-manager --add-repo " + repo):
+            configmanager="yum-config-manager --add-repo "
+            if self.yumOrDnf == "dnf":
+              configmanager="dnf config-manager --add-repo "
+            if not self.run(configmanager + repo):
               return False
           else:
-            if not self.run("yum -y install " + repo):
+            if not self.run(self.yumOrDnf + " -y install " + repo):
               return False
         if 'keys' in config['lbs'][self.dist][str(self.release)]:
           keys = config['lbs'][self.dist][str(self.release)]['keys']
@@ -90,7 +97,7 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(repofile):
       self.container.rsyncContainerPut(repofile,"/etc/yum.repos.d/")
 
-    self.run("yum clean metadata")
+    self.run(self.yumOrDnf + " clean metadata")
     return True
 
   def InstallRequiredPackages(self):
@@ -102,7 +109,10 @@ class BuildHelperCentos(BuildHelper):
       if self.dist == "centos" and self.release == "5":
         # we cannot use yum-builddep because it requires a SRPM. need to use a setup.sh script instead
         return True
-      if not self.run("yum-builddep -y /tmp/" + self.packagename + ".spec"):
+      builddep = "yum-builddep"
+      if self.yumOrDnf == "dnf":
+        builddep = "dnf builddep"
+      if not self.run(builddep + " -y /tmp/" + self.packagename + ".spec"):
         return False
     return True
 
@@ -283,7 +293,7 @@ class BuildHelperCentos(BuildHelper):
     if buildtarget[0] == "centos" and buildtarget[1] == "5":
       result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
       result += "yum install " + packagename
-    elif buildtarget[0] == "fedora" and (buildtarget[1] == "rawhide" or int(buildtarget[1]) >= 22):
+    elif self.yumOrDnf == "dnf":
       result += "dnf install 'dnf-command(config-manager)'\n"
       result += "dnf config-manager --add-repo " + repourl + "\n"
       result += "dnf install " + packagename

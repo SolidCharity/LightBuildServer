@@ -31,6 +31,8 @@ class BuildHelperFedora(BuildHelperCentos):
     self.dist='fedora'
     self.fedora = self.release
     self.rhel = 0
+    if (self.release == "rawhide") or (int(self.release) >= 22):
+      self.yumOrDnf = "dnf"
 
   def PrepareMachineBeforeStart(self):
     return True
