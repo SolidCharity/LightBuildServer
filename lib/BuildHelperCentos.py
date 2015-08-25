@@ -293,7 +293,7 @@ class BuildHelperCentos(BuildHelper):
     if buildtarget[0] == "centos" and buildtarget[1] == "5":
       result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
       result += "yum install " + packagename
-    elif self.yumOrDnf == "dnf":
+    elif buildtarget[0] == "fedora" and (buildtarget[1] == "rawhide" or int(buildtarget[1]) >= 22):
       result += "dnf install 'dnf-command(config-manager)'\n"
       result += "dnf config-manager --add-repo " + repourl + "\n"
       result += "dnf install " + packagename
