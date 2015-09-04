@@ -105,7 +105,7 @@ class BuildHelperCentos(BuildHelper):
     specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
-      self.run("sed -e 's/%{release}/0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
+      self.run("sed -e 's/Release:.*%{release}/Release: 0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
       if self.dist == "centos" and self.release == "5":
         # we cannot use yum-builddep because it requires a SRPM. need to use a setup.sh script instead
         return True
@@ -174,7 +174,7 @@ class BuildHelperCentos(BuildHelper):
             rpmfiles.append(str(oldnumber).zfill(6) + ":" + file)
             if oldnumber >= buildnumber:
               buildnumber = oldnumber + 1
-      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
+      self.run("sed -i -e 's/Release:.*%{release}/Release: " + str(buildnumber) + "/g' rpmbuild/SPECS/" + self.packagename + ".spec")
 
       if not self.run("rpmbuild -ba rpmbuild/SPECS/" + self.packagename + ".spec"):
         return False
