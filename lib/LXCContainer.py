@@ -95,10 +95,10 @@ class LXCContainer(RemoteContainer):
     return False
 
   def destroy(self):
-    return self.executeOnHost("lxc-destroy --name " + self.containername)
+    return self.executeOnHost("lxc-destroy --name " + self.containername + " && sleep 60")
 
   def stop(self):
-    return self.executeOnHost("lxc-stop --name " + self.containername)
+    return self.executeOnHost("lxc-stop --name " + self.containername + " && sleep 60")
 
   def rsyncContainerPut(self, src, dest):
     return self.rsyncHostPut(src, "/var/lib/lxc/" + self.containername + "/rootfs" + dest)
