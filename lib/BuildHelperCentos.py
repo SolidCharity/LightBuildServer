@@ -230,11 +230,13 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def getRepoUrl(self, config, DownloadUrl, buildtarget):
-    buildtarget = buildtarget.split("/")
     repourl = DownloadUrl + "/repos/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
         repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
-    repourl += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1]
+    repourl += self.projectname
+    if buildtarget is not None:
+      buildtarget = buildtarget.split("/")
+      repourl += "/" + buildtarget[0] + "/" + buildtarget[1]
     return repourl
     
   # find the latest src package
@@ -262,16 +264,18 @@ class BuildHelperCentos(BuildHelper):
     return result
 
   def GetWinInstructions(self, config, DownloadUrl, buildtarget, branchname):
-    repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+    repourl = self.getRepoUrl(config, DownloadUrl, None)
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
     checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
       checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
-    checkfile += self.projectname + "/" + self.dist
+    checkfile += self.projectname
     # perhaps we have built a Windows installer with NSIS
-    windowsfile = checkfile + "/" + buildtarget[1] + "/windows/" + self.packagename + "/" + branchname + "/*.exe"
+    windowsfile = checkfile + "/" + self.dist + "/" + buildtarget[1] + "/windows/" + self.packagename + "/" + branchname + "/*.exe"
     if glob.glob(windowsfile):
+      if not os.path.islink(checkfile + "/windows"):
+        os.symlink(checkfile + "/" + self.dist + "/" + buildtarget[1] + "/windows", checkfile + "/windows")
       newest = max(glob.iglob(windowsfile), key=os.path.getctime)
       winurl = repourl + "/windows/" + self.packagename + "/" + branchname + "/"
       winurl += os.path.basename(newest) 
