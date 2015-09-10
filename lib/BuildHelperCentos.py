@@ -243,7 +243,7 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     result = None
 
-    srcPath=self.pathSrc
+    srcPath=self.config['lbs']['ReposPath'] + "/" + self.username + "/"
     if 'Secret' in config['lbs']['Users'][self.username]:
       srcPath += config['lbs']['Users'][self.username]['Secret'] + "/"
 
