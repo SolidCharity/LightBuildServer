@@ -261,7 +261,7 @@ class BuildHelperCentos(BuildHelper):
         result = (srcurl + "/src/" + latestFile, latestFile)
     return result
 
-  def GetWinInstructions(self, config, DownloadUrl, buildtarget):
+  def GetWinInstructions(self, config, DownloadUrl, buildtarget, branchname):
     repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
@@ -270,17 +270,15 @@ class BuildHelperCentos(BuildHelper):
       checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname + "/" + self.dist
     # perhaps we have built a Windows installer with NSIS
-    windowsfile = checkfile + "/" + buildtarget[1] + "/windows/" + self.packagename + "/*.exe"
+    windowsfile = checkfile + "/" + buildtarget[1] + "/windows/" + self.packagename + "/" + branchname + "/*.exe"
     if glob.glob(windowsfile):
       newest = max(glob.iglob(windowsfile), key=os.path.getctime)
-      winurl = repourl + "/windows/" + self.packagename + "/"
+      winurl = repourl + "/windows/" + self.packagename + "/" + branchname + "/"
       winurl += os.path.basename(newest) 
       return (winurl, os.path.basename(newest))
     return None
 
   def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
-    if self.GetWinInstructions(config, DownloadUrl, buildtarget):
-      return None
     repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
     repourl += "/lbs-"+self.username + "-"+self.projectname +".repo"
     buildtarget = buildtarget.split("/")
@@ -288,6 +286,11 @@ class BuildHelperCentos(BuildHelper):
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
       if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
         result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+    # check if a repo has been created in that place
+    checkfile = self.config['lbs']['ReposPath'] + repourl[len(DownloadUrl + "/repos"):]
+    if not glob.glob(checkfile):
+      return None
+
     # packagename: name of spec file, without .spec at the end
     packagename=self.GetSpecFilename()[:-5]
     if buildtarget[0] == "centos" and buildtarget[1] == "5":

@@ -47,6 +47,12 @@ lbs:
              monodevelop-nightly:
                Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
                Distros: ["fedora/20/amd64"]
+         openpetra:
+           Packages:
+             openpetranow-standalone:
+               WindowsInstaller: true
+               Branches: ["master", "20150909_release_2015-09"]
+               Distros: ["centos/7/amd64"]
          lbs:
            lightbuildserver:
              Distros: ["fedora/21/amd64", "fedora/22/amd64", "centos/7/amd64"]

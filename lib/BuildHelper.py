@@ -102,7 +102,7 @@ class BuildHelper:
       return False
     return True
 
-  def GetWinInstructions(self, config, DownloadUrl, buildtarget):
+  def GetWinInstructions(self, config, DownloadUrl, buildtarget, branchname):
     return None
 
   def GetSrcInstructions(self, config, DownloadUrl, buildtarget):

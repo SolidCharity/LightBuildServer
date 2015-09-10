@@ -30,19 +30,19 @@
 					</li>
 					% end	
 				</ul></li>
-				% if package['repoinstructions'][buildtarget] is not None:
+				% if buildtarget in package['repoinstructions'] and package['repoinstructions'][buildtarget] is not None:
 					<li>Installation instructions:
 					<pre>{{package['repoinstructions'][buildtarget]}}</pre>
 					</li>
 				% end
-				% if package['srcinstructions'][buildtarget] is not None:
+				% if buildtarget in package['srcinstructions'] and package['srcinstructions'][buildtarget] is not None:
 					<li>Download Source package:
 					<a href="{{package['srcinstructions'][buildtarget][0]}}">{{package['srcinstructions'][buildtarget][1]}}</a>
 					</li>
 				% end
-				% if package['wininstructions'][buildtarget] is not None:
+				% if branchname in package['wininstructions'] and package['wininstructions'][branchname] is not None:
 					<li>Download Windows Installer:
-					<a href="{{package['wininstructions'][buildtarget][0]}}">{{package['wininstructions'][buildtarget][1]}}</a>
+					<a href="{{package['wininstructions'][branchname][0]}}">{{package['wininstructions'][branchname][1]}}</a>
 					</li>
 				% end
 			</ul>
