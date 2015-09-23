@@ -230,7 +230,7 @@ CREATE TABLE log (
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
       url=lbsproject + "/archive/master.tar.gz"
       cmd="cd " + pathSrc + ";";
-      cmd+="curl --retry 10 --retry-delay 30 -f -L -o master.tar.gz \"" + url + "\";"
+      cmd+="rm -f master.tar.gz && curl --retry 10 --retry-delay 30 -f -L -o master.tar.gz \"" + url + "\" && "
       cmd+="tar xzf master.tar.gz; mv lbs-" + gitprojectname + "-master lbs-" + projectname
       shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
