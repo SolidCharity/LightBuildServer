@@ -240,8 +240,9 @@ CREATE TABLE log (
         with open (tokenfilename, "r") as myfile:
           url+="&private_token="+myfile.read().strip()
       cmd="cd " + pathSrc + ";";
-      cmd+="curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\";"
-      cmd+="tar xzf source.tar.gz; mv lbs-" + gitprojectname + ".git lbs-" + projectname
+      cmd+="rm -f source.tar.gz lbs-" + gitprojectname + "* && curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\" && "
+      cmd+="tar xzf source.tar.gz; mv lbs-" + gitprojectname + "* lbs-" + projectname
+      print(cmd) 
       shell.executeshell(cmd)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
