@@ -167,6 +167,10 @@ class LightBuildServerWeb:
       if auth_username is None:
         return template('message', title="Error", message="You must be logged in to see the machines", redirect="/login")
 
+      # check if there is a process in the queue and a free build machine
+      # this should normally triggered by a cron job, but this is the impatient and backup solution...
+      self.processbuildqueue()
+
       buildmachines={}
       for buildmachine in self.LBS.GetMachines():
         buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
