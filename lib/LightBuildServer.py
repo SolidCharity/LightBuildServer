@@ -94,6 +94,8 @@ CREATE TABLE log (
     con.execute("DELETE FROM build WHERE status='BUILDING'")
     con.execute("DELETE FROM log")
     for buildmachine in self.config['lbs']['Machines']:
+      if 'enabled' in self.config['lbs']['Machines'][buildmachine] and self.config['lbs']['Machines'][buildmachine]['enabled'] == False:
+        continue
       # init the machine
       con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'AVAILABLE'))
     con.commit()
@@ -102,20 +104,38 @@ CREATE TABLE log (
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
+  def GetMachines(self):
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
+    con.row_factory = sqlite3.Row
+    cursor = con.cursor()
+    stmt = "SELECT name FROM machine"
+    cursor.execute(stmt)
+    data = cursor.fetchall()
+    cursor.close()
+    con.close()
+    result = []
+    for row in data:
+      result.append(row['name'])
+    return result
+
   def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
-    for buildmachine in self.config['lbs']['Machines']:
-      state = self.GetBuildMachineState(buildmachine)
-      if state['status'] == 'AVAILABLE':
-        buildmachinePriority=100
-        if 'priority' in self.config['lbs']['Machines'][buildmachine]:
-          buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
-        if buildmachinePriority < machinePriorityToUse:
-          machinePriorityToUse = buildmachinePriority
-          machineToUse = buildmachine
+    cursor = con.cursor()
+    stmt = "SELECT * FROM machine WHERE status = 'AVAILABLE'"
+    cursor.execute(stmt)
+    data = cursor.fetchall()
+    cursor.close()
+    for row in data:
+      buildmachine=row['name']
+      buildmachinePriority=100
+      if 'priority' in self.config['lbs']['Machines'][buildmachine]:
+        buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
+      if buildmachinePriority < machinePriorityToUse:
+        machinePriorityToUse = buildmachinePriority
+        machineToUse = buildmachine
     if machineToUse is not None:
       stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=?"
       con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))

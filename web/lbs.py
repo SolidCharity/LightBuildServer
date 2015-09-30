@@ -168,7 +168,7 @@ class LightBuildServerWeb:
         return template('message', title="Error", message="You must be logged in to see the machines", redirect="/login")
 
       buildmachines={}
-      for buildmachine in self.config['lbs']['Machines']:
+      for buildmachine in self.LBS.GetMachines():
         buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
 
       return template('machines', buildmachines=buildmachines, jobs=self.LBS.GetBuildQueue(), finishedjobs=self.LBS.GetFinishedQueue(), auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
