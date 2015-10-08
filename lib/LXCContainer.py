@@ -44,6 +44,8 @@ class LXCContainer(RemoteContainer):
     if self.executeOnHost("if [ -d /var/lib/lxc/" + self.containername + " ]; then lxc-destroy --name " + self.containername + "; fi") == False:
       return False
     result = False
+    # make sure we can always start the CentOS machines. after an LXC package upgrade, the changes to the templates are lost
+    self.executeOnHost(self.SCRIPTS_PATH + "initLXC.sh")
     if distro == "centos":
       result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if distro == "fedora":
