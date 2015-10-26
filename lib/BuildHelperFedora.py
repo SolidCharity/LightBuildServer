@@ -29,16 +29,24 @@ class BuildHelperFedora(BuildHelperCentos):
   def __init__(self, container, username, projectname, packagename):
     BuildHelperCentos.__init__(self, container, username, projectname, packagename)
     self.dist='fedora'
-    self.fedora = self.release
     self.rhel = 0
-    if (self.release == "rawhide") or (int(self.release) >= 22):
+    self.rawhide = 24
+    if self.release == "rawhide":
+     self.release = self.rawhide
+    self.fedora = int(self.release)
+    # use dnf instead of rpm, starting with Fedora 22
+    if self.fedora >= 22:
       self.yumOrDnf = "dnf"
 
   def PrepareMachineBeforeStart(self):
     return True
 
   def PrepareMachineAfterStart(self):
-    if self.container.release == "rawhide":
+    if self.fedora == self.rawhide - 1:
+      # before the final release: make sure we receive the latest packages
+      self.run("dnf install -y dnf-plugins-core")
+      self.run("dnf config-manager --set-enabled updates-testing")
+    if self.fedora == self.rawhide:
       self.run("dnf install -y fedora-repos-rawhide dnf-plugins-core")
       self.run("dnf config-manager --set-disabled fedora updates updates-testing")
       self.run("dnf config-manager --set-enabled rawhide")
