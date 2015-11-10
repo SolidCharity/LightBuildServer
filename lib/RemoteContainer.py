@@ -28,7 +28,7 @@ from Logger import Logger
 from Shell import Shell
 
 class RemoteContainer:
-  def __init__(self, containername, configBuildMachine, logger):
+  def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
     self.hostname = containername
 
     self.port="22"
@@ -75,6 +75,7 @@ class RemoteContainer:
     self.release = ""
     self.arch = ""
     self.staticIP = ""
+    self.packageSrcPath = packageSrcPath
 
   def executeOnHost(self, command):
     if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):

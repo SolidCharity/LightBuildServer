@@ -28,8 +28,8 @@ from Logger import Logger
 from Shell import Shell
 
 class LXCContainer(RemoteContainer):
-  def __init__(self, containername, configBuildMachine, logger):
-    RemoteContainer.__init__(self, containername, configBuildMachine, logger)
+  def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
+    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath)
     self.SCRIPTS_PATH = "/usr/share/lxc-scripts/"
 
   def executeOnHost(self, command):

@@ -42,14 +42,14 @@ class Build:
     self.buildmachine = None
     self.config = Config.LoadConfig()
 
-  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
     # create a container on a remote machine
     self.buildmachine = buildmachine
     conf = self.config['lbs']['Machines'][buildmachine]
     if 'type' in conf and conf['type'] == 'lxc':
-      self.container = LXCContainer(buildmachine, conf, self.logger)
+      self.container = LXCContainer(buildmachine, conf, self.logger, packageSrcPath)
     else:
-      self.container = DockerContainer(buildmachine, conf, self.logger)
+      self.container = DockerContainer(buildmachine, conf, self.logger, packageSrcPath)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):
@@ -57,7 +57,12 @@ class Build:
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
     self.logger.print(" * Preparing the machine...")
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine):
+
+    # get the sources of the packaging instructions
+    pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname)
+    packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
+
+    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
 
       try:
         # install a mount for the project repo
@@ -80,8 +85,6 @@ class Build:
         if not self.buildHelper.PrepareForBuilding():
           raise Exception("Problem with PrepareForBuilding")
 
-        # get the sources of the packaging instructions
-        pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname)
         # copy the repo to the container
         self.container.rsyncContainerPut(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
         # copy the keys to the container

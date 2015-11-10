@@ -41,9 +41,9 @@ class BuildHelperCentos(BuildHelper):
 
   def PrepareForBuilding(self):
     #self.run(self.yumOrDnf + " clean headers dbcache rpmdb")
-    if not self.run(self.yumOrDnf + " -y update"):
-      if not self.run(self.yumOrDnf + " clean all && " + self.yumOrDnf + " -y update"):
-        return False
+    #if not self.run(self.yumOrDnf + " -y update"):
+    #  if not self.run(self.yumOrDnf + " clean all && " + self.yumOrDnf + " -y update"):
+    #    return False
     yumUtils="yum-utils"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"

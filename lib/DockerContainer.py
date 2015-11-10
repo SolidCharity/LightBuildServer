@@ -28,8 +28,8 @@ from Logger import Logger
 from Shell import Shell
 
 class DockerContainer(RemoteContainer):
-  def __init__(self, containername, configBuildMachine, logger):
-    RemoteContainer.__init__(self, containername, configBuildMachine, logger)
+  def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
+    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath)
     self.SCRIPTS_PATH = "/usr/share/docker-scripts/"
 
   def executeOnHost(self, command):
@@ -73,7 +73,16 @@ class DockerContainer(RemoteContainer):
     return True
 
   def startmachine(self):
-    result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.containername + " " + str(self.cid) + " Dockerfiles/Dockerfile." + self.distro + self.release + ' ' + self.mount)
+    Dockerfile="Dockerfiles/Dockerfile." + self.distro + self.release
+    DockerfileExt=self.packageSrcPath + "/Dockerfile"
+    if os.path.exists(DockerfileExt):
+      self.executeOnHost("mkdir -p /tmp/" + self.containername)
+      DockerfileOrig=Dockerfile
+      Dockerfile="/tmp/" + self.containername + "/Dockerfile.new"
+      DockerfileUploaded="/tmp/" + self.containername + "/Dockerfile"
+      self.rsyncHostPut(DockerfileExt, DockerfileUploaded)
+      self.executeOnHost("cd " + self.SCRIPTS_PATH + " && cat " + DockerfileOrig + " " + DockerfileUploaded + " > " + Dockerfile)
+    result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.containername + " " + str(self.cid) + ' ' + Dockerfile + ' ' + self.mount)
     if result == False:
       return False
 

@@ -183,9 +183,9 @@ CREATE TABLE log (
   def ReleaseMachine(self, buildmachine):
     conf=self.config['lbs']['Machines'][buildmachine]
     if 'type' in conf and conf['type'] == 'lxc':
-      LXCContainer(buildmachine, conf, Logger()).stop()
+      LXCContainer(buildmachine, conf, Logger(), '').stop()
     else:
-      DockerContainer(buildmachine, conf, Logger()).stop()
+      DockerContainer(buildmachine, conf, Logger(), '').stop()
     con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
     stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
     con.execute(stmt, (buildmachine,))
@@ -262,7 +262,6 @@ CREATE TABLE log (
       cmd="cd " + pathSrc + ";";
       cmd+="rm -f source.tar.gz lbs-" + gitprojectname + "* && curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\" && "
       cmd+="tar xzf source.tar.gz; mv lbs-" + gitprojectname + "* lbs-" + projectname
-      print(cmd) 
       shell.executeshell(cmd)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
