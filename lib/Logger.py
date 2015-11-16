@@ -61,7 +61,8 @@ class Logger:
       self.lastLine = newOutput
       if newOutput[-1:] != "\n":
         newOutput += "\n"
-      timeprefix = "[" + str(int(time.time() - self.starttime)).zfill(5) + "] "
+      timeseconds = int(time.time() - self.starttime)
+      timeprefix = "[" + str(int(timeseconds/60/60)).zfill(2) + ":" + str(int(timeseconds/60)%60).zfill(2) + ":" + str(timeseconds%60).zfill(2)  + "] "
       if "LBSERROR" in newOutput:
         self.error = True
       self.linebuffer.append(timeprefix + newOutput)
