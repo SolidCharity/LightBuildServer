@@ -181,16 +181,25 @@ CREATE TABLE log (
       con.close()
 
   def ReleaseMachine(self, buildmachine):
-    conf=self.config['lbs']['Machines'][buildmachine]
-    if 'type' in conf and conf['type'] == 'lxc':
-      LXCContainer(buildmachine, conf, Logger(), '').stop()
-    else:
-      DockerContainer(buildmachine, conf, Logger(), '').stop()
-    con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
-    stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
-    con.execute(stmt, (buildmachine,))
-    con.commit()
-    con.close()
+    status = self.GetBuildMachineState(buildmachine)
+
+    # only release the machine when it is building. if it is already being stopped, do nothing
+    if status["status"] == 'BUILDING':
+      con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
+      stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
+      con.execute(stmt, (buildmachine,))
+      con.commit()
+
+      conf=self.config['lbs']['Machines'][buildmachine]
+      if 'type' in conf and conf['type'] == 'lxc':
+        LXCContainer(buildmachine, conf, Logger(), '').stop()
+      else:
+        DockerContainer(buildmachine, conf, Logger(), '').stop()
+
+      stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
+      con.execute(stmt, (buildmachine,))
+      con.commit()
+      con.close()
 
   def GetBuildMachineState(self, buildmachine):
     con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
@@ -206,6 +215,8 @@ CREATE TABLE log (
       if data["status"] == 'BUILDING':
         return data
       if data["status"] == 'AVAILABLE':
+        return data
+      if data["status"] == 'STOPPING':
         return data
     undefined = {}
     undefined["status"] = "undefined"
