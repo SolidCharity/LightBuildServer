@@ -42,27 +42,10 @@ class RemoteContainer:
     self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
-    # we just test if the host server for the build container is actually hosting the LBS application as well
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
-    s.connect((containername, 80))
-    lbsipaddress=s.getsockname()[0].split('.')
-    buildserveraddress=socket.gethostbyname(containername).split('.')
-
-    if buildserveraddress[3] == "1":
-      buildserveraddress.pop()
-      lbsipaddress.pop()
-      if '.'.join(buildserveraddress) == '.'.join(lbsipaddress):
-        self.containerIP='.'.join(buildserveraddress) + "." + str(self.cid)
-        self.containerPort="22"
-    # or if the container is running on localhost
-    if socket.gethostbyname(containername) == "127.0.0.1":
-      if os.path.isfile("/etc/libvirt/qemu/networks/default.xml"):
-        # Fedora
-        self.containerIP="192.168.122." + str(self.cid)
-      elif os.path.isfile("/etc/init/lxc-net.conf"):
-        # Ubuntu
-        self.containerIP="10.0.3." + str(self.cid)
+    if "local" in configBuildMachine and configBuildMachine['local'] == True:
+      # the host server for the build container is actually hosting the LBS application as well
+      # or the container is running on localhost
+      self.containerIP=self.calculateLocalContainerIP(self.cid)
       self.containerPort="22"
 
     self.config = Config.LoadConfig()
@@ -76,6 +59,23 @@ class RemoteContainer:
     self.arch = ""
     self.staticIP = ""
     self.packageSrcPath = packageSrcPath
+
+  def calculateLocalContainerIP(self, cid):
+    if os.path.isfile("/etc/libvirt/qemu/networks/default.xml"):
+      # Fedora
+      return "192.168.122." + str(cid)
+    elif os.path.isfile("/etc/init/lxc-net.conf"):
+      # Ubuntu
+      return "10.0.3." + str(cid)
+    else:
+      # we are inside a container as well
+      # we just test if the host server for the build container is actually hosting the LBS application as well
+      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
+      s.connect((self.containername, 80))
+      lbsipaddress=s.getsockname()[0].split('.')
+      lbsipaddress.pop()
+      return '.'.join(lbsipaddress) + "." + str(cid)
 
   def executeOnHost(self, command):
     if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1; echo \$?\""):

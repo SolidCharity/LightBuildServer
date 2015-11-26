@@ -71,6 +71,8 @@ lbs:
        mybuild01.lbs.example.org: 
           type: lxc
           port: 2222
+          # if this build container is on the same host as the LBS application
+          local: True
           cid: 10
           priority: 1
           enabled: False
