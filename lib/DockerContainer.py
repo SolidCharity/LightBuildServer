@@ -66,9 +66,9 @@ class DockerContainer(RemoteContainer):
         self.release = 8
     if self.distro == "ubuntu":
       if self.release == 'trusty':
-        self.release = 14.04
+        self.release = "14.04"
       elif self.release == 'precise':
-        self.release = 12.04
+        self.release = "12.04"
 
     return True
 
@@ -121,7 +121,7 @@ class DockerContainer(RemoteContainer):
   def stop(self):
     #TODO docker stop does not work, not even for test job
     #return self.executeOnHost("docker stop " + self.containername)
-    return self.executeOnHost("systemctl restart docker && sleep 60")
+    return self.executeOnHost("(systemctl restart docker || service docker restart) && sleep 60")
 
   def rsyncContainerPut(self, src, dest):
     dest = dest[:dest.rindex("/")]
