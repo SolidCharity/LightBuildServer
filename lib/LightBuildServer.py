@@ -330,16 +330,6 @@ CREATE TABLE log (
     else:
       return "{{lbsName}} is already in the build queue."
 
-  def WaitForBuildJobFinish(self, thread, lbsName, jobId):
-      thread.join()
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
-      stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
-      listLbsName=lbsName.split('/')
-      lastBuild = Logger().getLastBuild(listLbsName[0], listLbsName[1], listLbsName[2], listLbsName[3], listLbsName[4]+"/"+listLbsName[5]+"/"+listLbsName[6])
-      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
-      con.commit()
-      con.close()
-
   def attemptToFindBuildMachine(self, con, item):
     username = item["username"]
     projectname = item["projectname"]
@@ -367,10 +357,10 @@ CREATE TABLE log (
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
       con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
       con.commit()
-      thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine))
+      thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, item['id']))
       thread.start()
-      threadWait = Thread(target = self.WaitForBuildJobFinish, args = (thread, lbsName, item['id']))
-      threadWait.start()
+      # wait 15 seconds for the job to start, before checking another time for an available machine
+      time.sleep( 15 )
       return True
     return False
 

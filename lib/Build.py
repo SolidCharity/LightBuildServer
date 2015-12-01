@@ -26,10 +26,13 @@ from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 import Config
 from time import gmtime, strftime
+import datetime
 import os
 import shutil
 from Shell import Shell
 import logging
+import sqlite3
+from Logger import Logger
 
 class Build:
   'run one specific build of one package'
@@ -52,7 +55,7 @@ class Build:
       self.container = DockerContainer(buildmachine, conf, self.logger, packageSrcPath)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
-  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine):
+  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, jobId):
     userconfig = self.config['lbs']['Users'][username]
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
@@ -130,6 +133,15 @@ class Build:
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
     if self.logger.hasLBSERROR() or not self.config['lbs']['SendEmailOnSuccess'] == False:
       self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+
+    # now mark the build finished
+    con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+    stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
+    lastBuild = Logger().getLastBuild(username, projectname, packagename, branchname, lxcdistro+"/"+lxcrelease+"/"+lxcarch)
+    con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
+    con.commit()
+    con.close()
+
     self.logger.clean()
     return self.logger.get()
 
