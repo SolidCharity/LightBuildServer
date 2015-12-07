@@ -137,8 +137,11 @@ CREATE TABLE log (
         machinePriorityToUse = buildmachinePriority
         machineToUse = buildmachine
     if machineToUse is not None:
-      stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=?"
-      con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
+      stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=? AND status='AVAILABLE'"
+      cursor = con.cursor()
+      cursor.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
+      if cursor.rowcount == 0:
+        return None
       con.commit()
       return machineToUse
     return None
@@ -359,8 +362,6 @@ CREATE TABLE log (
       con.commit()
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, item['id']))
       thread.start()
-      # wait 15 seconds for the job to start, before checking another time for an available machine
-      time.sleep( 15 )
       return True
     return False
 
