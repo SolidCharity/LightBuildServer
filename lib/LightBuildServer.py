@@ -43,6 +43,7 @@ class LightBuildServer:
 
   def __init__(self):
     self.config = Config.LoadConfig()
+    dbversion=2
  
     if not os.path.isfile(self.config['lbs']['SqliteFile']):
       con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
@@ -61,6 +62,7 @@ CREATE TABLE build (
   buildmachine char(100),
   started TIMESTAMP,
   finished TIMESTAMP,
+  hanging INTEGER default 0,
   buildsuccess char(20),
   buildnumber INTEGER)
 """
@@ -85,9 +87,20 @@ CREATE TABLE log (
   created TIMESTAMP DEFAULT (datetime('now','localtime')))
 """
       con.execute(createTableStmt)
+      con.execute("CREATE TABLE dbversion ( version INTEGER )")
+      con.execute("INSERT INTO dbversion(version) VALUES(%d)" % (dbversion))
       con.commit()
     else:
       con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
+      con.row_factory = sqlite3.Row
+      cursor = con.cursor()
+      cursor.execute("SELECT version FROM dbversion")
+      currentdbversion = cursor.fetchone()[0]
+      if currentdbversion != dbversion:
+        if currentdbversion < 2:
+          con.execute("ALTER TABLE build ADD COLUMN hanging INTEGER DEFAULT 0")
+        con.execute("UPDATE dbversion SET version = %d" % (dbversion))
+        con.commit()
 
     con.execute("DELETE FROM machine")
     # keep WAITING build jobs
@@ -143,6 +156,7 @@ CREATE TABLE log (
       if cursor.rowcount == 0:
         return None
       con.commit()
+      print("GetAvailableBuildMachine found a free machine")
       return machineToUse
     return None
 
@@ -152,7 +166,7 @@ CREATE TABLE log (
       con.row_factory = sqlite3.Row
       cursor = con.cursor()
       stmt = "SELECT * FROM build "
-      stmt += "WHERE status = 'BUILDING' "
+      stmt += "WHERE status = 'BUILDING' and hanging = 0 "
       stmt += "AND datetime(started,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') < '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
       stmt += " ORDER BY id DESC"
       cursor.execute(stmt)
@@ -163,10 +177,26 @@ CREATE TABLE log (
         cursor = con.cursor()
         cursor.execute(stmt, (row['id'],))
         if cursor.fetchone() is None:
+          # mark the build as hanging, so that we don't try to release the machine several times
+          stmt = "UPDATE build SET hanging = 1 WHERE id = ?"
+          cursor = con.cursor()
+          cursor.execute(stmt, (row['id']))
+          con.commit()
+          # check if the machine is still occupied with that build
+          #stmt = "SELECT * FROM machine WHERE username = ? and projectname = ? and packagename = ? AND name = ?"
+          #cursor = con.cursor()
+          #cursor.execute(stmt, (row['username'], row['projectname'], row['packagename'], row['buildmachine']))
+          #if cursor.fetchone() is None:
+          #  # TODO mark build as stopped. do not release the machine, it might already build something else?
+          #  con.close()
+          #  return
+          print("stopping machine %s because of hanging build" % (row["buildmachine"]))
+          con.close()
           self.ReleaseMachine(row["buildmachine"])
           # when the build job realizes that the buildmachine is gone:
           #   the log will be written, email sent, and logs cleared
           #   the build will be marked as failed as well
+          return
       con.close()
 
   def CancelPlannedBuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
@@ -184,10 +214,11 @@ CREATE TABLE log (
       con.close()
 
   def ReleaseMachine(self, buildmachine):
+    print("ReleaseMachine %s" % (buildmachine))
     status = self.GetBuildMachineState(buildmachine)
 
     # only release the machine when it is building. if it is already being stopped, do nothing
-    if status["status"] == 'BUILDING':
+    if status["status"] == 'BUILDING' or status["status"] == 'STOPPING':
       con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
       con.execute(stmt, (buildmachine,))
