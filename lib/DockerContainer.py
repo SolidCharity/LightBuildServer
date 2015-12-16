@@ -121,7 +121,7 @@ class DockerContainer(RemoteContainer):
   def stop(self):
     #TODO docker stop does not work, not even for test job
     #return self.executeOnHost("docker stop " + self.containername)
-    return self.executeOnHost("(systemctl restart docker || service docker restart) && sleep 60")
+    return self.executeOnHost("(systemctl restart docker || service docker restart) && sleep 10")
 
   def rsyncContainerPut(self, src, dest):
     dest = dest[:dest.rindex("/")]
