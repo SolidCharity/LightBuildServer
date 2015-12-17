@@ -31,6 +31,8 @@ class BuildHelperFedora(BuildHelperCentos):
     self.dist='fedora'
     self.rhel = 0
     self.rawhide = 24
+    # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
+    self.latestrelease = 23
     if self.release == "rawhide":
      self.release = self.rawhide
     self.fedora = int(self.release)
@@ -42,7 +44,7 @@ class BuildHelperFedora(BuildHelperCentos):
     return True
 
   def PrepareMachineAfterStart(self):
-    if self.fedora == self.rawhide - 1:
+    if self.fedora > self.latestrelease and self.fedora != self.rawhide:
       # before the final release: make sure we receive the latest packages
       self.run("dnf install -y dnf-plugins-core")
       self.run("dnf config-manager --set-enabled updates-testing")
