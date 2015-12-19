@@ -346,7 +346,7 @@ CREATE TABLE log (
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
 
     con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
-    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
+    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
     con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, dependsOnString))
     con.commit()
     con.close()
