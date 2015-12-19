@@ -43,7 +43,7 @@ class LightBuildServer:
 
   def __init__(self):
     self.config = Config.LoadConfig()
-    dbversion=2
+    dbversion=4
  
     if not os.path.isfile(self.config['lbs']['SqliteFile']):
       con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
@@ -58,6 +58,8 @@ CREATE TABLE build (
   distro char(20) NOT NULL,
   release char(20) NOT NULL,
   arch char(10) NOT NULL,
+  avoidlxc INTEGER NOT NULL DEFAULT 0,
+  avoiddocker INTEGER NOT NULL DEFAULT 0,
   dependsOnOtherProjects char(400) NOT NULL,
   buildmachine char(100),
   started TIMESTAMP,
@@ -72,6 +74,7 @@ CREATE TABLE machine (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name char(100) NOT NULL,
   status char(40) NOT NULL,
+  type char(20) NOT NULL DEFAULT 'docker',
   buildjob char(400),
   queue char(400),
   username char(100),
@@ -99,6 +102,11 @@ CREATE TABLE log (
       if currentdbversion != dbversion:
         if currentdbversion < 2:
           con.execute("ALTER TABLE build ADD COLUMN hanging INTEGER DEFAULT 0")
+        if currentdbversion < 3:
+          con.execute("ALTER TABLE machine ADD COLUMN type CHAR(20) NOT NULL DEFAULT 'docker'")
+        if currentdbversion < 4:
+          con.execute("ALTER TABLE build ADD COLUMN avoidlxc INTEGER NOT NULL DEFAULT 0")
+          con.execute("ALTER TABLE build ADD COLUMN avoiddocker INTEGER NOT NULL DEFAULT 0")
         con.execute("UPDATE dbversion SET version = %d" % (dbversion))
         con.commit()
 
@@ -107,10 +115,12 @@ CREATE TABLE log (
     con.execute("DELETE FROM build WHERE status='BUILDING'")
     con.execute("DELETE FROM log")
     for buildmachine in self.config['lbs']['Machines']:
-      if 'enabled' in self.config['lbs']['Machines'][buildmachine] and self.config['lbs']['Machines'][buildmachine]['enabled'] == False:
+      conf=self.config['lbs']['Machines'][buildmachine]
+      if 'enabled' in conf and conf['enabled'] == False:
         continue
+      type=('lxc' if ('type' in conf and conf['type'] == 'lxc') else 'docker')
       # init the machine
-      con.execute("INSERT INTO machine('name', 'status') VALUES(?, ?)", (buildmachine, 'AVAILABLE'))
+      con.execute("INSERT INTO machine('name', 'status', 'type') VALUES(?, ?, ?)", (buildmachine, 'AVAILABLE', type))
     con.commit()
     con.close()
 
@@ -131,13 +141,17 @@ CREATE TABLE log (
       result.append(row['name'])
     return result
 
-  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, AvoidDocker, AvoidLXC):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
     cursor = con.cursor()
     stmt = "SELECT * FROM machine WHERE status = 'AVAILABLE'"
+    if AvoidDocker:
+      stmt += " AND type <> 'docker'"
+    if AvoidLXC:
+      stmt += " AND type <> 'lxc'"
     cursor.execute(stmt)
     data = cursor.fetchall()
     cursor.close()
@@ -324,13 +338,16 @@ CREATE TABLE log (
   def AddToBuildQueue(self, username, projectname, packagename, branchname, distro, release, arch):
     # find if this project depends on other projects
     DependsOnOtherProjects={}
-    if 'DependsOn' in self.config['lbs']['Users'][username]['Projects'][projectname]:
-      DependsOnOtherProjects=self.config['lbs']['Users'][username]['Projects'][projectname]['DependsOn']
+    proj=self.config['lbs']['Users'][username]['Projects'][projectname]
+    if 'DependsOn' in proj:
+      DependsOnOtherProjects=proj['DependsOn']
     dependsOnString=','.join(DependsOnOtherProjects)
+    avoiddocker = False if ("UseDocker" not in proj) else (proj["UseDocker"] == False)
+    avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
 
     con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
-    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
-    con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, dependsOnString))
+    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?)"
+    con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, dependsOnString))
     con.commit()
     con.close()
 
@@ -373,6 +390,8 @@ CREATE TABLE log (
     lxcrelease = item["release"]
     lxcarch = item["arch"]
     DependsOnOtherProjects = item["dependsOnOtherProjects"]
+    AvoidDocker = item["avoiddocker"]
+    AvoidLXC = item["avoidlxc"]
 
     # 1: check if there is a package building or waiting from the same user and buildtarget => return False
     if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
@@ -386,7 +405,7 @@ CREATE TABLE log (
     lbs = Build(self, Logger(item['id']))
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
-    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
+    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC)
     if not buildmachine == None:
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
       con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))

@@ -38,6 +38,7 @@ lbs:
        Projects:
          # mono will resolve automatically to https://github.com/tpokorra/lbs-mono
          mono:
+           UseLXC: false
            PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
            Packages:
              monodevelop-opt:
@@ -48,6 +49,7 @@ lbs:
                Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
                Distros: ["fedora/20/amd64"]
          openpetra:
+           UseDocker: false
            Packages:
              openpetranow-standalone:
                WindowsInstaller: true
