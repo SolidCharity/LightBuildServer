@@ -4,7 +4,8 @@
         <h2>Build Machines</h2>
         <ul>
             % for buildmachine in sorted(buildmachines):
-              <li>Container {{buildmachine}}: 
+              % type = "LXC" if (buildmachines[buildmachine]["type"] == "lxc") else "Docker"
+              <li>Container {{buildmachine}} ({{type}}):
 		% if buildmachines[buildmachine]["status"] == "BUILDING":
                   % job = buildmachines[buildmachine]["buildjob"].split('/')
                   {{buildmachines[buildmachine]["status"]}} <br/>

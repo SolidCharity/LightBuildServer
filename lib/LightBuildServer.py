@@ -253,7 +253,7 @@ CREATE TABLE log (
     con = sqlite3.connect(self.config['lbs']['SqliteFile'], timeout=10)
     con.row_factory = sqlite3.Row
     cursor = con.cursor()
-    stmt = "SELECT status, buildjob, queue FROM machine WHERE name = ?"
+    stmt = "SELECT status, buildjob, queue, type FROM machine WHERE name = ?"
     cursor.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
