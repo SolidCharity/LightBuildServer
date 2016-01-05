@@ -171,6 +171,9 @@ class LightBuildServerWeb:
       # this should normally triggered by a cron job, but this is the impatient and backup solution...
       self.processbuildqueue()
 
+      # usually the config is loaded only during startup. but sometimes it is good to add a new branch or package on the fly...
+      self.config = Config.LoadConfig()
+
       buildmachines={}
       for buildmachine in self.LBS.GetMachines():
         buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
