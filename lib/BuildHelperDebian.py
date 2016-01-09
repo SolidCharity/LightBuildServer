@@ -50,11 +50,22 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def GetDscFilename(self):
-    if os.path.isdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      for file in os.listdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-        if file.endswith(".dsc") and self.packagename.startswith(file.split('.')[0]):
-          return file
-    return self.packagename + ".dsc"
+    filename = self.packagename + ".dsc"
+    path = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename
+    if os.path.isdir(path):
+      for file in os.listdir(path):
+        if file.endswith(".dsc") and self.packagename.lower().startswith(file.lower().split('.')[0]):
+          filename = file
+      # special case: php-net-ldap3.dsc in package php-pear-Net-LDAP3
+      if not os.path.isfile(path + "/" + filename):
+        for file in os.listdir(path):
+          if file.endswith(".dsc"):
+            filename = file
+    if filename != filename.lower():
+      if os.path.isfile(path + "/" + filename):
+        os.rename(path + "/" + filename, path + "/" + filename.lower())
+      filename = filename.lower()
+    return filename
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
@@ -130,9 +141,17 @@ class BuildHelperDebian(BuildHelper):
     DownloadUrl = config['lbs']['DownloadUrl']
     dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
+      pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
+
+      # if debian.tar.gz exists, assume the sources come from OBS
+      if os.path.isfile(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian.tar.gz"):
+        self.run("cd " + pathPackageSrc + " && mkdir -p debian && tar xzf debian.tar.gz && rm debian.tar.gz");
+        self.run("cd " + pathPackageSrc + " && (for f in debian.*; do mv \$f debian/\${f:7}; done)")
+        # make sure that we only have lowercase letters in the dsc filename
+        self.run("cd " + pathPackageSrc + " && (for f in *.dsc; do mv \$f \${f,,}; done)")
+
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
-      pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
       self.run("cp /root/sources/* " + pathPackageSrc)
       self.run("rm -Rf tmpSource && mkdir tmpSource")
       self.run("for file in " + pathPackageSrc + "/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
@@ -145,7 +164,7 @@ class BuildHelperDebian(BuildHelper):
       # read version from dsc file, that is on the build server
       # (setup.sh might overwrite the version number...)
       temppath = tempfile.mkdtemp()
-      self.container.rsyncContainerGet("/root/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename(), temppath)
+      self.container.rsyncContainerGet(pathPackageSrc + "/" + self.GetDscFilename(), temppath)
       buildversion = "1.0.0"
       for line in open(temppath + "/" + self.GetDscFilename()):
         if line.startswith("Version: "):
