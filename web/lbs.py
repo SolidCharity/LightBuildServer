@@ -254,6 +254,8 @@ class LightBuildServerWeb:
         user=copy.deepcopy(self.config['lbs']['Users'][username])
         project=user['Projects'][projectname]
         if 'Packages' in project:
+          if not packagename in project['Packages']:
+            return template("message", title="Error", message="there is no package " + packagename, redirect="/")
           project[packagename] = project['Packages'][packagename]
         package=project[packagename]
         if package == None:
