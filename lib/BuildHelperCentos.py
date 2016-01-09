@@ -91,6 +91,11 @@ class BuildHelperCentos(BuildHelper):
           for key in keys:
             if not self.run("rpm --import '" + key + "'"):
               return False
+        if 'enable' in config['lbs'][self.dist][str(self.release)]:
+          enables = config['lbs'][self.dist][str(self.release)]['enable']
+          for enable in enables:
+            if not self.run("yum-config-manager --enable '" + enable + "'"):
+              return False
 
     # install own repo as well if it exists
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
