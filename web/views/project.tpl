@@ -1,11 +1,11 @@
 % include('header.tpl', title='Project', page='project')
     <div class="container">
       <div class="row">
-		<h2>Details of Project {{username}}:{{project}}</h2>
+		<h2>Details of Project {{username}}:{{project}}:{{branchname}}</h2>
         	<table class="table">
 		<tr><td>Build all packages:</td>
-		% for buildtarget in buildtargets:
-		<td><a href="/buildproject/{{username}}/{{project}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a></td>
+		% for buildtarget in sorted(buildtargets):
+		<td><a href="/buildproject/{{username}}/{{project}}/{{branchname}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a></td>
 		%end
 		</tr>
 	            % for package in sorted(users[username][project]['Packages']):
@@ -13,7 +13,7 @@
 		        % for buildtarget in users[username][project]['Packages'][package]['buildresult']:
 			   <td>
 			   % if 'resultcode' in users[username][project]['Packages'][package]['buildresult'][buildtarget]:
-			      <a href="/logs/{{username}}/{{project}}/{{package}}/master/{{buildtarget}}/{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
+			      <a href="/logs/{{username}}/{{project}}/{{package}}/{{branchname}}/{{buildtarget}}/{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
 			   % end
 			   </td>
 			% end

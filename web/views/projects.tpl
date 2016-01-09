@@ -17,7 +17,9 @@
 			</div>
 			<div id="collapse-{{countProject}}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-{{countProject}}">
 			<div class="panel-body">
-			<a href="/project/{{username}}/{{project}}">Go to Project {{project}}</a>
+			% for branch in sorted(users[username][project]['Branches']):
+				<a href="/project/{{username}}/{{project}}/{{branch}}">Go to Project {{project}}/{{branch}}</a>
+			% end
                 	<ul>
 	                   % for package in sorted(users[username][project]['Packages']):
         	                <li><a href="{{users[username][project]['Packages'][package]['packageurl']}}">Package {{package}}</a></li>

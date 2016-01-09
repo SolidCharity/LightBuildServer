@@ -62,7 +62,7 @@ class Build:
     self.logger.print(" * Preparing the machine...")
 
     # get the sources of the packaging instructions
-    pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname)
+    pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
     packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
 
     if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):

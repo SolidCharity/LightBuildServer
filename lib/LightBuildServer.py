@@ -295,25 +295,34 @@ CREATE TABLE log (
           return True
     return False
 
-  def getPackagingInstructions(self, userconfig, username, projectname):
+  def getPackagingInstructions(self, userconfig, username, projectname, branchname):
     gitprojectname = projectname
     if 'GitProjectName' in userconfig['Projects'][projectname]:
       gitprojectname = userconfig['Projects'][projectname]['GitProjectName']
     lbsproject=userconfig['GitURL'] + 'lbs-' + gitprojectname
     pathSrc=self.config['lbs']['GitSrcPath']+"/"+username+"/"
+
+    # first try with git branch master, to see if the branch is decided in the setup.sh. then there must be a config.yml
+    self.getPackagingInstructionsInternal(userconfig, username, projectname, "master", gitprojectname, lbsproject, pathSrc)
+
+    if not os.path.isfile(pathSrc+'lbs-'+projectname+"/config.yml"):
+      self.getPackagingInstructionsInternal(userconfig, username, projectname, branchname, gitprojectname, lbsproject, pathSrc)
+    return pathSrc
+
+  def getPackagingInstructionsInternal(self, userconfig, username, projectname, branchname, gitprojectname, lbsproject, pathSrc):
     os.makedirs(pathSrc, exist_ok=True)
     if os.path.isdir(pathSrc+'lbs-'+projectname):
         #we want a clean clone
         shutil.rmtree(pathSrc+'lbs-'+projectname)
     shell = Shell(Logger())
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
-      url=lbsproject + "/archive/master.tar.gz"
+      url=lbsproject + "/archive/" + branchname + ".tar.gz"
       cmd="cd " + pathSrc + ";";
-      cmd+="rm -f master.tar.gz && curl --retry 10 --retry-delay 30 -f -L -o master.tar.gz \"" + url + "\" && "
-      cmd+="tar xzf master.tar.gz; mv lbs-" + gitprojectname + "-master lbs-" + projectname
+      cmd+="rm -f " + branchname + ".tar.gz && curl --retry 10 --retry-delay 30 -f -L -o " + branchname + ".tar.gz \"" + url + "\" && "
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + " lbs-" + projectname
       shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
-      url=lbsproject + "/repository/archive.tar.gz?ref=master"
+      url=lbsproject + "/repository/archive.tar.gz?ref=" + branchname
       tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
       if os.path.isfile(tokenfilename):
         with open (tokenfilename, "r") as myfile:
@@ -324,13 +333,12 @@ CREATE TABLE log (
       shell.executeshell(cmd)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
-    return pathSrc
 
-  def CalculatePackageOrder(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
+  def CalculatePackageOrder(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
     userconfig = self.config['lbs']['Users'][username]
 
     # get the sources of the packaging instructions
-    self.getPackagingInstructions(userconfig, username, projectname)
+    self.getPackagingInstructions(userconfig, username, projectname, branchname)
 
     buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
@@ -351,14 +359,13 @@ CREATE TABLE log (
     con.commit()
     con.close()
 
-  def BuildProject(self, username, projectname, lxcdistro, lxcrelease, lxcarch):
-    packages=self.CalculatePackageOrder(username, projectname, lxcdistro, lxcrelease, lxcarch)
+  def BuildProject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+    packages=self.CalculatePackageOrder(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch)
 
     if packages is None:
       message="Error: circular dependancy!"
     else:
       message=""
-      branchname="master"
       for packagename in packages:
         # add package to build queue
         message += packagename + ", "
