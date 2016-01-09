@@ -61,9 +61,9 @@ class DockerContainer(RemoteContainer):
         self.release = "24"
     if self.distro == "debian":
       if self.release == 'wheezy':
-        self.release = 7
+        self.release = "7"
       elif self.release == 'jessie':
-        self.release = 8
+        self.release = "8"
     if self.distro == "ubuntu":
       if self.release == 'trusty':
         self.release = "14.04"
