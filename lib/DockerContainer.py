@@ -74,12 +74,16 @@ class DockerContainer(RemoteContainer):
 
   def startmachine(self):
     Dockerfile="Dockerfiles/Dockerfile." + self.distro + self.release
-    DockerfileExt=self.packageSrcPath + "/Dockerfile"
+    DockerfileExt=self.packageSrcPath + "/Dockerfile." + self.distro + self.release
+    if not os.path.exists(DockerfileExt):
+      DockerfileExt=self.packageSrcPath + "/Dockerfile." + self.distro
+    if not os.path.exists(DockerfileExt):
+      DockerfileExt=self.packageSrcPath + "/Dockerfile"
     if os.path.exists(DockerfileExt):
       self.executeOnHost("mkdir -p /tmp/" + self.containername)
       DockerfileOrig=Dockerfile
       Dockerfile="/tmp/" + self.containername + "/Dockerfile.new"
-      DockerfileUploaded="/tmp/" + self.containername + "/Dockerfile"
+      DockerfileUploaded="/tmp/" + self.containername + "/" + os.path.basename(DockerfileExt)
       self.rsyncHostPut(DockerfileExt, DockerfileUploaded)
       self.executeOnHost("cd " + self.SCRIPTS_PATH + " && cat " + DockerfileOrig + " " + DockerfileUploaded + " > " + Dockerfile)
     result = self.executeOnHost("cd " + self.SCRIPTS_PATH + " && ./initDockerContainer.sh " + self.containername + " " + str(self.cid) + ' ' + Dockerfile + ' ' + self.mount)
