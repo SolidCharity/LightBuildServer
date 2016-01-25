@@ -22,6 +22,7 @@
 import sys
 import bottle
 import os
+import logging
 from bottle import route, run, template, static_file, request, response
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -84,8 +85,8 @@ class LightBuildServerWeb:
       try:
         self.LBS.ProcessBuildQueue()
       except:
-        print("Unexpected error:", sys.exc_info()[0])
-        print(sys.exc_info())
+        logging.error("Unexpected error:", sys.exc_info()[0])
+        logging.error(sys.exc_info())
 
     def cancelplannedbuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
       # for displaying the logout link
