@@ -189,12 +189,12 @@ CREATE TABLE log (
       for row in data:
         stmt = "SELECT * FROM log WHERE buildid=? AND datetime(created,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') > '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
         cursor = con.cursor()
-        cursor.execute(stmt, (row['id']))
+        cursor.execute(stmt, (row['id'],))
         if cursor.fetchone() is None:
           # mark the build as hanging, so that we don't try to release the machine several times
           stmt = "UPDATE build SET hanging = 1 WHERE id = ?"
           cursor = con.cursor()
-          cursor.execute(stmt, (row['id']))
+          cursor.execute(stmt, (row['id'],))
           con.commit()
           # check if the machine is still occupied with that build
           #stmt = "SELECT * FROM machine WHERE username = ? and projectname = ? and packagename = ? AND name = ?"
