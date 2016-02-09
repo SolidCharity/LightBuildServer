@@ -295,6 +295,7 @@ CREATE TABLE log (
           return True
     return False
 
+  # this is called from Build.py buildpackage, and from LightBuildServer.py CalculatePackageOrder
   def getPackagingInstructions(self, userconfig, username, projectname, branchname):
     gitprojectname = projectname
     if 'GitProjectName' in userconfig['Projects'][projectname]:
@@ -313,7 +314,26 @@ CREATE TABLE log (
     os.makedirs(pathSrc, exist_ok=True)
     if os.path.isdir(pathSrc+'lbs-'+projectname):
         #we want a clean clone
-        shutil.rmtree(pathSrc+'lbs-'+projectname)
+        #but do not delete the tree if it is being used by another build
+        if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
+          t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
+          # delete the tree only if the last access was more than 2 minutes ago
+          if (time.time() - t) > 120:
+            shutil.rmtree(pathSrc+'lbs-'+projectname)
+        else:
+          # for existing projects, that did not have the lastused file yet
+          shutil.rmtree(pathSrc+'lbs-'+projectname)
+
+    # update the timestamp
+    if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
+      os.utime(pathSrc+'lbs-'+projectname+'-lastused')
+    else:
+      open(pathSrc+'lbs-'+projectname+'-lastused', 'a').close()
+
+    if os.path.isdir(pathSrc+'lbs-'+projectname):
+      # we can reuse the existing source, it was used just recently
+      return
+
     shell = Shell(Logger())
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
       url=lbsproject + "/archive/" + branchname + ".tar.gz"
