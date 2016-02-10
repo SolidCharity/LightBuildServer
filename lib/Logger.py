@@ -51,6 +51,14 @@ class Logger:
     self.error = False
     self.lastLine = ""
 
+  def ConnectDatabase(self):
+    con = sqlite3.connect(
+               self.config['lbs']['SqliteFile'],
+               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,
+               timeout=self.config['lbs']['WaitForDatabase'])
+    con.row_factory = sqlite3.Row
+    return con
+
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
       self.buffer += newOutput
@@ -69,7 +77,7 @@ class Logger:
 
       # only write new lines every other second, to avoid putting locks on the database
       if self.buildid != -1 and self.lastTimeUpdate + 2 < int(time.time()):
-        con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
+        con = self.ConnectDatabase()
         stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
         # write the lines to database, and then dump to file when build is finished
         for line in self.linebuffer:
@@ -97,8 +105,7 @@ class Logger:
     if self.buildid == -1:
       return "no log available"
 
-    con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
-    con.row_factory = sqlite3.Row
+    con = self.ConnectDatabase()
     cursor = con.cursor()
     stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC"
     if limit is not None:
@@ -137,7 +144,7 @@ class Logger:
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
     if self.buildid != -1:
       # store buffered lines to the database
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'], detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,timeout=10)
+      con = self.ConnectDatabase()
       stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
       for line in self.linebuffer:
         con.execute(stmt, (self.buildid, line))
@@ -173,7 +180,7 @@ class Logger:
   def clean(self):
     # clear log from database
     if self.buildid != -1:
-      con = sqlite3.connect(self.config['lbs']['SqliteFile'],timeout=10)
+      con = self.ConnectDatabase()
       stmt = "DELETE FROM log WHERE buildid = ?"
       con.execute(stmt, (self.buildid, ))
       con.commit()
