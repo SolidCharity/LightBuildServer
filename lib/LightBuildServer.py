@@ -174,6 +174,7 @@ CREATE TABLE log (
       cursor = con.cursor()
       cursor.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
       if cursor.rowcount == 0:
+        con.commit()
         return None
       con.commit()
       print("GetAvailableBuildMachine found a free machine")
@@ -209,7 +210,9 @@ CREATE TABLE log (
           #  # TODO mark build as stopped. do not release the machine, it might already build something else?
           #  con.close()
           #  return
-          print("stopping machine %s because of hanging build" % (row["buildmachine"]))
+          print("stopping machine %s because of hanging build %d" % (row["buildmachine"], row["id"]))
+          print("current time: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          print("sql statement: %s", (stmt))
           con.close()
           self.ReleaseMachine(row["buildmachine"])
           # when the build job realizes that the buildmachine is gone:
@@ -241,6 +244,7 @@ CREATE TABLE log (
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
       con.execute(stmt, (buildmachine,))
       con.commit()
+      con.close()
 
       conf=self.config['lbs']['Machines'][buildmachine]
       if 'type' in conf and conf['type'] == 'lxc':
@@ -248,6 +252,7 @@ CREATE TABLE log (
       else:
         DockerContainer(buildmachine, conf, Logger(), '').stop()
 
+      con = self.ConnectDatabase()
       stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
       con.execute(stmt, (buildmachine,))
       con.commit()
