@@ -36,78 +36,15 @@ from Shell import Shell
 import logging
 from threading import Thread, Lock
 from collections import deque
-import sqlite3
+from Database import Database
 
 class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
     self.config = Config.LoadConfig()
-    dbversion=4
- 
-    if not os.path.isfile(self.config['lbs']['SqliteFile']):
-      con = self.ConnectDatabase()
-      createTableStmt = """
-CREATE TABLE build (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  status char(20) NOT NULL,
-  username char(100) NOT NULL,
-  projectname char(100) NOT NULL,
-  packagename char(100) NOT NULL,
-  branchname char(100) NOT NULL,
-  distro char(20) NOT NULL,
-  release char(20) NOT NULL,
-  arch char(10) NOT NULL,
-  avoidlxc INTEGER NOT NULL DEFAULT 0,
-  avoiddocker INTEGER NOT NULL DEFAULT 0,
-  dependsOnOtherProjects char(400) NOT NULL,
-  buildmachine char(100),
-  started TIMESTAMP,
-  finished TIMESTAMP,
-  hanging INTEGER default 0,
-  buildsuccess char(20),
-  buildnumber INTEGER)
-"""
-      con.execute(createTableStmt)
-      createTableStmt = """
-CREATE TABLE machine (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name char(100) NOT NULL,
-  status char(40) NOT NULL,
-  type char(20) NOT NULL DEFAULT 'docker',
-  buildjob char(400),
-  queue char(400),
-  username char(100),
-  projectname char(100),
-  packagename char(100))
-"""
-      con.execute(createTableStmt)
-      createTableStmt = """
-CREATE TABLE log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  buildid INTEGER,
-  line TEXT,
-  created TIMESTAMP DEFAULT (datetime('now','localtime')))
-"""
-      con.execute(createTableStmt)
-      con.execute("CREATE TABLE dbversion ( version INTEGER )")
-      con.execute("INSERT INTO dbversion(version) VALUES(%d)" % (dbversion))
-      con.commit()
-    else:
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
-      cursor.execute("SELECT version FROM dbversion")
-      currentdbversion = cursor.fetchone()[0]
-      if currentdbversion != dbversion:
-        if currentdbversion < 2:
-          con.execute("ALTER TABLE build ADD COLUMN hanging INTEGER DEFAULT 0")
-        if currentdbversion < 3:
-          con.execute("ALTER TABLE machine ADD COLUMN type CHAR(20) NOT NULL DEFAULT 'docker'")
-        if currentdbversion < 4:
-          con.execute("ALTER TABLE build ADD COLUMN avoidlxc INTEGER NOT NULL DEFAULT 0")
-          con.execute("ALTER TABLE build ADD COLUMN avoiddocker INTEGER NOT NULL DEFAULT 0")
-        con.execute("UPDATE dbversion SET version = %d" % (dbversion))
-        con.commit()
+    con = Database(self.config)
+    con.createOrUpdate()
 
     con.execute("DELETE FROM machine")
     # keep WAITING build jobs
@@ -119,26 +56,17 @@ CREATE TABLE log (
         continue
       type=('lxc' if ('type' in conf and conf['type'] == 'lxc') else 'docker')
       # init the machine
-      con.execute("INSERT INTO machine('name', 'status', 'type') VALUES(?, ?, ?)", (buildmachine, 'AVAILABLE', type))
+      con.execute("INSERT INTO machine(name, status, type) VALUES(?,?,?)", (buildmachine, 'AVAILABLE', type))
     con.commit()
     con.close()
-
-  def ConnectDatabase(self):
-    con = sqlite3.connect(
-               self.config['lbs']['SqliteFile'],
-               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES, 
-               timeout=self.config['lbs']['WaitForDatabase'])
-    con.row_factory = sqlite3.Row
-    return con
 
   def GetLbsName(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     return username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
 
   def GetMachines(self):
-    con = self.ConnectDatabase()
-    cursor = con.cursor()
+    con = Database(self.config)
     stmt = "SELECT name FROM machine"
-    cursor.execute(stmt)
+    cursor = con.execute(stmt)
     data = cursor.fetchall()
     cursor.close()
     con.close()
@@ -152,13 +80,12 @@ CREATE TABLE log (
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
-    cursor = con.cursor()
     stmt = "SELECT * FROM machine WHERE status = 'AVAILABLE'"
     if AvoidDocker:
       stmt += " AND type <> 'docker'"
     if AvoidLXC:
       stmt += " AND type <> 'lxc'"
-    cursor.execute(stmt)
+    cursor = con.execute(stmt);
     data = cursor.fetchall()
     cursor.close()
     for row in data:
@@ -171,8 +98,7 @@ CREATE TABLE log (
         machineToUse = buildmachine
     if machineToUse is not None:
       stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=? AND status='AVAILABLE'"
-      cursor = con.cursor()
-      cursor.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
+      cursor = con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
       if cursor.rowcount == 0:
         con.commit()
         return None
@@ -183,29 +109,25 @@ CREATE TABLE log (
 
   def CheckForHangingBuild(self):
       # check for hanging build (BuildingTimeout in config.yml)
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
+      con = Database(self.config)
       stmt = "SELECT * FROM build "
       stmt += "WHERE status = 'BUILDING' and hanging = 0 "
       stmt += "AND datetime(started,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') < '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
       stmt += " ORDER BY id DESC"
-      cursor.execute(stmt)
+      cursor = con.execute(stmt)
       data = cursor.fetchall()
       cursor.close()
       for row in data:
         stmt = "SELECT * FROM log WHERE buildid=? AND datetime(created,'+" + str(self.config['lbs']['BuildingTimeout']) + " seconds') > '" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "'"
-        cursor = con.cursor()
-        cursor.execute(stmt, (row['id'],))
+        cursor = con.execute(stmt, (row['id'],))
         if cursor.fetchone() is None:
           # mark the build as hanging, so that we don't try to release the machine several times
           stmt = "UPDATE build SET hanging = 1 WHERE id = ?"
-          cursor = con.cursor()
-          cursor.execute(stmt, (row['id'],))
+          cursor = con.execute(stmt, (row['id'],))
           con.commit()
           # check if the machine is still occupied with that build
           #stmt = "SELECT * FROM machine WHERE username = ? and projectname = ? and packagename = ? AND name = ?"
-          #cursor = con.cursor()
-          #cursor.execute(stmt, (row['username'], row['projectname'], row['packagename'], row['buildmachine']))
+          #cursor = con.execute(stmt, (row['username'], row['projectname'], row['packagename'], row['buildmachine']))
           #if cursor.fetchone() is None:
           #  # TODO mark build as stopped. do not release the machine, it might already build something else?
           #  con.close()
@@ -222,12 +144,11 @@ CREATE TABLE log (
       con.close()
 
   def CancelPlannedBuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
-      cursor.execute("SELECT * FROM build WHERE status='WAITING' AND username=? AND projectname=? AND packagename=? AND branchname=? AND distro=? AND release=? AND arch=? ORDER BY id ASC", (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
+      con = Database(self.config)
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' AND username=? AND projectname=? AND packagename=? AND branchname=? AND distro=? AND release=? AND arch=? ORDER BY id ASC", (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch))
       data = cursor.fetchall()
       for row in data:
-        con.execute("UPDATE build SET status = 'CANCELLED' WHERE id=?", (row['id'],))
+        cursor = con.execute("UPDATE build SET status = 'CANCELLED' WHERE id=?", (row['id'],))
         # only remove one build job from the queue
         break;
       con.commit()
@@ -240,9 +161,9 @@ CREATE TABLE log (
 
     # only release the machine when it is building. if it is already being stopped, do nothing
     if status["status"] == 'BUILDING' or status["status"] == 'STOPPING':
-      con = self.ConnectDatabase()
+      con = Database(self.config)
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
-      con.execute(stmt, (buildmachine,))
+      cursor = con.execute(stmt, (buildmachine,))
       con.commit()
       con.close()
 
@@ -252,17 +173,16 @@ CREATE TABLE log (
       else:
         DockerContainer(buildmachine, conf, Logger(), '').stop()
 
-      con = self.ConnectDatabase()
+      con = Database(self.config)
       stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
-      con.execute(stmt, (buildmachine,))
+      cursor = con.execute(stmt, (buildmachine,))
       con.commit()
       con.close()
 
   def GetBuildMachineState(self, buildmachine):
-    con = self.ConnectDatabase()
-    cursor = con.cursor()
+    con = Database(self.config)
     stmt = "SELECT status, buildjob, queue, type FROM machine WHERE name = ?"
-    cursor.execute(stmt, (buildmachine,))
+    cursor = con.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
     con.close()
@@ -289,10 +209,9 @@ CREATE TABLE log (
     return False
 
   def CanFindMachineBuildingProject(self, username, projectname):
-    con = self.ConnectDatabase()
-    cursor = con.cursor()
+    con = Database(self.config)
     stmt = "SELECT * FROM machine WHERE status = ? AND username = ? AND projectname = ?"
-    cursor.execute(stmt, ('BUILDING', username, projectname))
+    cursor = con.execute(stmt, ('BUILDING', username, projectname))
     data = cursor.fetchone()
     cursor.close()
     con.close()
@@ -380,9 +299,9 @@ CREATE TABLE log (
     avoiddocker = False if ("UseDocker" not in proj) else (proj["UseDocker"] == False)
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
 
-    con = self.ConnectDatabase()
+    con = Database(self.config)
     stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
-    con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, dependsOnString))
+    cursor = con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, dependsOnString))
     con.commit()
     con.close()
 
@@ -442,7 +361,7 @@ CREATE TABLE log (
     buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC)
     if not buildmachine == None:
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
-      con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
+      cursor = con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
       con.commit()
       thread = Thread(target = lbs.buildpackage, args = (username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, item['id']))
       thread.start()
@@ -453,9 +372,8 @@ CREATE TABLE log (
   def ProcessBuildQueue(self):
       # loop from left to right
       # check if a project might be ready to build
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
-      cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+      con = Database(self.config)
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
       data = cursor.fetchall()
       for row in data:
         self.attemptToFindBuildMachine(con, row)
@@ -469,10 +387,9 @@ CREATE TABLE log (
         return ("No build is planned for this package at the moment...", -1)
       elif data['status'] == 'BUILDING':
         rowsToShow=40
-        con = self.ConnectDatabase()
-        cursor = con.cursor()
+        con = Database(self.config)
         stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC LIMIT ?"
-        cursor.execute(stmt, (data['id'], rowsToShow))
+        cursor = con.execute(stmt, (data['id'], rowsToShow))
         data = cursor.fetchall()
         con.close()
         output = ""
@@ -491,22 +408,20 @@ CREATE TABLE log (
       return (output, timeout)
 
   def GetJob(self,username, projectname, packagename, branchname, distro, release, arch, where):
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
+      con = Database(self.config)
       stmt = "SELECT * FROM build "
       stmt += "WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ? AND distro = ? AND release = ? AND arch = ? "
       stmt += where
       stmt += " ORDER BY id DESC"
-      cursor.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
+      cursor = con.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
       data = cursor.fetchone()
       cursor.close()
       con.close()
       return data
 
   def GetBuildQueue(self):
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
-      cursor.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+      con = Database(self.config)
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
       data = cursor.fetchall()
       con.close()
       result = deque()
@@ -515,9 +430,8 @@ CREATE TABLE log (
       return result
 
   def GetFinishedQueue(self):
-      con = self.ConnectDatabase()
-      cursor = con.cursor()
-      cursor.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
+      con = Database(self.config)
+      cursor = con.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
       data = cursor.fetchall()
       con.close()
       result = deque()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Logger: collects all the output"""
 
-# Copyright (c) 2014 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,8 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from collections import OrderedDict
-import sqlite3
 import Config
+from Database import Database
 
 class Logger:
   'collect all the output'
@@ -51,14 +51,6 @@ class Logger:
     self.error = False
     self.lastLine = ""
 
-  def ConnectDatabase(self):
-    con = sqlite3.connect(
-               self.config['lbs']['SqliteFile'],
-               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,
-               timeout=self.config['lbs']['WaitForDatabase'])
-    con.row_factory = sqlite3.Row
-    return con
-
   def print(self, newOutput):
     if len(newOutput) == 1 and newOutput != "\n":
       self.buffer += newOutput
@@ -77,7 +69,7 @@ class Logger:
 
       # only write new lines every other second, to avoid putting locks on the database
       if self.buildid != -1 and self.lastTimeUpdate + 2 < int(time.time()):
-        con = self.ConnectDatabase()
+        con = Database(self.config)
         stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
         # write the lines to database, and then dump to file when build is finished
         for line in self.linebuffer:
@@ -105,14 +97,13 @@ class Logger:
     if self.buildid == -1:
       return "no log available"
 
-    con = self.ConnectDatabase()
-    cursor = con.cursor()
+    con = Database(self.config)
     stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC"
     if limit is not None:
       stmt = stmt + " LIMIT ?"
-      cursor.execute(stmt, (self.buildid, limit))
+      cursor = con.execute(stmt, (self.buildid, limit))
     else:
-      cursor.execute(stmt, (self.buildid,))
+      cursor = con.execute(stmt, (self.buildid,))
     data = cursor.fetchall()
     con.close()
     output = ""
@@ -144,7 +135,7 @@ class Logger:
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
     if self.buildid != -1:
       # store buffered lines to the database
-      con = self.ConnectDatabase()
+      con = Database(self.config)
       stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
       for line in self.linebuffer:
         con.execute(stmt, (self.buildid, line))
@@ -180,7 +171,7 @@ class Logger:
   def clean(self):
     # clear log from database
     if self.buildid != -1:
-      con = self.ConnectDatabase()
+      con = Database(self.config)
       stmt = "DELETE FROM log WHERE buildid = ?"
       con.execute(stmt, (self.buildid, ))
       con.commit()

@@ -18,6 +18,9 @@ lbs:
    DownloadUrl: http://lbs.example.org
    SSHContainerPath: /etc/lightbuildserver/container
    SqliteFile: /var/lib/lightbuildserver/db/lightbuildserver.db
+   #MysqlUser: lbs
+   #MysqlPassword: "secret"
+   #MysqlDatabase: lbs
    GitSrcPath: /var/lib/lightbuildserver/src
    LogsPath: /var/lib/lightbuildserver/logs
    ReposPath: /var/lib/lightbuildserver/repos

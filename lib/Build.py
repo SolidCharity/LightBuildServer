@@ -31,8 +31,8 @@ import os
 import shutil
 from Shell import Shell
 import logging
-import sqlite3
 from Logger import Logger
+from Database import Database
 
 class Build:
   'run one specific build of one package'
@@ -135,7 +135,7 @@ class Build:
       self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
 
     # now mark the build finished
-    con = self.LBS.ConnectDatabase()
+    con = Database(self.config)
     stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
     lastBuild = Logger().getLastBuild(username, projectname, packagename, branchname, lxcdistro+"/"+lxcrelease+"/"+lxcarch)
     con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
