@@ -68,7 +68,8 @@ class Logger:
       self.linebuffer.append(timeprefix + newOutput)
 
       # only write new lines every other second, to avoid putting locks on the database
-      if self.buildid != -1 and self.lastTimeUpdate + 2 < int(time.time()):
+      # also write often enough, do not collect too many lines
+      if self.buildid != -1 and (self.lastTimeUpdate + 2 < int(time.time()) or len(self.linebuffer) > 20):
         con = Database(self.config)
         stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
         # write the lines to database, and then dump to file when build is finished
@@ -84,6 +85,8 @@ class Logger:
       try:
         # TODO define in config.yml if we really want the output to the screen (ie uwsgi.log) or just to the log system
         sys.stdout.write(timeprefix + newOutput)
+      except BlockingIOError:
+        print("Logging print: problem with writing to stdout")
       finally:
         sys.stdout.flush() 
 
