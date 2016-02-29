@@ -325,14 +325,8 @@ class LightBuildServer:
     job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")
     if job is None:
       self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-
-  def BuildProjectWithBranchAndPwd(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
-    job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")
-    if job is None:
-      self.AddToBuildQueue(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-      return "Build for {{lbsName}} has been triggered."
-    else:
-      return "{{lbsName}} is already in the build queue."
+      return True
+    return False
 
   def attemptToFindBuildMachine(self, con, item):
     username = item["username"]

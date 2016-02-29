@@ -136,9 +136,13 @@ class LightBuildServerWeb:
       if not (auth_username == username and self.check_login(auth_username, password)):
        return template("<p>wrong username {{username}} or password.</p><br/><a href='/'>Back to main page</a>", username=username)
 
-      message = self.LBS.BuildProjectWithBranchAndPwd(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password)
+      if self.LBS.BuildProjectWithBranch(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+        message = "Build for {{lbsName}} has been triggered."
+      else:
+        message = "{{lbsName}} is already in the build queue."
  
-      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName="")
+      lbsName=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
+      return template("<p>" + message + "</p><br/><a href='/'>Back to main page</a>", lbsName=lbsName)
 
     def triggerbuildprojectwithpwd(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, auth_username, password):
       # note: we are not using the template message, because this will be processed by scripts usually
