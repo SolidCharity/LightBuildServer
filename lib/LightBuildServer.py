@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -238,23 +238,21 @@ class LightBuildServer:
 
   def getPackagingInstructionsInternal(self, userconfig, username, projectname, branchname, gitprojectname, lbsproject, pathSrc):
     os.makedirs(pathSrc, exist_ok=True)
-    if os.path.isdir(pathSrc+'lbs-'+projectname):
-        #we want a clean clone
-        #but do not delete the tree if it is being used by another build
-        if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
-          t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
-          # delete the tree only if the last access was more than 2 minutes ago
-          if (time.time() - t) > 120:
-            shutil.rmtree(pathSrc+'lbs-'+projectname)
-        else:
-          # for existing projects, that did not have the lastused file yet
-          shutil.rmtree(pathSrc+'lbs-'+projectname)
 
-    # update the timestamp
+    #we want a clean clone
+    #but do not delete the tree if it is being used by another build
     if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
+      t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
+      # update the timestamp
       os.utime(pathSrc+'lbs-'+projectname+'-lastused')
     else:
       open(pathSrc+'lbs-'+projectname+'-lastused', 'a').close()
+
+    if os.path.isdir(pathSrc+'lbs-'+projectname):
+      # delete the tree only if the last access was more than 3 minutes ago
+      # or for existing projects, that did not have the lastused file yet
+      if t is null or ((time.time() - t) > 3*60):
+        shutil.rmtree(pathSrc+'lbs-'+projectname)
 
     if os.path.isdir(pathSrc+'lbs-'+projectname):
       # we can reuse the existing source, it was used just recently
