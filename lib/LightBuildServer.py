@@ -241,6 +241,7 @@ class LightBuildServer:
 
     #we want a clean clone
     #but do not delete the tree if it is being used by another build
+    t = None
     if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
       t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
       # update the timestamp
@@ -251,7 +252,7 @@ class LightBuildServer:
     if os.path.isdir(pathSrc+'lbs-'+projectname):
       # delete the tree only if the last access was more than 3 minutes ago
       # or for existing projects, that did not have the lastused file yet
-      if t is null or ((time.time() - t) > 3*60):
+      if t is None or ((time.time() - t) > 3*60):
         shutil.rmtree(pathSrc+'lbs-'+projectname)
 
     if os.path.isdir(pathSrc+'lbs-'+projectname):
