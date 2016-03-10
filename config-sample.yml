@@ -62,6 +62,7 @@ lbs:
                Distros: ["centos/7/amd64"]
          lbs:
            lightbuildserver:
+             UseDocker: False
              Distros: ["fedora/21/amd64", "fedora/22/amd64", "centos/7/amd64"]
            lxc-scripts:
              Distros: ["ubuntu/precise/amd64", "ubuntu/trusty/amd64", "fedora/21/amd64", "fedora/22/amd64", "centos/7/amd64"]

@@ -292,11 +292,19 @@ class LightBuildServer:
     # find if this project depends on other projects
     DependsOnOtherProjects={}
     proj=self.config['lbs']['Users'][username]['Projects'][projectname]
+    if packagename in self.config['lbs']['Users'][username]['Projects'][projectname]:
+      pkg=self.config['lbs']['Users'][username]['Projects'][projectname][packagename]
+    else:
+      pkg=self.config['lbs']['Users'][username]['Projects'][projectname]['Packages'][packagename]
     if 'DependsOn' in proj:
       DependsOnOtherProjects=proj['DependsOn']
     dependsOnString=','.join(DependsOnOtherProjects)
     avoiddocker = False if ("UseDocker" not in proj) else (proj["UseDocker"] == False)
+    if not avoiddocker:
+      avoiddocker = False if ("UseDocker" not in pkg) else (pkg["UseDocker"] == False)
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
+    if not avoidlxc:
+      avoidlxc = False if ("UseLXC" not in pkg) else (pkg["UseLXC"] == False)
 
     con = Database(self.config)
     stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
