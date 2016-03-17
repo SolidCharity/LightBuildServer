@@ -301,10 +301,10 @@ class LightBuildServer:
     dependsOnString=','.join(DependsOnOtherProjects)
     avoiddocker = False if ("UseDocker" not in proj) else (proj["UseDocker"] == False)
     if not avoiddocker:
-      avoiddocker = False if ("UseDocker" not in pkg) else (pkg["UseDocker"] == False)
+      avoiddocker = False if (pkg is None or "UseDocker" not in pkg) else (pkg["UseDocker"] == False)
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
     if not avoidlxc:
-      avoidlxc = False if ("UseLXC" not in pkg) else (pkg["UseLXC"] == False)
+      avoidlxc = False if (pkg is None or "UseLXC" not in pkg) else (pkg["UseLXC"] == False)
 
     con = Database(self.config)
     stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
