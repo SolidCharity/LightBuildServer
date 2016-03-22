@@ -38,7 +38,7 @@ class RemoteContainer:
     if "cid" in configBuildMachine:
       self.cid=configBuildMachine['cid']
 
-    self.containername = str(self.cid).zfill(2) + "-" + containername
+    self.containername = str(self.cid).zfill(3) + "-" + containername
     self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
