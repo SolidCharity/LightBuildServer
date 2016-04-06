@@ -183,8 +183,11 @@ class BuildHelperDebian(BuildHelper):
       if 'Secret' in config['lbs']['Users'][self.username]:
         myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
       repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
-      if os.path.isdir(repopath + "/" + arch + "/binary"):
-        for file in os.listdir(repopath + "/" + arch + "/binary"):
+      binarypath = repopath + "/" + arch + "/binary"
+      if not os.path.isdir(binarypath):
+        binarypath = repopath + "/pool/main/" + self.packagename[0] + "/" + self.packagename
+      if os.path.isdir(binarypath):
+        for file in os.listdir(binarypath):
           # TODO use GetDscFilename, without dsc, instead of packagename
           if file.startswith(self.packagename + "_" + buildversion + "-") and file.endswith("_" + arch + ".deb"):
             try:	
@@ -209,7 +212,7 @@ class BuildHelperDebian(BuildHelper):
           return False
         if not self.run("cd lbs-" + self.projectname + "; dpkg-sig --sign builder *.deb"):
           return False
-        if not self.run("cd repo; for f in ~/lbs-" + self.projectname + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/lbs-" + self.projectname + "/\`basename \$f\`; done"):
+        if not self.run("cd repo; for f in ~/lbs-" + self.projectname + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/lbs-" + self.projectname + "/\`basename \$f\`; done"):
           return False
         self.run("rm -Rf repo/conf")
       else:
@@ -230,17 +233,17 @@ class BuildHelperDebian(BuildHelper):
     keyinstructions = ""
 
     # check if there is such a package at all
-    checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
+    checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
     if glob.glob(checkfile):
-      path = "/ /"
-    else:
       # repo has been created with reprepro
-      checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
+      path = " " + buildtarget[1] + " main"
+      if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+        keyinstructions += "wget -O Release.key '" + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
+        keyinstructions += "apt-key add Release.key; rm -rf Release.key\n"
+    else:
+      checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
-        path = " " + buildtarget[1] + " main"
-        if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-          keyinstructions += "wget -O Release.key '" + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
-          keyinstructions += "apt-key add Release.key; rm -rf Release.key\n"
+        path = "/ /"
       else:
         return None
    

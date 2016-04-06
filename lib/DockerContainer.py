@@ -39,6 +39,7 @@ class DockerContainer(RemoteContainer):
     # create docker container with specified OS
     self.distro = distro
     self.release = release
+    self.release_for_docker = release
     self.arch = arch
     self.staticIP = staticIP
     self.mount = ""
@@ -54,27 +55,27 @@ class DockerContainer(RemoteContainer):
       return False
 
     if self.distro == "centos":
-      self.release=release
+      self.release_for_docker=release
     if self.distro == "fedora":
       if self.release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        self.release = "24"
+        self.release_for_docker = "24"
     if self.distro == "debian":
       if self.release == 'wheezy':
-        self.release = "7"
+        self.release_for_docker = "7"
       elif self.release == 'jessie':
-        self.release = "8"
+        self.release_for_docker = "8"
     if self.distro == "ubuntu":
       if self.release == 'trusty':
-        self.release = "14.04"
+        self.release_for_docker = "14.04"
       elif self.release == 'precise':
-        self.release = "12.04"
+        self.release_for_docker = "12.04"
 
     return True
 
   def startmachine(self):
-    Dockerfile="Dockerfiles/Dockerfile." + self.distro + self.release
-    DockerfileExt=self.packageSrcPath + "/Dockerfile." + self.distro + self.release
+    Dockerfile="Dockerfiles/Dockerfile." + self.distro + self.release_for_docker
+    DockerfileExt=self.packageSrcPath + "/Dockerfile." + self.distro + self.release_for_docker
     if not os.path.exists(DockerfileExt):
       DockerfileExt=self.packageSrcPath + "/Dockerfile." + self.distro
     if not os.path.exists(DockerfileExt):
