@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Interface class for Container Management"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ from Logger import Logger
 from Shell import Shell
 
 class RemoteContainer:
-  def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
+  def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
     self.hostname = containername
 
     self.port="22"
@@ -45,8 +45,12 @@ class RemoteContainer:
     if "local" in configBuildMachine and configBuildMachine['local'] == True:
       # the host server for the build container is actually hosting the LBS application as well
       # or the container is running on localhost
-      self.containerIP=self.calculateLocalContainerIP(self.cid)
-      self.containerPort="22"
+      if containertype == "lxc":
+        self.containerIP=self.calculateLocalContainerIP(self.cid)
+        self.containerPort="22"
+      if containertype == "docker":
+        self.containerIP=self.calculateLocalContainerIP(1)
+        self.containerPort=str(2000+int(self.cid))
 
     self.config = Config.LoadConfig()
     self.SSHContainerPath = self.config['lbs']['SSHContainerPath']

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for Docker Container Management"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,7 @@ from Shell import Shell
 
 class DockerContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
-    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath)
+    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath, "docker")
     self.SCRIPTS_PATH = "/usr/share/docker-scripts/"
 
   def executeOnHost(self, command):
@@ -109,7 +109,7 @@ class DockerContainer(RemoteContainer):
                                              self.containername))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.containerIP + " \"export LANG=C; " + command + " 2>&1 && echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:
@@ -130,13 +130,13 @@ class DockerContainer(RemoteContainer):
 
   def rsyncContainerPut(self, src, dest):
     dest = dest[:dest.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.containerPort + '" ' + src + ' root@' + self.hostname + ':' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.containerPort + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result
 
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.containerPort + '" root@' + self.hostname + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.containerPort + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
@@ -144,13 +144,13 @@ class DockerContainer(RemoteContainer):
       dest = src
     dest = dest[:dest.rindex("/")]
     self.executeOnHost("mkdir -p `dirname " + dest + "`")
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" ' + src + ' root@' + self.hostname + ':' + dest)
     return result 
 
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
-    result = self.shell.executeshell('rsync -avz --delete -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz --delete -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
   def installmount(self, localpath, hostpath = None):

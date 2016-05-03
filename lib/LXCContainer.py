@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for LXC Container Management"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,7 @@ from Shell import Shell
 
 class LXCContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
-    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath)
+    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath, "lxc")
     self.SCRIPTS_PATH = "/usr/share/lxc-scripts/"
 
   def executeOnHost(self, command):
