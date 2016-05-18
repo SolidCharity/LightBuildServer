@@ -134,7 +134,7 @@ class LightBuildServer:
           #  return
           print("stopping machine %s because of hanging build %d" % (row["buildmachine"], row["id"]))
           print("current time: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-          print("sql statement: %s", (stmt))
+          print("sql statement: %s" % (stmt))
           con.close()
           self.ReleaseMachine(row["buildmachine"])
           # when the build job realizes that the buildmachine is gone:
@@ -160,7 +160,7 @@ class LightBuildServer:
     status = self.GetBuildMachineState(buildmachine)
 
     # only release the machine when it is building. if it is already being stopped, do nothing
-    if status["status"] == 'BUILDING' or status["status"] == 'STOPPING':
+    if status["status"] == 'BUILDING':
       con = Database(self.config)
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
       cursor = con.execute(stmt, (buildmachine,))
