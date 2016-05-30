@@ -45,7 +45,7 @@ class LightBuildServerWeb:
 
     def login(self):
         username = request.get_cookie("account", secret='some-secret-key')
-        return template('login', auth_username=username, title="Login")
+        return template('login', auth_username=username, title="Login", logout_auth_username=self.getLogoutAuthUsername())
 
     def do_login(self):
         username = request.forms.get('username')
