@@ -181,7 +181,10 @@ class LightBuildServerWeb:
 
       buildmachines={}
       for buildmachine in self.LBS.GetMachines():
-        buildmachines[buildmachine] = self.LBS.GetBuildMachineState(buildmachine)
+        m = self.LBS.GetBuildMachineState(buildmachine)
+        # only show static machines if they are busy building
+        if m["static"] == 'f' or m["status"] != "AVAILABLE":
+          buildmachines[buildmachine] = m
 
       return template('machines', buildmachines=buildmachines, jobs=self.LBS.GetBuildQueue(), finishedjobs=self.LBS.GetFinishedQueue(), auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 

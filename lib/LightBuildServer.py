@@ -55,7 +55,7 @@ class LightBuildServer:
       if 'enabled' in conf and conf['enabled'] == False:
         continue
       type=('lxc' if ('type' in conf and conf['type'] == 'lxc') else 'docker')
-      static=('t' if ('static' in conf and conf['static'] == 'True') else 'f')
+      static=('t' if ('static' in conf and conf['static'] == True) else 'f')
       # init the machine
       con.execute("INSERT INTO machine(name, status, type, static) VALUES(?,?,?,?)", (buildmachine, 'AVAILABLE', type, static))
     con.commit()
@@ -187,7 +187,7 @@ class LightBuildServer:
 
   def GetBuildMachineState(self, buildmachine):
     con = Database(self.config)
-    stmt = "SELECT status, buildjob, queue, type FROM machine WHERE name = ?"
+    stmt = "SELECT status, buildjob, queue, type, static FROM machine WHERE name = ?"
     cursor = con.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
