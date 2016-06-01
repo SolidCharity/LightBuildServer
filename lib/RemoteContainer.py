@@ -30,6 +30,7 @@ from Shell import Shell
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
     self.hostname = containername
+    self.staticMachine = (True if ('static' in configBuildMachine and configBuildMachine['static'] == True) else False)
 
     self.port="22"
     if "port" in configBuildMachine:

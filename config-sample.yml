@@ -41,8 +41,9 @@ lbs:
        GitURL: https://github.com/tpokorra/
        EmailToAddress: firstname.lastname@example.org
        Projects:
-         # mono will resolve automatically to https://github.com/tpokorra/lbs-mono
+         # mono will resolve automatically to https://github.com/tpokorra/lbs-mono. or use attribute GitProjectName
          mono:
+           GitProjectName: mono
            UseLXC: False
            PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
            Packages:
@@ -53,6 +54,11 @@ lbs:
              monodevelop-nightly:
                Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
                Distros: ["fedora/20/amd64"]
+         kolab:
+           Packages:
+             sync:
+               # will build this package always on this static machine.
+               Machine: kolabobstogithub.pokorra.de
          openpetra:
            UseDocker: False
            Packages:
@@ -92,3 +98,8 @@ lbs:
        build01.localhost:
            type: lxc
            cid: 5
+       kolabobstogithub.pokorra.de:
+           # static machines are not created, just started and stopped. are only used when specified in package
+           static: True
+           type: lxc
+           cid: 60

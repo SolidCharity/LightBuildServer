@@ -41,19 +41,23 @@ class LXCContainer(RemoteContainer):
     self.release = release
     self.arch = arch
     self.staticIP = staticIP
-    if self.executeOnHost("if [ -d /var/lib/lxc/" + self.containername + " ]; then lxc-destroy --name " + self.containername + "; fi") == False:
-      return False
-    result = False
+    if not self.staticMachine:
+      if self.executeOnHost("if [ -d /var/lib/lxc/" + self.containername + " ]; then lxc-destroy --name " + self.containername + "; fi") == False:
+        return False
     # make sure we can always start the CentOS machines. after an LXC package upgrade, the changes to the templates are lost
     self.executeOnHost(self.SCRIPTS_PATH + "initLXC.sh")
-    if distro == "centos":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
-    if distro == "fedora":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
-    if distro == "debian":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
-    if distro == "ubuntu":
-      result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+    result = False
+    if self.staticMachine:
+      result = True
+    else:
+      if distro == "centos":
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      if distro == "fedora":
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      if distro == "debian":
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+      if distro == "ubuntu":
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if result == True:
       result = self.executeOnHost(self.SCRIPTS_PATH + "tunnelport.sh " + str(self.cid) + " 22")
     sshpath="/var/lib/lxc/" + self.containername + "/rootfs/root/.ssh/"

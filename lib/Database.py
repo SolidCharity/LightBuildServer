@@ -51,7 +51,7 @@ class Database:
             self.newdatabase = True
 
   def createOrUpdate(self):
-    dbversion=4
+    dbversion=5
  
     if self.newdatabase:
       createTableStmt = """
@@ -82,6 +82,7 @@ CREATE TABLE machine (
   name char(100) NOT NULL,
   status char(40) NOT NULL,
   type char(20) NOT NULL DEFAULT 'docker',
+  static char(1) NOT NULL DEFAULT 'f',
   buildjob TEXT,
   queue TEXT,
   username char(100),
@@ -111,6 +112,8 @@ CREATE TABLE log (
       if currentdbversion < 4:
         self.execute("ALTER TABLE build ADD COLUMN avoidlxc INTEGER NOT NULL DEFAULT 0")
         self.execute("ALTER TABLE build ADD COLUMN avoiddocker INTEGER NOT NULL DEFAULT 0")
+      if currentdbversion < 5:
+        self.execute("ALTER TABLE machine ADD COLUMN static char(1) NOT NULL DEFAULT 'f'")
       self.execute("UPDATE dbversion SET version = %d" % (dbversion))
       self.commit()
 

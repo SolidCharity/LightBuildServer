@@ -55,8 +55,9 @@ class LightBuildServer:
       if 'enabled' in conf and conf['enabled'] == False:
         continue
       type=('lxc' if ('type' in conf and conf['type'] == 'lxc') else 'docker')
+      static=('t' if ('static' in conf and conf['static'] == 'True') else 'f')
       # init the machine
-      con.execute("INSERT INTO machine(name, status, type) VALUES(?,?,?)", (buildmachine, 'AVAILABLE', type))
+      con.execute("INSERT INTO machine(name, status, type, static) VALUES(?,?,?,?)", (buildmachine, 'AVAILABLE', type, static))
     con.commit()
     con.close()
 
@@ -75,17 +76,22 @@ class LightBuildServer:
       result.append(row['name'])
     return result
 
-  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, AvoidDocker, AvoidLXC):
+  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, AvoidDocker, AvoidLXC, SpecificMachine):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
     machinePriorityToUse=101
-    stmt = "SELECT * FROM machine WHERE status = 'AVAILABLE'"
+    stmt = "SELECT * FROM machine WHERE status = 'AVAILABLE' "
     if AvoidDocker:
       stmt += " AND type <> 'docker'"
     if AvoidLXC:
       stmt += " AND type <> 'lxc'"
-    cursor = con.execute(stmt);
+    if SpecificMachine == '':
+      stmt += " and static='f'"
+      cursor = con.execute(stmt)
+    else:
+      stmt += " AND name = ?"
+      cursor = con.execute(stmt, (SpecificMachine,))
     data = cursor.fetchall()
     cursor.close()
     for row in data:
@@ -305,10 +311,13 @@ class LightBuildServer:
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
     if not avoidlxc:
       avoidlxc = False if (pkg is None or "UseLXC" not in pkg) else (pkg["UseLXC"] == False)
+    buildmachine = None if ("Machine" not in proj) else proj["Machine"]
+    if buildmachine is None:
+      buildmachine = None if (pkg is None or "Machine" not in pkg) else pkg["Machine"]
 
     con = Database(self.config)
-    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
-    cursor = con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, dependsOnString))
+    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,buildmachine,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+    cursor = con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, buildmachine, dependsOnString))
     con.commit()
     con.close()
 
@@ -346,6 +355,7 @@ class LightBuildServer:
     DependsOnOtherProjects = item["dependsOnOtherProjects"]
     AvoidDocker = item["avoiddocker"]
     AvoidLXC = item["avoidlxc"]
+    SpecificMachine = item["buildmachine"]
 
     # 1: check if there is a package building or waiting from the same user and buildtarget => return False
     if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
@@ -359,7 +369,7 @@ class LightBuildServer:
     lbs = Build(self, Logger(item['id']))
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
-    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC)
+    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC, SpecificMachine)
     if not buildmachine == None:
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
       cursor = con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
