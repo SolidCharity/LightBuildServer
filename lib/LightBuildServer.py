@@ -86,7 +86,7 @@ class LightBuildServer:
       stmt += " AND type <> 'docker'"
     if AvoidLXC:
       stmt += " AND type <> 'lxc'"
-    if SpecificMachine == '':
+    if SpecificMachine is None or SpecificMachine == '':
       stmt += " and static='f'"
       cursor = con.execute(stmt)
     else:
