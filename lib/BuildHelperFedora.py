@@ -35,6 +35,7 @@ class BuildHelperFedora(BuildHelperCentos):
     self.latestrelease = 23
     if self.release == "rawhide":
      self.release = self.rawhide
+    self.release = str(self.release)
     self.fedora = int(self.release)
     # use dnf instead of rpm, starting with Fedora 22
     if self.fedora >= 22:
