@@ -1,6 +1,7 @@
 % include('header.tpl', title='Project', page='project')
     <div class="container">
       <div class="row">
+        <div class="col-sm-6 col-md-4 col-md-offset-4">
           <h2>Login</h2>
 
           % if auth_username == None:
@@ -19,6 +20,7 @@
           % if not auth_username == None:
           You are already logged in!
           % end
+        </div>
       </div>
     </div>
 % include('footer.tpl')
