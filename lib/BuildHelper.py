@@ -91,9 +91,13 @@ class BuildHelper:
     return True
 
   def SetupEnvironment(self, branchname):
-    setupfile="lbs-" + self.projectname + "/" + self.packagename + "/setup.sh"
+    path="lbs-" + self.projectname + "/" + self.packagename
+    if not os.path.isdir(self.pathSrc + "/" + path):
+      self.log("cannot find path " + path)
+      return False
+    setupfile=path + "/setup.sh"
     if os.path.isfile(self.pathSrc + "/" + setupfile):
-      if not self.run("cd " + os.path.dirname(setupfile) + "; ./setup.sh " + branchname):
+      if not self.run("cd " + path + "; ./setup.sh " + branchname):
         return False
     return True
 
