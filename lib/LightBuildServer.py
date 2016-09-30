@@ -230,13 +230,16 @@ class LightBuildServer:
   # this is called from Build.py buildpackage, and from LightBuildServer.py CalculatePackageOrder
   def getPackagingInstructions(self, userconfig, username, projectname, branchname):
     gitprojectname = projectname
+    gitbranchname = "master"
     if 'GitProjectName' in userconfig['Projects'][projectname]:
       gitprojectname = userconfig['Projects'][projectname]['GitProjectName']
+    if 'GitBranchName' in userconfig['Projects'][projectname]:
+      gitbranchname = userconfig['Projects'][projectname]['GitBranchName']
     lbsproject=userconfig['GitURL'] + 'lbs-' + gitprojectname
     pathSrc=self.config['lbs']['GitSrcPath']+"/"+username+"/"
 
     # first try with git branch master, to see if the branch is decided in the setup.sh. then there must be a config.yml
-    self.getPackagingInstructionsInternal(userconfig, username, projectname, "master", gitprojectname, lbsproject, pathSrc)
+    self.getPackagingInstructionsInternal(userconfig, username, projectname, gitbranchname, gitprojectname, lbsproject, pathSrc)
 
     if not os.path.isfile(pathSrc+'lbs-'+projectname+"/config.yml"):
       self.getPackagingInstructionsInternal(userconfig, username, projectname, branchname, gitprojectname, lbsproject, pathSrc)

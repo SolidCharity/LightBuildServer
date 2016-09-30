@@ -42,8 +42,10 @@ lbs:
        EmailToAddress: firstname.lastname@example.org
        Projects:
          # mono will resolve automatically to https://github.com/tpokorra/lbs-mono. or use attribute GitProjectName
+         # by default the master branch will be used, but you can specify another branch too
          mono:
            GitProjectName: mono
+           GitBranchName: master
            UseLXC: False
            PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
            Packages:
