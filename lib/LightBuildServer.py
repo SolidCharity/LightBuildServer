@@ -32,6 +32,7 @@ import os
 import shutil
 import time
 import datetime
+import requests
 from Shell import Shell
 import logging
 from threading import Thread, Lock
@@ -248,43 +249,71 @@ class LightBuildServer:
   def getPackagingInstructionsInternal(self, userconfig, username, projectname, branchname, gitprojectname, lbsproject, pathSrc):
     os.makedirs(pathSrc, exist_ok=True)
 
+    needToDownload = True
+
     #we want a clean clone
     #but do not delete the tree if it is being used by another build
     t = None
     if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
       t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
+      # delete the tree only if it has not been used within the last 3 minutes
+      if (time.time() - t) < 3*60:
+        needToDownload = False
       # update the timestamp
       os.utime(pathSrc+'lbs-'+projectname+'-lastused')
     else:
       open(pathSrc+'lbs-'+projectname+'-lastused', 'a').close()
 
-    if os.path.isdir(pathSrc+'lbs-'+projectname):
-      # delete the tree only if the last access was more than 3 minutes ago
-      # or for existing projects, that did not have the lastused file yet
-      if t is None or ((time.time() - t) > 3*60):
-        shutil.rmtree(pathSrc+'lbs-'+projectname)
-
-    if os.path.isdir(pathSrc+'lbs-'+projectname):
-      # we can reuse the existing source, it was used just recently
-      return
-
-    shell = Shell(Logger())
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
       url=lbsproject + "/archive/" + branchname + ".tar.gz"
-      cmd="cd " + pathSrc + ";";
-      cmd+="rm -f " + branchname + ".tar.gz && curl --retry 10 --retry-delay 30 -f -L -o " + branchname + ".tar.gz \"" + url + "\" && "
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + " lbs-" + projectname
-      shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
       url=lbsproject + "/repository/archive.tar.gz?ref=" + branchname
       tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
       if os.path.isfile(tokenfilename):
         with open (tokenfilename, "r") as myfile:
           url+="&private_token="+myfile.read().strip()
+
+    # check if the version we have is still uptodate
+    etagFile = pathSrc+'lbs-'+projectname+'-etag'
+    if needToDownload and os.path.isfile(etagFile):
+      with open(etagFile, 'r') as content_file:
+        Etag = content_file.read()
+      r = requests.get(url, headers={"If-None-Match": Etag})
+      if r.headers['Etag'] == '"' + Etag + '"':
+         needToDownload = False
+
+    if not needToDownload and os.path.isdir(pathSrc+'lbs-'+projectname):
+      # we can reuse the existing source, it was used just recently, or has not changed on the server
+      return
+
+    # delete the working tree
+    if os.path.isdir(pathSrc+'lbs-'+projectname):
+      shutil.rmtree(pathSrc+'lbs-'+projectname)
+
+    sourceFile = pathSrc + "/" + branchname + ".tar.gz"
+    if os.path.isfile(sourceFile):
+      os.remove(sourceFile)
+    r = requests.get(url)
+    chunk_size = 100000
+    with open(sourceFile, 'wb') as fd:
+      for chunk in r.iter_content(chunk_size):
+        fd.write(chunk)
+    Etag = r.headers['Etag']
+    with open(etagFile, 'w') as fd:
+      fd.write(Etag.strip('"'))
+
+    shell = Shell(Logger())
+    if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
       cmd="cd " + pathSrc + ";";
-      cmd+="rm -f source.tar.gz lbs-" + gitprojectname + "* && curl --retry 10 --retry-delay 30 -f -o source.tar.gz \"" + url + "\" && "
-      cmd+="tar xzf source.tar.gz; mv lbs-" + gitprojectname + "* lbs-" + projectname
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + " lbs-" + projectname
       shell.executeshell(cmd)
+    elif userconfig['GitType'] == 'gitlab':
+      cmd="cd " + pathSrc + ";";
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "* lbs-" + projectname
+      shell.executeshell(cmd)
+
+    if os.path.isfile(sourceFile):
+      os.remove(sourceFile)
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
 
