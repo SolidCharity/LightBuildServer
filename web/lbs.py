@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -107,7 +107,7 @@ class LightBuildServerWeb:
         if not auth_username:
             return self.pleaselogin()
         if not auth_username == username:
-            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/project/" + username + "/" + projectname)
+            return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/project/" + username + "/" + projectname + "/" + branchname)
 
         message = self.LBS.BuildProject(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch)
 
