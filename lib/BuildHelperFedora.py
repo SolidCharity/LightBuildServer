@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Fedora: knows how to build packages for Fedora"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -30,16 +30,16 @@ class BuildHelperFedora(BuildHelperCentos):
     BuildHelperCentos.__init__(self, container, username, projectname, packagename)
     self.dist='fedora'
     self.rhel = 0
-    self.rawhide = 25
+    self.rawhide = 26
     # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
-    self.latestrelease = 23
+    self.latestrelease = 24
     if self.release == "rawhide":
      self.release = self.rawhide
     self.release = str(self.release)
     self.fedora = int(self.release)
+    self.releaseForRepoFile = "$releasever"
     # use dnf instead of rpm, starting with Fedora 22
-    if self.fedora >= 22:
-      self.yumOrDnf = "dnf"
+    self.yumOrDnf = "dnf"
 
   def PrepareMachineBeforeStart(self):
     return True

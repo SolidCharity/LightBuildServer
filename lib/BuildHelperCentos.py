@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -35,6 +35,7 @@ class BuildHelperCentos(BuildHelper):
     self.dist='centos'
     BuildHelper.__init__(self, container, username, projectname, packagename)
     self.yumOrDnf = 'yum'
+    self.releaseForRepoFile = self.release
 
   def PrepareMachineBeforeStart(self):
     return True
@@ -47,7 +48,7 @@ class BuildHelperCentos(BuildHelper):
     yumUtils="yum-utils"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"
-    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl rsync " + yumUtils):
+    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync " + yumUtils):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
@@ -226,7 +227,7 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
-      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + myPath + "/" + self.dist + "/" + self.release + "\n"
+      repoFileContent+="baseurl=" + DownloadUrl + "/repos/" + myPath + "/" + self.dist + "/" + self.releaseForRepoFile + "\n"
       repoFileContent+="enabled=1\n"
       repoFileContent+="gpgcheck=0\n"
       repofile="lbs-"+self.username + "-"+self.projectname +".repo"
