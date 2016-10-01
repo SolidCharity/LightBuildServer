@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper: abstract base class for various builders"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -135,7 +135,7 @@ class BuildHelper:
     unsorted={}
     builddepends={}
     depends={}
-    provides={}
+    deliverables={}
     for package in packages:
       excludeDistro=False
       if packages[package] is not None and "ExcludeDistros" in packages[package]:
@@ -150,10 +150,10 @@ class BuildHelper:
             includeDistro=True
       if includeDistro and not excludeDistro:
         self.packagename=package
-        (builddepends[package],provides[package]) = self.GetDependanciesAndProvides()
-        for p in provides[package]:
+        (builddepends[package],deliverables[package]) = self.GetDependanciesAndProvides()
+        for p in deliverables[package]:
           unsorted[p] = 1
-          depends[p] = provides[package][p]
+          depends[p] = deliverables[package][p]['requires']
         if not package in unsorted:
           unsorted[package] = 1
         # useful for debugging:
@@ -161,11 +161,12 @@ class BuildHelper:
           print( package + " builddepends on: ")
           for p in builddepends[package]:
             print("   " + p)
-          print( package + " provides: ")
-          for p in provides[package]:
-            print("   " + p + " which depends on:")
-            for d in depends[p]:
-              print("      " + d)
+          print( package + " produces these packages: ")
+          for p1 in deliverables[package]:
+            for p in deliverables[package][p1]['provides']:
+              print("   " + p + " which requires during installation:")
+              for d in depends[p1]:
+                print("      " + d)
 
     while len(unsorted) > 0:
       nextPackage = None
@@ -189,7 +190,7 @@ class BuildHelper:
           print(p)
         return None
       result.append(nextPackage)
-      for p in provides[nextPackage]:
+      for p in deliverables[nextPackage]:
         if p in unsorted:
           del unsorted[p]
       if nextPackage in unsorted:

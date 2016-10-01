@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -263,7 +263,7 @@ class BuildHelperDebian(BuildHelper):
   def GetDependanciesAndProvides(self):
     dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     builddepends=[]
-    provides={}
+    deliverables={}
     if os.path.isfile(dscfile):
       nextLineBuildDepends=False
       for line in open(dscfile):
@@ -293,7 +293,9 @@ class BuildHelperDebian(BuildHelper):
         packagesWithVersions=None
         if line.lower().startswith("package:"):
           recentpackagename=line[len("package:"):].strip()
-          provides[recentpackagename] = []
+          deliverables[recentpackagename] = {}
+          deliverables[recentpackagename]['provides'] = []
+          deliverables[recentpackagename]['requires'] = []
         elif line.lower().startswith("depends:"):
           packagesWithVersions=line[len("depends:"):].strip().split(',')
         if nextLineDepends:
@@ -303,7 +305,7 @@ class BuildHelperDebian(BuildHelper):
           for word in packagesWithVersions:
             for w2 in word.split('|'):
               if len(w2.strip()) > 0:
-                provides[recentpackagename].append(w2.split()[0].strip())
+                deliverables[recentpackagename]['requires'].append(w2.split()[0].strip())
 
-    return (builddepends, provides)
+    return (builddepends, deliverables)
 

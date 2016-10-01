@@ -328,14 +328,87 @@ class BuildHelperCentos(BuildHelper):
   def GetDependanciesAndProvides(self):
     specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     builddepends=[]
-    provides={}
+    deliverables={}
     if os.path.isfile(specfile):
-      for line in open(specfile):
-        if line.lower().startswith("buildrequires: "):
-          if line.count(",") > 0:
-            packagesWithVersions=line[len("BuildRequires: "):].split(",")
+
+      globals={}
+      globals[self.dist] = self.release
+      if self.dist == "centos":
+        globals["rhel"] = self.release
+      globals["_isa"] = ""
+      name = recentpackagename = None
+      version = None
+      release = None
+      if_blocks={}
+      current_if_block_depth = -1
+
+      for line_loop in open(specfile):
+        line = line_loop
+        if line.lower().startswith("%changelog"):
+          break
+
+        if line.lower().startswith("%if"):
+          current_if_block_depth+=1
+          condition="False"
+          if line.lower().startswith("%ifnarch"):
+            condition = line[len("%ifnarch"):].strip()
+            condition = str(condition != self.arch)
+          elif line.lower().startswith("%ifarch"):
+            condition = line[len("%ifarch"):].strip()
+            condition = str(condition == self.arch)
+          elif line.lower().startswith("%if "):
+            condition = line[len("%if"):].strip()
+            for globitem in globals:
+              condition = condition.replace("0%{?"+globitem+"}", globals[globitem])
+            condition = re.sub("%\{\?.*\}", "", condition)
+            condition = condition.replace("||", " or ").replace("&&", " and ")
           else:
-            packagesWithVersions=line[len("BuildRequires: "):].split()
+            raise Exception("unknown %if: " + line)
+          if_blocks[current_if_block_depth] = eval(condition)
+
+        elif line.lower().startswith("%else"):
+          if_blocks[current_if_block_depth] = not if_blocks[current_if_block_depth]
+        elif line.lower().startswith("%endif"):
+          current_if_block_depth-=1
+
+        if current_if_block_depth >= 0 and not if_blocks[current_if_block_depth]:
+          continue
+
+        if line.lower().startswith("%global"):
+          globalline=line.split()
+          globals[globalline[1]] = globalline[2]
+        for globitem in globals:
+          line = line.replace("%{"+globitem+"}", globals[globitem])
+        if name:
+          line = line.replace("%{name}", name)
+        if version:
+          line = line.replace("%{version}", version)
+        if release:
+          line = line.replace("%{release}", release)
+
+        if line.lower().startswith("version:"):
+          version = line[len("version:"):].strip()
+        elif line.lower().startswith("release:"):
+          release = line[len("release:"):].strip()
+        elif line.lower().startswith("name:"):
+          name = line[len("name:"):].strip()
+          recentpackagename=name
+        elif line.lower().startswith("%package -n"):
+          recentpackagename=line[len("%package -n"):].strip()
+        elif line.lower().startswith("%package"):
+          recentpackagename=self.packagename + "-" + line[len("%package"):].strip()
+
+        if recentpackagename is not None and recentpackagename not in deliverables:
+          deliverables[recentpackagename] = {}
+          deliverables[recentpackagename]['provides'] = []
+          deliverables[recentpackagename]['requires'] = []
+          deliverables[recentpackagename]['provides'].append(recentpackagename)
+
+        elif line.lower().startswith("buildrequires:"):
+          if line.count(",") > 0:
+            packagesWithVersions=line[len("BuildRequires:"):].split(",")
+          else:
+            packagesWithVersions=line[len("BuildRequires:"):].split()
           ignoreNext=False
           for word in packagesWithVersions:
             if not ignoreNext:
@@ -346,22 +419,11 @@ class BuildHelperCentos(BuildHelper):
                 builddepends.append(word.strip())
             else:
               ignoreNext=False
-
-      name = self.packagename
-      recentpackagename=name
-      for line in open(specfile):
-        if line.lower().startswith("name:"):
-          name = line[len("name:"):].strip()
-          recentpackagename=name
-          provides[name] = []
-        elif line.lower().startswith("%package -n"):
-          recentpackagename=line[len("%package -n"):].strip()
-          provides[recentpackagename] = []
-        elif line.lower().startswith("%package"):
-          recentpackagename=self.packagename + "-" + line[len("%package"):].strip()
-          provides[recentpackagename] = []
         elif line.lower().startswith("requires:"):
-          r = line[len("requires:"):].strip().replace("(", "-").replace(")", "")
-          provides[recentpackagename].append(r.split()[0])
+          r = line[len("requires:"):].strip()
+          deliverables[recentpackagename]['requires'].append(r.split()[0])
+        elif line.lower().startswith("provides:"):
+          p = line[len("provides:"):].strip().split()
+          deliverables[recentpackagename]['provides'].append(p[0])
 
-    return (builddepends, provides)
+    return (builddepends, deliverables)
