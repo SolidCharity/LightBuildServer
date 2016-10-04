@@ -298,18 +298,19 @@ class LightBuildServer:
     with open(sourceFile, 'wb') as fd:
       for chunk in r.iter_content(chunk_size):
         fd.write(chunk)
-    Etag = r.headers['Etag']
-    with open(etagFile, 'w') as fd:
-      fd.write(Etag.strip('"'))
+    if 'Etag' in r.headers:
+      Etag = r.headers['Etag']
+      with open(etagFile, 'w') as fd:
+        fd.write(Etag.strip('"'))
 
     shell = Shell(Logger())
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
-      cmd="cd " + pathSrc + ";";
+      cmd="cd " + pathSrc + ";"
       cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + " lbs-" + projectname
       shell.executeshell(cmd)
     elif userconfig['GitType'] == 'gitlab':
-      cmd="cd " + pathSrc + ";";
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "* lbs-" + projectname
+      cmd="cd " + pathSrc + ";"
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + "-* lbs-" + projectname
       shell.executeshell(cmd)
 
     if os.path.isfile(sourceFile):
