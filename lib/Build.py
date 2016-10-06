@@ -62,10 +62,17 @@ class Build:
     self.logger.print(" * Preparing the machine...")
 
     # get the sources of the packaging instructions
-    pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
-    packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
+    gotPackagingInstructions = False
+    try:
+      pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
+      packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
+      gotPackagingInstructions = True
+    except Exception as e:
+      self.logger.print("LBSERROR: "+str(e))
 
-    if self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
+    if not gotPackagingInstructions:
+      self.LBS.ReleaseMachine(buildmachine)
+    elif self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
 
       try:
         # install a mount for the project repo

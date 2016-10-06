@@ -294,6 +294,11 @@ class LightBuildServer:
     if os.path.isfile(sourceFile):
       os.remove(sourceFile)
     r = requests.get(url)
+    if r.status_code == 401:
+      raise Exception("problem cloning the repository, access denied")
+    elif not r.status_code == 200:
+      raise Exception("problem cloning the repository, HTTP error code " + str(r.status_code))
+
     chunk_size = 100000
     with open(sourceFile, 'wb') as fd:
       for chunk in r.iter_content(chunk_size):
