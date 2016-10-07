@@ -264,6 +264,7 @@ class LightBuildServer:
     else:
       open(pathSrc+'lbs-'+projectname+'-lastused', 'a').close()
 
+    headers = {}
     if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
       url=lbsproject + "/archive/" + branchname + ".tar.gz"
     elif userconfig['GitType'] == 'gitlab':
@@ -271,14 +272,15 @@ class LightBuildServer:
       tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
       if os.path.isfile(tokenfilename):
         with open (tokenfilename, "r") as myfile:
-          url+="&private_token="+myfile.read().strip()
+          headers['PRIVATE-TOKEN'] = myfile.read().strip()
 
     # check if the version we have is still uptodate
     etagFile = pathSrc+'lbs-'+projectname+'-etag'
     if needToDownload and os.path.isfile(etagFile):
       with open(etagFile, 'r') as content_file:
         Etag = content_file.read()
-      r = requests.get(url, headers={"If-None-Match": Etag})
+        headers['If-None-Match'] = Etag
+      r = requests.get(url, headers=headers)
       if r.headers['Etag'] == '"' + Etag + '"':
          needToDownload = False
 
@@ -293,11 +295,11 @@ class LightBuildServer:
     sourceFile = pathSrc + "/" + branchname + ".tar.gz"
     if os.path.isfile(sourceFile):
       os.remove(sourceFile)
-    r = requests.get(url)
+    r = requests.get(url, headers=headers)
     if r.status_code == 401:
-      raise Exception("problem cloning the repository, access denied")
+      raise Exception("problem downloading the repository, access denied")
     elif not r.status_code == 200:
-      raise Exception("problem cloning the repository, HTTP error code " + str(r.status_code))
+      raise Exception("problem downloading the repository, HTTP error code " + str(r.status_code))
 
     chunk_size = 100000
     with open(sourceFile, 'wb') as fd:
