@@ -84,6 +84,12 @@ class BuildHelperCentos(BuildHelper):
               configmanager="dnf config-manager --add-repo "
             if not self.run(configmanager + repo):
               return False
+          elif self.run("if [ ! -f /etc/yum.repos.d/" + repo + ".repo ]; then exit -1; fi"):
+            configmanager="yum-config-manager --enable "
+            if self.yumOrDnf == "dnf":
+              configmanager="dnf config-manager --set-enabled "
+            if not self.run(configmanager + repo):
+              return False
           else:
             if not self.run(self.yumOrDnf + " -y install " + repo):
               return False
