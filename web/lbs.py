@@ -288,6 +288,11 @@ class LightBuildServerWeb:
             package["Branches"] = project["Branches"]
         if not "Branches" in package:
             package["Branches"] = ["master"]
+        package["ReverseDisplayOrderBranches"] = False
+        if "DisplayOrderBranches" in project:
+          package["ReverseDisplayOrderBranches"] = (project["DisplayOrderBranches"] == "Descending")
+        if "DisplayOrderBranches" in package:
+          package["ReverseDisplayOrderBranches"] = (package["DisplayOrderBranches"] == "Descending")
         for branchname in package["Branches"]:
           if not 'Distros' in package:
             package['Distros'] = project['Distros']

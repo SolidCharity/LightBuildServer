@@ -4,7 +4,7 @@
 	<h2>Details of Package {{username}}:{{projectname}}:{{packagename}}</h2>
 	<ul>
 		<li><a href="{{package['giturl']}}" target="_blank">Project sources</a></li>
-		% for branchname in sorted(package['Branches']):
+		% for branchname in sorted(package['Branches'], reverse=package['ReverseDisplayOrderBranches']):
 			% for buildtarget in sorted(package['Distros']):
                         % if len(package['Branches']) > 1:
 				<a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>

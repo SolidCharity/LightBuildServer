@@ -54,7 +54,8 @@ lbs:
              monodevelop-tarball:
                Distros: ["fedora/20/amd64", "debian/wheezy/amd64"]
              monodevelop-nightly:
-               Branches: ["master", "monodevelop-5.1-branch", "monodevelop-5.0-branch"]
+               DisplayOrderBranches: Descending
+               Branches: ["monodevelop-5.1-branch", "monodevelop-5.0-branch"]
                Distros: ["fedora/20/amd64"]
          kolab:
            Packages:
