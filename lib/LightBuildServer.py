@@ -143,7 +143,7 @@ class LightBuildServer:
           print("current time: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
           print("sql statement: %s" % (stmt))
           con.close()
-          self.ReleaseMachine(row["buildmachine"])
+          self.ReleaseMachine(row["buildmachine"], True)
           # when the build job realizes that the buildmachine is gone:
           #   the log will be written, email sent, and logs cleared
           #   the build will be marked as failed as well
@@ -162,12 +162,26 @@ class LightBuildServer:
       cursor.close()
       con.close()
 
-  def ReleaseMachine(self, buildmachine):
+  def CancelWaitingJobsInQueue(self, queue):
+      con = Database(self.config)
+      # TODO: add arch to the queue as well?
+      # queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' AND CONCAT_WS('/', username, projectname, branchname, distro, release) = ?", (queue,))
+      data = cursor.fetchall()
+      for row in data:
+        cursor = con.execute("UPDATE build SET status = 'CANCELLED' WHERE id=?", (row['id'],))
+      con.commit()
+      cursor.close()
+      con.close()
+
+  def ReleaseMachine(self, buildmachine, jobFailed):
     print("ReleaseMachine %s" % (buildmachine))
     status = self.GetBuildMachineState(buildmachine)
 
     # only release the machine when it is building. if it is already being stopped, do nothing
     if status["status"] == 'BUILDING':
+      if jobFailed:
+        self.CancelWaitingJobsInQueue(status["queue"])
       con = Database(self.config)
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
       cursor = con.execute(stmt, (buildmachine,))

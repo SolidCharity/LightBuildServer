@@ -347,7 +347,7 @@ class LightBuildServerWeb:
       if not username:
         return self.pleaselogin()
       if action == "reset":
-        self.LBS.ReleaseMachine(buildmachine)
+        self.LBS.ReleaseMachine(buildmachine, True)
       return template("message", title="machine available", message="The machine "+buildmachine+" should now be available.", redirect="/machines")
 
 myApp=LightBuildServerWeb()

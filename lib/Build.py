@@ -70,8 +70,9 @@ class Build:
     except Exception as e:
       self.logger.print("LBSERROR: "+str(e))
 
+    jobFailed = True
     if not gotPackagingInstructions:
-      self.LBS.ReleaseMachine(buildmachine)
+      self.LBS.ReleaseMachine(buildmachine, jobFailed)
     elif self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
 
       try:
@@ -125,16 +126,17 @@ class Build:
         # create repo file
         self.buildHelper.CreateRepoFile(self.config)
         self.logger.print("Success!")
+        jobFailed = False
       except Exception as e:
         # TODO: logging to log file does not work yet?
         logging.basicConfig(level=logging.DEBUG, filename='/var/log/lbs.log')
         logging.exception("Error happened...")
         self.logger.print("LBSERROR: "+str(e))
       finally:  
-        self.LBS.ReleaseMachine(buildmachine)
+        self.LBS.ReleaseMachine(buildmachine, jobFailed)
     else:
       self.logger.print("LBSERROR: There is a problem with creating the container!")
-      self.LBS.ReleaseMachine(buildmachine)
+      self.LBS.ReleaseMachine(buildmachine, jobFailed)
     self.finished = True
     logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
     buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
