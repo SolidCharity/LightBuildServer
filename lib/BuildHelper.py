@@ -170,7 +170,7 @@ class BuildHelper:
 
     while len(unsorted) > 0:
       nextPackage = None
-      for package in unsorted:
+      for package in sorted(unsorted):
         if package in packages and nextPackage is None:
           missingRequirement=False
           # check that this package does not require a package that is in unsorted
