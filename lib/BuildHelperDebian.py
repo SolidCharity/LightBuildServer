@@ -42,7 +42,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs"):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
@@ -105,8 +105,12 @@ class BuildHelperDebian(BuildHelper):
     aptInstallFlags="--force-yes "
     nextLineBuildDepends=False
     if os.path.isfile(dscfile):
-      if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + ";" +
-              "mk-build-deps " + self.GetDscFilename() + "; dpkg -i *.deb; apt-get install -f -y"):
+      self.run("cp -R lbs-" + self.projectname + "/" + self.packagename + "/* /tmp");
+      self.run("sed -i 's/%{release}/0/g' " + "/tmp/" + self.GetDscFilename())
+      self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/control")
+      self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/changelog")
+      if not self.run("cd /tmp; " +
+              "mk-build-deps " + self.GetDscFilename() + "; dpkg -i *.deb; apt-get install -f -y " + aptInstallFlags + " && dpkg -i *.deb"):
         return False
     return True
 
