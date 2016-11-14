@@ -83,7 +83,7 @@ class RemoteContainer:
       return '.'.join(lbsipaddress) + "." + str(cid)
 
   def executeOnHost(self, command):
-    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LC_ALL=C; " + command + " 2>&1; echo \$?\""):
+    if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LC_ALL=C; (" + command + ") 2>&1; echo \$?\""):
       return self.logger.getLastLine() == "0"
     return False
 
