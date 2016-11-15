@@ -10,7 +10,7 @@ lbs:
    DeletePackagesAfterDays: 4
    KeepMinimumPackages: 4
    ShowNumberOfFinishedJobs: 30
-   PublicKeyServer: keyserver.ubuntu.com
+   PublicKeyServer: "keyserver.ubuntu.com"
    # WaitForDatabase in seconds, if several jobs are waiting for the database
    WaitForDatabase: 30
    # BuildingTimeout in seconds, will stop the build if no output from build script arrives within that time
