@@ -80,7 +80,7 @@ class BuildHelperDebian(BuildHelper):
         if 'keys' in config['lbs'][self.dist][str(self.release)]:
           keys = config['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("wget -O Release.key '" + key + "' && apt-key add Release.key && rm -rf Release.key"):
+            if not self.run("apt-key adv --keyserver " + config['lbs']['PublicKeyServer'] + " --recv-keys " + key):
               return False
 
     # install own repo as well if it exists
@@ -198,8 +198,8 @@ class BuildHelperDebian(BuildHelper):
         # add result to repo
         self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
         self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
-        if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
-          return False
+      if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
+        return False
 
     return True
 
@@ -217,8 +217,7 @@ class BuildHelperDebian(BuildHelper):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
       if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        keyinstructions += "wget -O Release.key '" + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "'\n"
-        keyinstructions += "apt-key add Release.key; rm -rf Release.key\n"
+        keyinstructions += "apt-key adv --keyserver " + config['lbs']['PublicKeyServer'] + " --recv-keys " + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
     else:
       checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):

@@ -10,6 +10,7 @@ lbs:
    DeletePackagesAfterDays: 4
    KeepMinimumPackages: 4
    ShowNumberOfFinishedJobs: 30
+   PublicKeyServer: keyserver.ubuntu.com
    # WaitForDatabase in seconds, if several jobs are waiting for the database
    WaitForDatabase: 30
    # BuildingTimeout in seconds, will stop the build if no output from build script arrives within that time
@@ -47,7 +48,7 @@ lbs:
            GitProjectName: mono
            GitBranchName: master
            UseLXC: False
-           PublicKey: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
+           PublicKey: "0x4796B710919684AC"
            Packages:
              monodevelop-opt:
                Distros: ["centos/6/amd64"]

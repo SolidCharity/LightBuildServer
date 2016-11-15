@@ -96,7 +96,7 @@ class BuildHelperCentos(BuildHelper):
         if 'keys' in config['lbs'][self.dist][str(self.release)]:
           keys = config['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("rpm --import '" + key + "'"):
+            if not self.run("rpm --import 'http://" + config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'"):
               return False
         if 'enable' in config['lbs'][self.dist][str(self.release)]:
           enables = config['lbs'][self.dist][str(self.release)]['enable']
@@ -301,7 +301,7 @@ class BuildHelperCentos(BuildHelper):
     result = ""
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
       if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        result += 'rpm --import "' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+        result += 'rpm --import "http://" + config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
     # check if a repo has been created in that place
     checkfile = self.config['lbs']['ReposPath'] + repourl[len(DownloadUrl + "/repos"):]
     if not glob.glob(checkfile):
