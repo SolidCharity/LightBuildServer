@@ -51,8 +51,34 @@ class Database:
             self.newdatabase = True
 
   def createOrUpdate(self):
-    dbversion=5
- 
+    dbversion=6
+
+    createTablePackageStmt = """
+CREATE TABLE package (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username char(100) NOT NULL,
+  projectname char(100) NOT NULL,
+  packagename char(100) NOT NULL,
+  branchname char(100) NOT NULL,
+  # current hash of the source from the source repository
+  sourcehash char(100) NOT NULL)
+"""
+    createTablePackageDependancyStmt = """
+CREATE TABLE packagedependancy (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  # referencing package table
+  dependantpackage INTEGER,
+  requiredpackage INTEGER)
+"""
+    createTablePackageBuildStatusStmt = """
+CREATE TABLE packagebuildstatus (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  packageid INTEGER,
+  distro char(40),
+  release char(40),
+  arch char(40),
+  dirty INTEGER NOT NULL DEFAULT 1)
+"""
     if self.newdatabase:
       createTableStmt = """
 CREATE TABLE build (
@@ -98,6 +124,9 @@ CREATE TABLE log (
   created TIMESTAMP DEFAULT (datetime('now','localtime')))
 """
       self.execute(createTableStmt)
+      self.execute(createTablePackageStmt)
+      self.execute(createTablePackageDependancyStmt)
+      self.execute(createTablePackageBuildStatusStmt)
       self.execute("CREATE TABLE dbversion ( version INTEGER )")
       self.execute("INSERT INTO dbversion(version) VALUES(%d)" % (dbversion))
       self.commit()
@@ -114,6 +143,10 @@ CREATE TABLE log (
         self.execute("ALTER TABLE build ADD COLUMN avoiddocker INTEGER NOT NULL DEFAULT 0")
       if currentdbversion < 5:
         self.execute("ALTER TABLE machine ADD COLUMN static char(1) NOT NULL DEFAULT 'f'")
+      if currentdbversion < 6:
+        self.execute(createTablePackageStmt)
+        self.execute(createTablePackageDependancyStmt)
+        self.execute(createTablePackageBuildStatusStmt)
       self.execute("UPDATE dbversion SET version = %d" % (dbversion))
       self.commit()
 

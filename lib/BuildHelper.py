@@ -22,11 +22,12 @@ import yaml
 import os.path
 from collections import deque
 import Config
+from Database import Database
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
-  def __init__(self, container, username, projectname, packagename):
+  def __init__(self, container, username, projectname, packagename, branchname):
     self.container = container
     self.fedora = 0
     self.suse_version = 0
@@ -39,6 +40,7 @@ class BuildHelper:
     self.username = username
     self.projectname = projectname
     self.packagename = packagename
+    self.branchname = branchname
     self.config = Config.LoadConfig()
     self.pathSrc=self.config['lbs']['GitSrcPath']+"/"+self.username
 
@@ -122,6 +124,29 @@ class BuildHelper:
     print("not implemented")
     return False
 
+  def StorePackageDependancies(self, config, packages, builddepends):
+    con = Database(config)
+    for package in packages:
+      # find the package id
+      cursor = con.execute("SELECT id FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (self.username, self.projectname, package, self.branchname))
+      row = cursor.fetchone()
+      packageid = row['id']
+      # delete all dependancies
+      stmt = "DELETE FROM packagedependancy WHERE dependantpackage = ?"
+      cursor = con.execute(stmt, (packageid,))
+      con.commit()
+      for requiredpackage in builddepends[package]:
+        # find required package id
+        cursor = con.execute("SELECT id FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (self.username, self.projectname, requiredpackage, self.branchname))
+        row = cursor.fetchone()
+        if row is not None:
+          requiredpackageid = row['id']
+          stmt = "INSERT INTO packagedependancy (dependantpackage, requiredpackage) VALUES (?, ?)"
+          cursor = con.execute(stmt, (packageid, requiredpackageid))
+          con.commit()
+    con.close()
+    return
+
   def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
     result = deque()
     self.release = lxcrelease
@@ -195,5 +220,7 @@ class BuildHelper:
           del unsorted[p]
       if nextPackage in unsorted:
         del unsorted[nextPackage]
+
+    self.StorePackageDependancies(config, packages, builddepends)
 
     return result

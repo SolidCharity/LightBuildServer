@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelperFactory: gets the correct build helper for the right package format"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,12 +27,12 @@ from BuildHelperFedora import BuildHelperFedora
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
 
-  def GetBuildHelper(distro, container, username, projectname, packagename):
+  def GetBuildHelper(distro, container, username, projectname, packagename, branchname):
     if distro == "debian":
-      return BuildHelperDebian(container, username, projectname, packagename)
+      return BuildHelperDebian(container, username, projectname, packagename, branchname)
     if distro == "ubuntu":
-      return BuildHelperUbuntu(container, username, projectname, packagename)
+      return BuildHelperUbuntu(container, username, projectname, packagename, branchname)
     if distro == "centos":
-      return BuildHelperCentos(container, username, projectname, packagename)
+      return BuildHelperCentos(container, username, projectname, packagename, branchname)
     if distro == "fedora":
-      return BuildHelperFedora(container, username, projectname, packagename)
+      return BuildHelperFedora(container, username, projectname, packagename, branchname)

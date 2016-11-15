@@ -300,6 +300,7 @@ class LightBuildServer:
 
     if not needToDownload and os.path.isdir(pathSrc+'lbs-'+projectname):
       # we can reuse the existing source, it was used just recently, or has not changed on the server
+      self.StorePackageHashes(pathSrc+'lbs-'+projectname, username, projectname, branchname)
       return
 
     # delete the working tree
@@ -339,13 +340,48 @@ class LightBuildServer:
     if not os.path.isdir(pathSrc+'lbs-'+projectname):
       raise Exception("Problem with cloning the git repo")
 
+    self.StorePackageHashes(pathSrc+'lbs-'+projectname, username, projectname, branchname)
+
+  # TODO limit hash to distribution. changes to debian files should not affect CentOS builds...
+  def StorePackageHashes(self, projectPathSrc, username, projectname, branchname):
+    shell = Shell(Logger())
+    con = Database(self.config)
+    for dir in os.listdir(projectPathSrc):
+      if os.path.isdir(projectPathSrc + "/" + dir):
+        packagename = os.path.basename(dir)
+        # update hash of each package
+        cmd = "find " + projectPathSrc + "/" + dir + " -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | awk '{print $1}'"
+        hash = shell.evaluateshell(cmd)
+        # print(packagename + " " + hash)
+        cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (username, projectname, packagename, branchname))
+        row = cursor.fetchone()
+        alreadyuptodate = False
+        idToUpdate = None
+        if row is not None:
+          if row['sourcehash'] == hash:
+            alreadyuptodate = True
+          else:
+            idToUpdate = row['id']
+        if not alreadyuptodate:
+          if idToUpdate is None:
+            stmt = "INSERT INTO package(username, projectname, packagename, branchname, sourcehash) VALUES(?,?,?,?,?)"
+            cursor = con.execute(stmt, (username, projectname, packagename, branchname, hash))
+          else:
+            stmt = "UPDATE package SET sourcehash = ? WHERE id = ?"
+            cursor = con.execute(stmt, (hash, id))
+            stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ?"
+            cursor = con.execute(stmt, (id,))
+            # TODO: reset dirty flag of all other packages, that depend on this package?
+          con.commit()
+    con.close()
+
   def CalculatePackageOrder(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
     userconfig = self.config['lbs']['Users'][username]
 
     # get the sources of the packaging instructions
     self.getPackagingInstructions(userconfig, username, projectname, branchname)
 
-    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None)
+    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None, branchname)
     return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
 
   def AddToBuildQueue(self, username, projectname, packagename, branchname, distro, release, arch):
