@@ -69,12 +69,12 @@ class BuildHelper:
     file = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
-      config = yaml.load(stream)
-      for url in config['lbs']['source']['download']:
+      pkgconfig = yaml.load(stream)
+      for url in pkgconfig['lbs']['source']['download']:
         filename="`basename " + url + "`"
-        if isinstance(config['lbs']['source']['download'], dict):
+        if isinstance(pkgconfig['lbs']['source']['download'], dict):
           filename=url
-          url=config['lbs']['source']['download'][url]
+          url=pkgconfig['lbs']['source']['download'][url]
         self.run("mkdir -p /root/sources")
         if not self.run("curl -L " + url + " -o /root/sources/" + filename):
           return False
@@ -125,7 +125,7 @@ class BuildHelper:
     return False
 
   def StorePackageDependancies(self, packages, builddepends):
-    con = Database(config)
+    con = Database(self.config)
     for package in packages:
       # find the package id
       cursor = con.execute("SELECT id FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (self.username, self.projectname, package, self.branchname))
@@ -151,7 +151,7 @@ class BuildHelper:
     result = deque()
     self.release = lxcrelease
     self.arch = lxcarch
-    userconfig=config['lbs']['Users'][self.username]
+    userconfig=self.config['lbs']['Users'][self.username]
     projectconfig=userconfig['Projects'][self.projectname]
     if 'Packages' in projectconfig:
       packages = userconfig['Projects'][self.projectname]['Packages']
