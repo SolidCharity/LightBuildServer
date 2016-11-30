@@ -312,11 +312,11 @@ class LightBuildServerWeb:
         for buildtarget in package['Distros']:
           buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, username, projectname, packagename, branchname)
           if not ('WindowsInstaller' in package and package['WindowsInstaller'] == True):
-            package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config, self.config['lbs']['DownloadUrl'], buildtarget)
-            package["srcinstructions"][buildtarget] = buildHelper.GetSrcInstructions(self.config, self.config['lbs']['DownloadUrl'], buildtarget)
+            package["repoinstructions"][buildtarget] = buildHelper.GetRepoInstructions(self.config['lbs']['DownloadUrl'], buildtarget)
+            package["srcinstructions"][buildtarget] = buildHelper.GetSrcInstructions(self.config['lbs']['DownloadUrl'], buildtarget)
           else:
             for branchname in package["Branches"]:
-              package["wininstructions"][branchname] = buildHelper.GetWinInstructions(self.config, self.config['lbs']['DownloadUrl'], buildtarget, branchname)
+              package["wininstructions"][branchname] = buildHelper.GetWinInstructions(self.config['lbs']['DownloadUrl'], buildtarget, branchname)
         return template('package', username=username, projectname=projectname, packagename=packagename, package=package, auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
 
     def logs(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):

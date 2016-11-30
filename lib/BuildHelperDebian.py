@@ -72,15 +72,15 @@ class BuildHelperDebian(BuildHelper):
     configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
-      config = yaml.load(stream)
-      if self.dist in config['lbs'] and self.container.release in config['lbs'][self.dist]:
-        repos = config['lbs']['debian'][self.container.release]['repos']
+      prjconfig = yaml.load(stream)
+      if self.dist in prjconfig['lbs'] and self.container.release in prjconfig['lbs'][self.dist]:
+        repos = prjconfig['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
           self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
-        if 'keys' in config['lbs'][self.dist][str(self.release)]:
-          keys = config['lbs'][self.dist][str(self.release)]['keys']
+        if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
+          keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("apt-key adv --keyserver " + config['lbs']['PublicKeyServer'] + " --recv-keys " + key):
+            if not self.run("apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + key):
               return False
 
     # install own repo as well if it exists
@@ -114,8 +114,8 @@ class BuildHelperDebian(BuildHelper):
         return False
     return True
 
-  def BuildPackage(self, config):
-    DownloadUrl = config['lbs']['DownloadUrl']
+  def BuildPackage(self):
+    DownloadUrl = self.config['lbs']['DownloadUrl']
     dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
       pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
@@ -159,8 +159,8 @@ class BuildHelperDebian(BuildHelper):
 
       debfiles=[]
       myPath = self.username + "/" + self.projectname
-      if 'Secret' in config['lbs']['Users'][self.username]:
-        myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+      if 'Secret' in self.config['lbs']['Users'][self.username]:
+        myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
       repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
       binarypath = repopath + "/" + arch + "/binary"
       if not os.path.isdir(binarypath):
@@ -185,7 +185,7 @@ class BuildHelperDebian(BuildHelper):
         return False
 
       # import the private key for signing the package if the file privateLBSkey exists
-      sshContainerPath = config['lbs']['SSHContainerPath']
+      sshContainerPath = self.config['lbs']['SSHContainerPath']
       if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
         if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf"):
           return False
@@ -203,10 +203,10 @@ class BuildHelperDebian(BuildHelper):
 
     return True
 
-  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
+  def GetSrcInstructions(self, DownloadUrl, buildtarget):
     return None
 
-  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
     buildtarget = buildtarget.split("/")
 
     keyinstructions = ""
@@ -216,8 +216,8 @@ class BuildHelperDebian(BuildHelper):
     if glob.glob(checkfile):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
-      if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        keyinstructions += "apt-key adv --keyserver " + config['lbs']['PublicKeyServer'] + " --recv-keys " + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
+      if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+        keyinstructions += "apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
     else:
       checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
@@ -229,8 +229,8 @@ class BuildHelperDebian(BuildHelper):
     result += "apt-get install apt-transport-https\n"
     result += keyinstructions
     result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" 
-    if 'Secret' in config['lbs']['Users'][self.username]:
-        result += config['lbs']['Users'][self.username]['Secret'] + "/"
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+        result += self,config['lbs']['Users'][self.username]['Secret'] + "/"
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> /etc/apt/sources.list\n"
     result += "apt-get update\n"
     # packagename: name of dsc file, without .dsc at the end

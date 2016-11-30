@@ -88,7 +88,7 @@ class BuildHelper:
     print("not implemented")
     return True
 
-  def BuildPackage(self, config):
+  def BuildPackage(self):
     print("not implemented")
     return True
 
@@ -108,23 +108,23 @@ class BuildHelper:
       return False
     return True
 
-  def GetWinInstructions(self, config, DownloadUrl, buildtarget, branchname):
+  def GetWinInstructions(self, DownloadUrl, buildtarget, branchname):
     return None
 
-  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
+  def GetSrcInstructions(self, DownloadUrl, buildtarget):
     return "not implemented"
 
-  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
     return "not implemented"
 
-  def CreateRepoFile(self, config):
+  def CreateRepoFile(self):
     return "not implemented"
  
-  def GetDependanciesAndProvides(self, config, lxcdistro, lxcrelease, lxcarch):
+  def GetDependanciesAndProvides(self, lxcdistro, lxcrelease, lxcarch):
     print("not implemented")
     return False
 
-  def StorePackageDependancies(self, config, packages, builddepends):
+  def StorePackageDependancies(self, packages, builddepends):
     con = Database(config)
     for package in packages:
       # find the package id
@@ -147,7 +147,7 @@ class BuildHelper:
     con.close()
     return
 
-  def CalculatePackageOrder(self, config, lxcdistro, lxcrelease, lxcarch):
+  def CalculatePackageOrder(self, lxcdistro, lxcrelease, lxcarch):
     result = deque()
     self.release = lxcrelease
     self.arch = lxcarch
@@ -221,6 +221,6 @@ class BuildHelper:
       if nextPackage in unsorted:
         del unsorted[nextPackage]
 
-    self.StorePackageDependancies(config, packages, builddepends)
+    self.StorePackageDependancies(packages, builddepends)
 
     return result

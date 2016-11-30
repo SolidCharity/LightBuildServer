@@ -114,7 +114,7 @@ class Build:
         # disable the network, so that only code from the tarball is being used
         if not self.buildHelper.DisableOutgoingNetwork():
           raise Exception("Problem with disabling the network")
-        if not self.buildHelper.BuildPackage(self.config):
+        if not self.buildHelper.BuildPackage():
           raise Exception("Problem with building the package")
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
@@ -124,7 +124,7 @@ class Build:
         if not self.container.rsyncHostGet(self.config['lbs']['TarballsPath'] + "/" + myPath):
           raise Exception("Problem with syncing tarballs")
         # create repo file
-        self.buildHelper.CreateRepoFile(self.config)
+        self.buildHelper.CreateRepoFile()
         self.logger.print("Success!")
         jobFailed = False
       except Exception as e:

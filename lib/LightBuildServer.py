@@ -382,7 +382,7 @@ class LightBuildServer:
     self.getPackagingInstructions(userconfig, username, projectname, branchname)
 
     buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, username, projectname, None, branchname)
-    return buildHelper.CalculatePackageOrder(self.config, lxcdistro, lxcrelease, lxcarch)
+    return buildHelper.CalculatePackageOrder(lxcdistro, lxcrelease, lxcarch)
 
   def AddToBuildQueue(self, username, projectname, packagename, branchname, distro, release, arch):
     # find if this project depends on other projects

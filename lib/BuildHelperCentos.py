@@ -69,9 +69,9 @@ class BuildHelperCentos(BuildHelper):
     configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
-      config = yaml.load(stream)
-      if self.dist in config['lbs'] and str(self.release) in config['lbs'][self.dist]:
-        repos = config['lbs'][self.dist][str(self.release)]['repos']
+      prjconfig = yaml.load(stream)
+      if self.dist in prjconfig['lbs'] and str(self.release) in prjconfig['lbs'][self.dist]:
+        repos = prjconfig['lbs'][self.dist][str(self.release)]['repos']
         for repo in repos:
           if repo.endswith('.repo'):
             self.run("cd /etc/yum.repos.d/; curl -L " + repo + " -o `basename " + repo + "`")
@@ -93,13 +93,13 @@ class BuildHelperCentos(BuildHelper):
           else:
             if not self.run(self.yumOrDnf + " -y install " + repo):
               return False
-        if 'keys' in config['lbs'][self.dist][str(self.release)]:
-          keys = config['lbs'][self.dist][str(self.release)]['keys']
+        if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
+          keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("rpm --import 'http://" + config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'"):
+            if not self.run("rpm --import 'http://" + self.config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'"):
               return False
-        if 'enable' in config['lbs'][self.dist][str(self.release)]:
-          enables = config['lbs'][self.dist][str(self.release)]['enable']
+        if 'enable' in prjconfig['lbs'][self.dist][str(self.release)]:
+          enables = prjconfig['lbs'][self.dist][str(self.release)]['enable']
           for enable in enables:
             if not self.run("yum-config-manager --enable '" + enable + "'"):
               return False
@@ -128,13 +128,13 @@ class BuildHelperCentos(BuildHelper):
         return False
     return True
 
-  def BuildPackage(self, config):
-    DownloadUrl = config['lbs']['DownloadUrl']
-    DeletePackagesAfterDays = config['lbs']['DeletePackagesAfterDays']
-    KeepMinimumPackages = config['lbs']['KeepMinimumPackages']
+  def BuildPackage(self):
+    DownloadUrl = self.config['lbs']['DownloadUrl']
+    DeletePackagesAfterDays = self.config['lbs']['DeletePackagesAfterDays']
+    KeepMinimumPackages = self.config['lbs']['KeepMinimumPackages']
     myPath = self.username + "/" + self.projectname
-    if 'Secret' in config['lbs']['Users'][self.username]:
-      myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+      myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
     repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
     specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
@@ -192,7 +192,7 @@ class BuildHelperCentos(BuildHelper):
         return False
 
       # import the private key for signing the package if the file privateLBSkey exists
-      sshContainerPath = config['lbs']['SSHContainerPath']
+      sshContainerPath = self.config['lbs']['SSHContainerPath']
       if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
         # do not sign packages on CentOS5, see https://github.com/tpokorra/lbs-mono/issues/9
         if not (self.dist == "centos" and self.release == "5"):
@@ -224,11 +224,11 @@ class BuildHelperCentos(BuildHelper):
         return False
     return True
 
-  def CreateRepoFile(self, config):
-    DownloadUrl = config['lbs']['DownloadUrl']
+  def CreateRepoFile(self):
+    DownloadUrl = self.config['lbs']['DownloadUrl']
     myPath = self.username + "/" + self.projectname
-    if 'Secret' in config['lbs']['Users'][self.username]:
-      myPath = self.username + "/" + config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+      myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
     repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
@@ -241,10 +241,10 @@ class BuildHelperCentos(BuildHelper):
         f.write(repoFileContent)
     return True
 
-  def getRepoUrl(self, config, DownloadUrl, buildtarget):
+  def getRepoUrl(self, DownloadUrl, buildtarget):
     repourl = DownloadUrl + "/repos/" + self.username + "/"
-    if 'Secret' in config['lbs']['Users'][self.username]:
-        repourl += config['lbs']['Users'][self.username]['Secret'] + "/"
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+        repourl += self.config['lbs']['Users'][self.username]['Secret'] + "/"
     repourl += self.projectname
     if buildtarget is not None:
       buildtarget = buildtarget.split("/")
@@ -252,14 +252,14 @@ class BuildHelperCentos(BuildHelper):
     return repourl
     
   # find the latest src package
-  def GetSrcInstructions(self, config, DownloadUrl, buildtarget):
-    srcurl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+  def GetSrcInstructions(self, DownloadUrl, buildtarget):
+    srcurl = self.getRepoUrl(DownloadUrl, buildtarget)
     buildtarget = buildtarget.split("/")
     result = None
 
     srcPath=self.config['lbs']['ReposPath'] + "/" + self.username + "/"
-    if 'Secret' in config['lbs']['Users'][self.username]:
-      srcPath += config['lbs']['Users'][self.username]['Secret'] + "/"
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+      srcPath += self.config['lbs']['Users'][self.username]['Secret'] + "/"
 
     srcPath += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/src"
     if os.path.isdir(srcPath):
@@ -275,13 +275,13 @@ class BuildHelperCentos(BuildHelper):
         result = (srcurl + "/src/" + latestFile, latestFile)
     return result
 
-  def GetWinInstructions(self, config, DownloadUrl, buildtarget, branchname):
-    repourl = self.getRepoUrl(config, DownloadUrl, None)
+  def GetWinInstructions(self, DownloadUrl, buildtarget, branchname):
+    repourl = self.getRepoUrl(DownloadUrl, None)
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
     checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
-    if 'Secret' in config['lbs']['Users'][self.username]:
-      checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+      checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname
     # perhaps we have built a Windows installer with NSIS
     windowsfile = checkfile + "/" + self.dist + "/" + buildtarget[1] + "/windows/" + self.packagename + "/" + branchname + "/*.exe"
@@ -294,14 +294,14 @@ class BuildHelperCentos(BuildHelper):
       return (winurl, os.path.basename(newest))
     return None
 
-  def GetRepoInstructions(self, config, DownloadUrl, buildtarget):
-    repourl = self.getRepoUrl(config, DownloadUrl, buildtarget)
+  def GetRepoInstructions(self, DownloadUrl, buildtarget):
+    repourl = self.getRepoUrl(DownloadUrl, buildtarget)
     repourl += "/lbs-"+self.username + "-"+self.projectname +".repo"
     buildtarget = buildtarget.split("/")
     result = ""
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
-      if 'PublicKey' in config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        result += 'rpm --import "http://' + config['lbs']['PublicKeyServer'] + '/pks/lookup?op=get&fingerprint=on&search=' + config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+      if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+        result += 'rpm --import "http://' + self.config['lbs']['PublicKeyServer'] + '/pks/lookup?op=get&fingerprint=on&search=' + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
     # check if a repo has been created in that place
     checkfile = self.config['lbs']['ReposPath'] + repourl[len(DownloadUrl + "/repos"):]
     if not glob.glob(checkfile):
@@ -323,8 +323,8 @@ class BuildHelperCentos(BuildHelper):
 
     # check if there is such a package at all
     checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
-    if 'Secret' in config['lbs']['Users'][self.username]:
-      checkfile += config['lbs']['Users'][self.username]['Secret'] + "/"
+    if 'Secret' in self.config['lbs']['Users'][self.username]:
+      checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
     if glob.glob(checkfile):
       return result
