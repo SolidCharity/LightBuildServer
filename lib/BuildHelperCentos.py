@@ -331,6 +331,17 @@ class BuildHelperCentos(BuildHelper):
  
     return None
 
+  def ReplaceGlobals(self, globals, condition):
+    for globitem in globals:
+      condition = condition.replace("0%{?"+globitem+":0}", "0")
+      condition = condition.replace("0%{?"+globitem+"}", globals[globitem])
+    condition = re.sub("%\{!\?.*\:1}", "1", condition)
+    condition = re.sub("%\{\?.*\}", "", condition)
+    for globitem in globals:
+      condition = condition.replace("%{"+globitem+"}", globals[globitem])
+    condition = condition.replace("||", " or ").replace("&&", " and ")
+    return condition
+
   def GetDependanciesAndProvides(self):
     specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     builddepends=[]
@@ -348,6 +359,7 @@ class BuildHelperCentos(BuildHelper):
       if_blocks={}
       current_if_block_depth = -1
 
+      # print(specfile)
       for line_loop in open(specfile):
         line = line_loop
         if line.lower().startswith("%changelog"):
@@ -364,10 +376,7 @@ class BuildHelperCentos(BuildHelper):
             condition = str(condition == self.arch)
           elif line.lower().startswith("%if "):
             condition = line[len("%if"):].strip()
-            for globitem in globals:
-              condition = condition.replace("0%{?"+globitem+"}", globals[globitem])
-            condition = re.sub("%\{\?.*\}", "", condition)
-            condition = condition.replace("||", " or ").replace("&&", " and ")
+            condition = self.ReplaceGlobals(globals, condition)
           else:
             raise Exception("unknown %if: " + line)
           if_blocks[current_if_block_depth] = eval(condition)
@@ -382,7 +391,11 @@ class BuildHelperCentos(BuildHelper):
 
         if line.lower().startswith("%global"):
           globalline=line.split()
-          globals[globalline[1]] = globalline[2]
+          condition=globalline[2]
+          print("globals " + globalline[1] + " = " + globalline[2])
+          if "%{" in condition:
+            condition = self.ReplaceGlobals(globals, condition)
+          globals[globalline[1]] = condition
         for globitem in globals:
           line = line.replace("%{"+globitem+"}", globals[globitem])
         if name:
