@@ -48,7 +48,7 @@ class BuildHelperCentos(BuildHelper):
     yumUtils="yum-utils"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"
-    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync " + yumUtils):
+    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl " + yumUtils):
       return False
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
