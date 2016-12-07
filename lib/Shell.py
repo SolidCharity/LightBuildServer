@@ -36,7 +36,10 @@ class Shell:
     returncode=None
     #for line in iter(child.stdout.readline,''):
     while True:
-      line=child.stdout.readline()
+      try:
+        line=child.stdout.readline()
+      except UnicodeDecodeError as e:
+        line="UnicodeDecodeError Problem with decoding the log line"
       if "LBSERROR" in line:
         self.logger.print(line)
       if ((len(line) == 0) and processFinished): # or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
