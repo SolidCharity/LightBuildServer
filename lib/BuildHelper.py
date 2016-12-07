@@ -199,20 +199,32 @@ class BuildHelper:
         if package in packages and nextPackage is None:
           missingRequirement=False
           # check that this package does not require a package that is in unsorted
+          if package in depends:
+            for dep in depends[package]:
+              if dep in unsorted and dep in packages:
+                missingRequirement=True
           for dep in builddepends[package]:
-            if dep in unsorted:
+            if dep in unsorted and dep in packages:
               missingRequirement=True
-            if dep in depends:
-              for dep2 in depends[dep]:
-                if dep2 in unsorted:
-                  missingRequirement=True
           if not missingRequirement:
             nextPackage=package
       if nextPackage == None:
         # problem: circular dependancy
         print ("circular dependancy, remaining packages: ")
-        for p in unsorted:
-          print(p)
+        for package in unsorted:
+          if not package in packages:
+            continue
+          print(package)
+          print(" build requires: ")
+          if package in builddepends:
+            for dep in builddepends[package]:
+              if dep in unsorted:
+                print("   " + dep)
+          print(" install requires: ")
+          if package in depends:
+            for dep in depends[package]:
+              if dep in unsorted:
+                print("   " + dep)
         return None
       result.append(nextPackage)
       for p in deliverables[nextPackage]:
@@ -220,6 +232,9 @@ class BuildHelper:
           del unsorted[p]
       if nextPackage in unsorted:
         del unsorted[nextPackage]
+
+    #print(result)
+    #raise Exception("test")
 
     self.StorePackageDependancies(packages, builddepends)
 
