@@ -335,8 +335,11 @@ class BuildHelperCentos(BuildHelper):
     for globitem in globals:
       condition = condition.replace("0%{?"+globitem+":0}", "0")
       condition = condition.replace("0%{?"+globitem+"}", globals[globitem])
+      if globitem.startswith("with_"):
+        condition = re.sub("%\{with "+globitem[5:] + "\}", "1", condition)
     condition = re.sub("%\{!\?.*\:1}", "1", condition)
     condition = re.sub("%\{\?.*\}", "", condition)
+    condition = re.sub("%\{with .*\}", "0", condition)
     for globitem in globals:
       condition = condition.replace("%{"+globitem+"}", globals[globitem])
     condition = condition.replace("||", " or ").replace("&&", " and ")
@@ -388,11 +391,9 @@ class BuildHelperCentos(BuildHelper):
 
         if current_if_block_depth >= 0 and not if_blocks[current_if_block_depth]:
           continue
-
         if line.lower().startswith("%global"):
           globalline=line.split()
           condition=globalline[2]
-          print("globals " + globalline[1] + " = " + globalline[2])
           if "%{" in condition:
             condition = self.ReplaceGlobals(globals, condition)
           globals[globalline[1]] = condition
