@@ -160,6 +160,7 @@ class BuildHelper:
     unsorted={}
     builddepends={}
     depends={}
+    providedby={}
     deliverables={}
     for package in packages:
       excludeDistro=False
@@ -179,6 +180,8 @@ class BuildHelper:
         for p in deliverables[package]:
           unsorted[p] = 1
           depends[p] = deliverables[package][p]['requires']
+          for pv in deliverables[package][p]['provides']:
+            providedby[pv] = package
         if not package in unsorted:
           unsorted[package] = 1
         # useful for debugging:
@@ -201,11 +204,16 @@ class BuildHelper:
           # check that this package does not require a package that is in unsorted
           if package in depends:
             for dep in depends[package]:
-              if dep in unsorted and dep in packages:
-                missingRequirement=True
-          for dep in builddepends[package]:
-            if dep in unsorted and dep in packages:
-              missingRequirement=True
+              if dep in providedby:
+                pv = providedby[dep]
+                if pv != package and pv in unsorted and pv in packages:
+                  missingRequirement=True
+          if package in builddepends:
+            for dep in builddepends[package]:
+              if dep in providedby:
+                pv = providedby[dep]
+                if pv != package and pv in unsorted and pv in packages:
+                  missingRequirement=True
           if not missingRequirement:
             nextPackage=package
       if nextPackage == None:
@@ -218,13 +226,17 @@ class BuildHelper:
           print(" build requires: ")
           if package in builddepends:
             for dep in builddepends[package]:
-              if dep in unsorted:
-                print("   " + dep)
+              if dep in providedby:
+                pv = providedby[dep]
+                if pv != package and pv in unsorted:
+                  print("   " + pv)
           print(" install requires: ")
           if package in depends:
             for dep in depends[package]:
-              if dep in unsorted:
-                print("   " + dep)
+              if dep in providedby:
+                pv = providedby[dep]
+                if pv != package and pv in unsorted:
+                  print("   " + pv)
         return None
       result.append(nextPackage)
       for p in deliverables[nextPackage]:
