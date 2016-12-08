@@ -130,6 +130,9 @@ class BuildHelper:
       # find the package id
       cursor = con.execute("SELECT id FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (self.username, self.projectname, package, self.branchname))
       row = cursor.fetchone()
+      if row is None:
+        print("There is no package " + package)
+        continue
       packageid = row['id']
       # delete all dependancies
       stmt = "DELETE FROM packagedependancy WHERE dependantpackage = ?"
