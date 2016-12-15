@@ -66,21 +66,27 @@ class RemoteContainer:
     self.packageSrcPath = packageSrcPath
 
   def calculateLocalContainerIP(self, cid):
-    if os.path.isfile("/etc/libvirt/qemu/networks/default.xml"):
-      # Fedora
-      return "192.168.122." + str(cid)
-    elif os.path.isfile("/etc/init/lxc-net.conf"):
-      # Ubuntu
-      return "10.0.3." + str(cid)
-    else:
-      # we are inside a container as well
-      # we just test if the host server for the build container is actually hosting the LBS application as well
-      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
-      s.connect((self.containername, 80))
-      lbsipaddress=s.getsockname()[0].split('.')
-      lbsipaddress.pop()
+    # test if we are inside a container as well
+    # we just test if the host server for the build container is actually hosting the LBS application as well
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
+    s.connect((self.containername, 80))
+    lbsipaddress=s.getsockname()[0].split('.')
+    lbsipaddress.pop()
+    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "10.0.3":
       return '.'.join(lbsipaddress) + "." + str(cid)
+
+    # we are running uwsgi and lxc/docker on one host
+    if os.path.isfile("/etc/redhat-release"):
+      file = open("/etc/redhat-release", 'r')
+      version = file.read()
+      if "Fedora" in version:
+        return "192.168.122." + str(cid)
+    elif os.path.isfile("/etc/lsb-release"):
+      file = open("/etc/lsb-release", 'r')
+      version = file.read()
+      if "Ubuntu" in version:
+        return "10.0.3." + str(cid)
 
   def executeOnHost(self, command):
     if self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -p ' + self.port + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.hostname + " \"export LC_ALL=C; (" + command + ") 2>&1; echo \$?\""):
