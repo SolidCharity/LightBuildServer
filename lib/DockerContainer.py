@@ -138,6 +138,8 @@ class DockerContainer(RemoteContainer):
   def rsyncContainerGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
+    if not os.path.isdir(dest):
+      os.makedirs(dest)
     result = self.shell.executeshell('rsync -avz -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.containerPort + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
@@ -152,6 +154,8 @@ class DockerContainer(RemoteContainer):
   def rsyncHostGet(self, path, dest = None):
     if dest == None:
       dest = path[:path.rindex("/")]
+    if not os.path.isdir(dest):
+      os.makedirs(dest)
     result = self.shell.executeshell('rsync -avz --delete -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
