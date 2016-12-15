@@ -32,6 +32,7 @@ systemctl restart nginx
 
 sed -i "s/#Mysql/Mysql/g; s/SqliteFile/#SqliteFile/g" /etc/lightbuildserver/config.yml
 sed -i "s/MysqlPassword: \"secret/MysqlPassword: \"$dbpwd/g" /etc/lightbuildserver/config.yml
+sed -i "s#http://lbs.example.org#http://$ipaddress#g" /etc/lightbuildserver/config.yml
 systemctl restart uwsgi
 
 # next step: visit http://your.ip, login with user: demo, password: demo
