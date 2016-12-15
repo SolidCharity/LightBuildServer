@@ -80,8 +80,10 @@ class Build:
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
           myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        self.container.installmount("/root/repo", self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease)
-        self.container.installmount("/root/tarball", self.config['lbs']['TarballsPath'] + "/" + myPath)
+        mountPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease
+        self.container.installmount(mountPath, "/mnt" + mountPath, "/root/repo")
+        mountPath=self.config['lbs']['TarballsPath'] + "/" + myPath
+        self.container.installmount(mountPath, "/mnt" + mountPath, "/root/tarball")
       
         # prepare container, install packages that the build requires; this is specific to the distro
         self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, username, projectname, packagename, branchname)
@@ -119,9 +121,15 @@ class Build:
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
           myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        if not self.container.rsyncHostGet(self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease):
+        srcPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease
+        destPath=srcPath[:srcPath.rindex("/")]
+        srcPath="/mnt"+srcPath
+        if not self.container.rsyncHostGet(srcPath, destPath):
           raise Exception("Problem with syncing repos")
-        if not self.container.rsyncHostGet(self.config['lbs']['TarballsPath'] + "/" + myPath):
+        srcPath=self.config['lbs']['TarballsPath'] + "/" + myPath
+        destPath=srcPath[:srcPath.rindex("/")]
+        srcPath="/mnt"+srcPath
+        if not self.container.rsyncHostGet(srcPath, destPath):
           raise Exception("Problem with syncing tarballs")
         # create repo file
         self.buildHelper.CreateRepoFile()

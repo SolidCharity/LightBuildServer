@@ -155,11 +155,9 @@ class DockerContainer(RemoteContainer):
     result = self.shell.executeshell('rsync -avz --delete -e "ssh -o \'StrictHostKeyChecking no\' -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + path + ' ' + dest)
     return result
 
-  def installmount(self, localpath, hostpath = None):
-    if hostpath is None:
-      hostpath = "/mnt/lbs/" + self.slot + "/" + self.distro + "/" + self.release + "/" + self.arch + localpath
-    self.mount += " -v "+ hostpath + ":" + localpath
+  def installmount(self, srcpath, hostpath, containerpath):
+    self.mount += " -v "+ hostpath + ":" + containerpath
     if not os.path.exists(hostpath):
       self.shell.executeshell("mkdir -p " + hostpath)
     #rsync the contents
-    return self.rsyncHostPut(hostpath)
+    return self.rsyncHostPut(srcpath, hostpath)
