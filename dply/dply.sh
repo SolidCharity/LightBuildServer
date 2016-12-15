@@ -15,6 +15,7 @@ systemctl enable libvirtd
 /usr/share/lightbuildserver/init.sh
 
 touch /root/.ssh/id_rsa
+touch /var/lib/certs/dhparams.pem
 cd /usr/share/lxc-scripts && ./initLXC.sh; cd -
 
 cd /root
