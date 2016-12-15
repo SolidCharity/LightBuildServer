@@ -78,11 +78,20 @@ lbs:
              Distros: ["ubuntu/xenial/amd64", "fedora/25/amd64", "centos/7/amd64"]
            docker-scripts:
              Distros: ["fedora/25/amd64", "centos/7/amd64"]
-         test:
-           testWithoutPkg:
-             Distros: ["centos/7/amd64", "debian/jessie/amd64"]
-           test:
-             Distros: ["centos/5/i686", "centos/6/amd64", "centos/7/amd64", "debian/wheezy/amd64", "debian/jessie/amd64", "fedora/rawhide/amd64", "fedora/24/amd64", "fedora/25/amd64", "ubuntu/trusty/amd64", "ubuntu/xenial/amd64"]
+         testLXC:
+           UseDocker: False
+           GitProjectName: test
+           Packages:
+             testWithoutPkg:
+               Distros: ["centos/7/amd64", "debian/jessie/amd64"]
+             test:
+               Distros: ["centos/5/i686", "centos/6/amd64", "centos/7/amd64", "debian/wheezy/amd64", "debian/jessie/amd64", "fedora/rawhide/amd64", "fedora/24/amd64", "fedora/25/amd64", "ubuntu/trusty/amd64", "ubuntu/xenial/amd64"]
+         testDocker:
+           UseLXC: False
+           GitProjectName: test
+           Packages:
+             test:
+               Distros: ["centos/5/i686", "centos/6/amd64", "centos/7/amd64", "debian/wheezy/amd64", "debian/jessie/amd64", "fedora/rawhide/amd64", "fedora/24/amd64", "fedora/25/amd64", "ubuntu/trusty/amd64", "ubuntu/xenial/amd64"]
 
    Machines:
        # IP is resolved through DNS
@@ -98,10 +107,17 @@ lbs:
 
        # IP is resolved through DNS
        build01.localhost:
+           type: docker
+           # if this build container is on the same host as the LBS application
+           local: True
+           priority: 2
+           cid: 5
+       build02.localhost:
            type: lxc
            # if this build container is on the same host as the LBS application
            local: True
-           cid: 5
+           priority: 1
+           cid: 3
        kolabobstogithub.pokorra.de:
            # static machines are not created, just started and stopped. are only used when specified in package
            static: True

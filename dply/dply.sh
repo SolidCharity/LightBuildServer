@@ -3,6 +3,14 @@
 
 dbpwd="test"
 Fedora=25
+swapsize="1GB"
+
+# add swap space to deal with small amount of RAM
+fallocate -l $swapsize /swapfile1;
+mkswap /swapfile1
+swapon /swapfile1
+echo "/swapfile1              swap                    swap    defaults        0 0" >> /etc/fstab
+
 dnf install -y 'dnf-command(config-manager)'
 dnf config-manager --add-repo https://download.solidcharity.com/repos/tpokorra/lbs/fedora/$Fedora/lbs-tpokorra-lbs.repo
 
