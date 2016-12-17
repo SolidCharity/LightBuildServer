@@ -41,7 +41,7 @@ class Database:
                timeout=self.config['lbs']['WaitForDatabase'])
         self.con.row_factory = sqlite3.Row
     else:
-        self.con = MySQLdb.connect(host="localhost",
+        self.con = MySQLdb.connect(host=self.config['lbs']['MysqlHost'],
                user=self.config['lbs']['MysqlUser'],
                passwd=self.config['lbs']['MysqlPassword'],
                db=self.config['lbs']['MysqlDatabase'],
