@@ -342,6 +342,8 @@ class BuildHelperCentos(BuildHelper):
     condition = re.sub("%\{with .*\}", "0", condition)
     for globitem in globals:
       condition = condition.replace("%{"+globitem+"}", globals[globitem])
+    condition = re.sub("%\{.*\}", "0", condition)
+    condition = condition.replace("! ", "not ")
     condition = condition.replace("||", " or ").replace("&&", " and ")
     return condition
 
