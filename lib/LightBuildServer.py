@@ -342,7 +342,6 @@ class LightBuildServer:
 
     self.StorePackageHashes(pathSrc+'lbs-'+projectname, username, projectname, branchname)
 
-  # TODO limit hash to distribution. changes to debian files should not affect CentOS builds...
   def StorePackageHashes(self, projectPathSrc, username, projectname, branchname):
     shell = Shell(Logger())
     con = Database(self.config)
@@ -368,12 +367,57 @@ class LightBuildServer:
             cursor = con.execute(stmt, (username, projectname, packagename, branchname, hash))
           else:
             stmt = "UPDATE package SET sourcehash = ? WHERE id = ?"
-            cursor = con.execute(stmt, (hash, id))
-            stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ?"
-            cursor = con.execute(stmt, (id,))
-            # TODO: reset dirty flag of all other packages, that depend on this package?
+            cursor = con.execute(stmt, (hash, idToUpdate))
+            self.MarkPackageAsDirty(con, idToUpdate)
           con.commit()
     con.close()
+
+  # this changes the status of the package, and requires itself and all depending packages to be rebuilt
+  def MarkPackageAsDirty(self, con, packageid):
+    # invalidate the package on all distros/release/arch combinations
+    stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ?"
+    cursor = con.execute(stmt, (packageid,))
+
+    # find all packages depending on it, and invalidate their builds as well
+    stmt = "SELECT dependantpackage FROM packagedependancy WHERE requiredpackage = ?"
+    cursor = con.execute(stmt, (packageid,))
+    data = cursor.fetchall()
+    for row in data:
+      self.MarkPackageAsDirty(con, row['dependantpackage'])
+
+  def MarkPackageAsBuilt(self, username, projectname, packagename, branchname, distro, release, arch):
+    con = Database(self.config)
+    cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?",  (username, projectname, packagename, branchname))
+    row = cursor.fetchone()
+    if row is not None:
+      packageid = row['id']
+      stmt = "SELECT id FROM packagebuildstatus WHERE packageid = ? AND distro = ? AND release = ? AND arch = ?"
+      cursor = con.execute(stmt, (packageid, distro, release, arch))
+      row = cursor.fetchone()
+      if row is not None:
+        stmt = "UPDATE packagebuildstatus SET dirty = 0 WHERE id = ?"
+        cursor = con.execute(stmt, (row['id'],))
+      else:
+        stmt = "INSERT INTO packagebuildstatus(packageid, distro, release, arch, dirty) VALUES(?,?,?,?,0)"
+        cursor = con.execute(stmt, (packageid, distro, release, arch))
+      con.commit()
+    con.close()
+
+  # Returns True or False
+  def NeedToRebuildPackage(self, username, projectname, packagename, branchname, distro, release, arch):
+    result = True
+    con = Database(self.config)
+    cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (username, projectname, packagename, branchname))
+    row = cursor.fetchone()
+    if row is not None:
+      packageid = row['id']
+      stmt = "SELECT dirty FROM packagebuildstatus WHERE packageid = ? AND distro = ? AND release = ? AND arch = ? AND dirty = 0"
+      cursor = con.execute(stmt, (packageid, distro, release, arch))
+      row = cursor.fetchone()
+      if row is not None:
+        result = False
+    con.close()
+    return result
 
   def CalculatePackageOrder(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
     userconfig = self.config['lbs']['Users'][username]
@@ -419,6 +463,10 @@ class LightBuildServer:
     else:
       message=""
       for packagename in packages:
+
+        if not self.NeedToRebuildPackage(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
+          continue
+
         # add package to build queue
         message += packagename + ", "
         job = self.GetJob(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch, "AND (status = 'WAITING' OR status='BUILDING')")

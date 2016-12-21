@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2016 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -134,6 +134,7 @@ class Build:
         # create repo file
         self.buildHelper.CreateRepoFile()
         self.logger.print("Success!")
+        self.LBS.MarkPackageAsBuilt(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
         jobFailed = False
       except Exception as e:
         # TODO: logging to log file does not work yet?
