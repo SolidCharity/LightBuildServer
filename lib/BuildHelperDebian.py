@@ -88,6 +88,8 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
+      DownloadUrlServer = DownloadUrl.replace('https://', '').replace('http://', '')
+      self.run("mkdir -p /etc/apt/preferences.d && echo 'Package: *' > /etc/apt/preferences.d/lbs && echo 'Pin: origin " + DownloadUrlServer + "' >> /etc/apt/preferences.d/lbs && echo 'Pin-Priority: 501' >> /etc/apt/preferences.d/lbs")
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release

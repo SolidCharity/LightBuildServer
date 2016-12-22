@@ -45,7 +45,7 @@ class BuildHelperCentos(BuildHelper):
     #if not self.run(self.yumOrDnf + " -y update"):
     #  if not self.run(self.yumOrDnf + " clean all && " + self.yumOrDnf + " -y update"):
     #    return False
-    yumUtils="yum-utils"
+    yumUtils="yum-utils yum-plugin-priorities"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"
     if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl " + yumUtils):
@@ -108,6 +108,7 @@ class BuildHelperCentos(BuildHelper):
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
       self.container.rsyncContainerPut(repofile,"/etc/yum.repos.d/")
+      self.run('echo "priority = 60" >> /etc/yum.repos.d/lbs-' + self.username + "-" + self.projectname + ".repo")
 
     self.run(self.yumOrDnf + " clean metadata")
     return True
