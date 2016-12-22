@@ -202,7 +202,7 @@ class LightBuildServer:
 
   def GetBuildMachineState(self, buildmachine):
     con = Database(self.config)
-    stmt = "SELECT status, buildjob, queue, type, static FROM machine WHERE name = ?"
+    stmt = "SELECT status, buildjob, queue, type, static, packagename FROM machine WHERE name = ?"
     cursor = con.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
@@ -219,14 +219,22 @@ class LightBuildServer:
     undefined["status"] = "undefined"
     return undefined
 
-  def CanFindMachineBuildingOnSameQueue(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+  def CanFindDependanciesBuilding(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     for buildmachine in self.config['lbs']['Machines']:
       state = self.GetBuildMachineState(buildmachine)
       if state['status'] == 'BUILDING':
         if state['queue'] == queue:
           # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
-          return True
+          # does this package actually depend on that other package?
+          con = Database(self.config)
+          dependantpackageid = self.GetPackageId(con, username, projectname, packagename, branchname)
+          requiredpackageid = self.GetPackageId(con, username, projectname, state['packagename'], branchname)
+          result = self.DoesPackageDependOnOtherPackage(con, dependantpackageid, requiredpackageid)
+          con.close()
+          if result:
+            print("cannot build " + packagename + " because it depends on another package")
+            return True
     return False
 
   def CanFindMachineBuildingProject(self, username, projectname):
@@ -403,6 +411,29 @@ class LightBuildServer:
       con.commit()
     con.close()
 
+  def GetPackageId(self, con, username, projectname, packagename, branchname):
+    stmt = "SELECT id FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?"
+    cursor = con.execute(stmt, (username, projectname, packagename, branchname))
+    row = cursor.fetchone()
+    if row is not None:
+      return row['id']
+    return None
+
+  def DoesPackageDependOnOtherPackage(self, con, dependantpackageid, requiredpackageid):
+    if requiredpackageid is not None and dependantpackageid is not None:
+      # find all packages that this package depends on, recursively
+      stmt = "SELECT requiredpackage FROM packagedependancy WHERE dependantpackage = ?"
+      cursor = con.execute(stmt, (dependantpackageid,))
+      data = cursor.fetchall()
+      if not data is None:
+        for row in data:
+          if row['requiredpackage'] == requiredpackageid:
+            print("DoesPackageDependOnOtherPackage: " + dependantpackageid + " depends on " + requiredpackageid)
+            return True
+          if self.DoesPackageDependOnOtherPackage(con, row['requiredpackage'], requiredpackageid):
+            return True
+    return False
+
   # Returns True or False
   def NeedToRebuildPackage(self, username, projectname, packagename, branchname, distro, release, arch):
     result = True
@@ -495,8 +526,8 @@ class LightBuildServer:
     AvoidLXC = item["avoidlxc"]
     SpecificMachine = item["buildmachine"]
 
-    # 1: check if there is a package building or waiting from the same user and buildtarget => return False
-    if self.CanFindMachineBuildingOnSameQueue(username,projectname,branchname,lxcdistro,lxcrelease,lxcarch):
+    # 1: check if there is a package building that this package depends on => return False
+    if self.CanFindDependanciesBuilding(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch):
       return False
       
     # 2: check if any project that this package depends on is still building or waiting => return False
