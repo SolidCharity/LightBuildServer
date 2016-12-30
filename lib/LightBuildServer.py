@@ -61,8 +61,25 @@ class LightBuildServer:
         conf['type'] = 'docker'
       type=conf['type']
       static=('t' if ('static' in conf and conf['static'] == True) else 'f')
-      # init the machine
-      con.execute("INSERT INTO machine(name, status, type, static) VALUES(?,?,?,?)", (buildmachine, 'AVAILABLE', type, static))
+      priority=100
+      if 'priority' in self.config['lbs']['Machines'][buildmachine]:
+        priority=self.config['lbs']['Machines'][buildmachine]['priority']
+      port = None
+      if 'port' in self.config['lbs']['Machines'][buildmachine]:
+        port = self.config['lbs']['Machines'][buildmachine]['port']
+      cid = None
+      if 'cid' in self.config['lbs']['Machines'][buildmachine]:
+        cid = self.config['lbs']['Machines'][buildmachine]['cid']
+      local = None
+      if 'local' in self.config['lbs']['Machines'][buildmachine]:
+        local = self.config['lbs']['Machines'][buildmachine]['local']
+      if type == "copr" and 'maxinstances' in conf:
+        for c in range(0, conf['maxinstances']):
+          # copr machines are always static
+          con.execute("INSERT INTO machine(name, status, type, static, priority) VALUES(?,?,?,?,?)", (buildmachine + str(c), 'AVAILABLE', 'copr', 't', priority))
+      else:
+        # init the machine
+        con.execute("INSERT INTO machine(name, status, type, static, priority, port, cid, local) VALUES(?,?,?,?,?,?,?,?)", (buildmachine, 'AVAILABLE', type, static, priority, port, cid, local))
     con.commit()
     con.close()
 
@@ -95,15 +112,13 @@ class LightBuildServer:
       stmt += " and static='f'"
       cursor = con.execute(stmt)
     else:
-      stmt += " AND name = ?"
-      cursor = con.execute(stmt, (SpecificMachine,))
+      stmt += " AND (name = ? OR (type = 'copr' AND name LIKE ? AND static='t'))"
+      cursor = con.execute(stmt, (SpecificMachine, SpecificMachine + "%"))
     data = cursor.fetchall()
     cursor.close()
     for row in data:
       buildmachine=row['name']
-      buildmachinePriority=100
-      if 'priority' in self.config['lbs']['Machines'][buildmachine]:
-        buildmachinePriority=self.config['lbs']['Machines'][buildmachine]['priority']
+      buildmachinePriority=row['priority']
       if buildmachinePriority < machinePriorityToUse:
         machinePriorityToUse = buildmachinePriority
         machineToUse = buildmachine
@@ -190,18 +205,18 @@ class LightBuildServer:
       stmt = "UPDATE machine SET status='STOPPING' WHERE name = ?"
       cursor = con.execute(stmt, (buildmachine,))
       con.commit()
+
+      stmt = "SELECT * FROM machine WHERE name = ?"
+      cursor = con.execute(stmt, (buildmachine,))
+      machine = cursor.fetchone()
       con.close()
 
-      conf=self.config['lbs']['Machines'][buildmachine]
-      if not 'type' in conf:
-        # default to docker
-        conf['type'] = 'docker'
-      if conf['type'] == 'lxc':
-        LXCContainer(buildmachine, conf, Logger(), '').stop()
-      elif conf['type'] == 'docker':
-        DockerContainer(buildmachine, conf, Logger(), '').stop()
-      else:
-        CoprContainer(buildmachine, conf, Logger(), '').stop()
+      if machine['type'] == 'lxc':
+        LXCContainer(buildmachine, machine, Logger(), '').stop()
+      elif machine['type'] == 'docker':
+        DockerContainer(buildmachine, machine, Logger(), '').stop()
+      elif machine['type'] == 'copr':
+        CoprContainer(buildmachine, machine, Logger(), '').stop()
 
       con = Database(self.config)
       stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"
@@ -230,20 +245,21 @@ class LightBuildServer:
 
   def CanFindDependanciesBuilding(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
-    for buildmachine in self.config['lbs']['Machines']:
-      state = self.GetBuildMachineState(buildmachine)
-      if state['status'] == 'BUILDING':
-        if state['queue'] == queue:
-          # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
-          # does this package actually depend on that other package?
-          con = Database(self.config)
-          dependantpackageid = self.GetPackageId(con, username, projectname, packagename, branchname)
-          requiredpackageid = self.GetPackageId(con, username, projectname, state['packagename'], branchname)
-          result = self.DoesPackageDependOnOtherPackage(con, dependantpackageid, requiredpackageid)
-          con.close()
-          if result:
-            print("cannot build " + packagename + " because it depends on another package")
-            return True
+    con = Database(self.config)
+    stmt = "SELECT status, buildjob, queue, type, static, packagename FROM machine WHERE status = 'BUILDING' AND queue = ?"
+    cursor = con.execute(stmt, (queue,))
+    data = cursor.fetchall()
+    for row in data:
+      # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
+      # does this package actually depend on that other package?
+      dependantpackageid = self.GetPackageId(con, username, projectname, packagename, branchname)
+      requiredpackageid = self.GetPackageId(con, username, projectname, row['packagename'], branchname)
+      result = self.DoesPackageDependOnOtherPackage(con, dependantpackageid, requiredpackageid)
+      if result:
+        print("cannot build " + packagename + " because it depends on another package")
+        con.close()
+        return True
+    con.close()
     return False
 
   def CanFindMachineBuildingProject(self, username, projectname):

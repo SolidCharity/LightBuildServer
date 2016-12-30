@@ -30,20 +30,20 @@ from Shell import Shell
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
     self.hostname = containername
-    self.staticMachine = (True if ('static' in configBuildMachine and configBuildMachine['static'] == True) else False)
+    self.staticMachine = (True if ('static' in configBuildMachine and configBuildMachine['static'] == "t") else False)
 
     self.port="22"
-    if "port" in configBuildMachine:
+    if configBuildMachine['port'] is not None:
       self.port=str(configBuildMachine['port'])
     self.cid=10
-    if "cid" in configBuildMachine:
+    if configBuildMachine['cid'] is not None:
       self.cid=configBuildMachine['cid']
 
     self.containername = str(self.cid).zfill(3) + "-" + containername
     self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
-    if "local" in configBuildMachine and configBuildMachine['local'] == True:
+    if configBuildMachine['local'] is not None and configBuildMachine['local'] == "t":
       # the host server for the build container is actually hosting the LBS application as well
       # or the container is running on localhost
       if containertype == "lxc":

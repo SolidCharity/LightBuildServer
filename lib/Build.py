@@ -49,16 +49,17 @@ class Build:
   def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
     # create a container on a remote machine
     self.buildmachine = buildmachine
-    conf = self.config['lbs']['Machines'][buildmachine]
-    if not 'type' in conf:
-      # default to docker
-      conf['type'] == 'docker'
-    if conf['type'] == 'lxc':
-      self.container = LXCContainer(buildmachine, conf, self.logger, packageSrcPath)
-    elif conf['type'] == 'docker':
-      self.container = DockerContainer(buildmachine, conf, self.logger, packageSrcPath)
-    else:
-      self.container = CoprContainer(buildmachine, conf, self.logger, packageSrcPath)
+    con = Database(self.config)
+    stmt = "SELECT * FROM machine WHERE name = ?"
+    cursor = con.execute(stmt, (buildmachine,))
+    machine = cursor.fetchone()
+    con.close()
+    if machine['type'] == 'lxc':
+      self.container = LXCContainer(buildmachine, machine, self.logger, packageSrcPath)
+    elif machine['type'] == 'docker':
+      self.container = DockerContainer(buildmachine, machine, self.logger, packageSrcPath)
+    elif machine['type'] == 'copr':
+      self.container = CoprContainer(buildmachine, machine, self.logger, packageSrcPath)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch):

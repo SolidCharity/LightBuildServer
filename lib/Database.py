@@ -51,7 +51,7 @@ class Database:
             self.newdatabase = True
 
   def createOrUpdate(self):
-    dbversion=6
+    dbversion=7
 
     createTablePackageStmt = """
 CREATE TABLE package (
@@ -109,6 +109,10 @@ CREATE TABLE machine (
   status char(40) NOT NULL,
   type char(20) NOT NULL DEFAULT 'docker',
   static char(1) NOT NULL DEFAULT 'f',
+  priority INTEGER NOT NULL DEFAULT 100,
+  port INTEGER,
+  cid INTEGER,
+  local char(1),
   buildjob TEXT,
   queue TEXT,
   username char(100),
@@ -147,6 +151,11 @@ CREATE TABLE log (
         self.execute(createTablePackageStmt)
         self.execute(createTablePackageDependancyStmt)
         self.execute(createTablePackageBuildStatusStmt)
+      if currentdbversion < 7:
+        self.execute("ALTER TABLE machine ADD COLUMN priority INTEGER NOT NULL DEFAULT 100")
+        self.execute("ALTER TABLE machine ADD COLUMN port INTEGER")
+        self.execute("ALTER TABLE machine ADD COLUMN cid INTEGER")
+        self.execute("ALTER TABLE machine ADD COLUMN local CHAR(1)")
       self.execute("UPDATE dbversion SET version = %d" % (dbversion))
       self.commit()
 
