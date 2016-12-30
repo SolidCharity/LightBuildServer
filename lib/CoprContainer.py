@@ -56,7 +56,11 @@ class CoprContainer(RemoteContainer):
       self.build = self.build.get_self()
       self.logger.print("current state of the build: " + self.build.state)
 
-    return self.build.state == "succeeded"
+    if self.build.state == "succeeded":
+      # wait a minute for the repository to be recalculated for following builds
+      time.sleep(60)
+      return True
+    return False
 
   def stop(self):
     # cancel the currently running build
