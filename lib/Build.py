@@ -102,7 +102,7 @@ class Build:
     if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src/" + srcrpmfilename):
       raise Exception("problem building the package on copr")
 
-  def buildpackageOnContainer(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease):
+  def buildpackageOnContainer(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, pathSrc):
         # install a mount for the project repo
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
@@ -184,7 +184,7 @@ class Build:
         if type(self.container) is CoprContainer:
           self.buildpackageOnCopr(username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch)
         else:
-          self.buildpackageOnContainer(username, projectname, packagename, branchname, lxcdistro, lxcrelease)
+          self.buildpackageOnContainer(username, projectname, packagename, branchname, lxcdistro, lxcrelease, pathSrc)
         self.logger.print("Success!")
         self.LBS.MarkPackageAsBuilt(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
         jobFailed = False

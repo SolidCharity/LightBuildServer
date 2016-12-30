@@ -72,7 +72,7 @@ class LightBuildServer:
         cid = self.config['lbs']['Machines'][buildmachine]['cid']
       local = None
       if 'local' in self.config['lbs']['Machines'][buildmachine]:
-        local = self.config['lbs']['Machines'][buildmachine]['local']
+        local = ('t' if (self.config['lbs']['Machines'][buildmachine]['local'] == True) else 'f')
       if type == "copr" and 'maxinstances' in conf:
         for c in range(0, conf['maxinstances']):
           # copr machines are always static
