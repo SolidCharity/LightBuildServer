@@ -22,6 +22,7 @@
 from RemoteContainer import RemoteContainer
 from DockerContainer import DockerContainer
 from LXCContainer import LXCContainer
+from CoprContainer import CoprContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 from Logger import Logger
@@ -55,7 +56,10 @@ class LightBuildServer:
       conf=self.config['lbs']['Machines'][buildmachine]
       if 'enabled' in conf and conf['enabled'] == False:
         continue
-      type=('lxc' if ('type' in conf and conf['type'] == 'lxc') else 'docker')
+      if not 'type' in conf:
+        # default to docker
+        conf['type'] = 'docker'
+      type=conf['type']
       static=('t' if ('static' in conf and conf['static'] == True) else 'f')
       # init the machine
       con.execute("INSERT INTO machine(name, status, type, static) VALUES(?,?,?,?)", (buildmachine, 'AVAILABLE', type, static))
@@ -189,10 +193,15 @@ class LightBuildServer:
       con.close()
 
       conf=self.config['lbs']['Machines'][buildmachine]
-      if 'type' in conf and conf['type'] == 'lxc':
+      if not 'type' in conf:
+        # default to docker
+        conf['type'] = 'docker'
+      if conf['type'] == 'lxc':
         LXCContainer(buildmachine, conf, Logger(), '').stop()
-      else:
+      elif conf['type'] == 'docker':
         DockerContainer(buildmachine, conf, Logger(), '').stop()
+      else:
+        CoprContainer(buildmachine, conf, Logger(), '').stop()
 
       con = Database(self.config)
       stmt = "UPDATE machine SET status='AVAILABLE' WHERE name = ?"

@@ -21,6 +21,7 @@
 
 from RemoteContainer import RemoteContainer
 from DockerContainer import DockerContainer
+from CoprContainer import CoprContainer
 from LXCContainer import LXCContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
@@ -49,33 +50,58 @@ class Build:
     # create a container on a remote machine
     self.buildmachine = buildmachine
     conf = self.config['lbs']['Machines'][buildmachine]
-    if 'type' in conf and conf['type'] == 'lxc':
+    if not 'type' in conf:
+      # default to docker
+      conf['type'] == 'docker'
+    if conf['type'] == 'lxc':
       self.container = LXCContainer(buildmachine, conf, self.logger, packageSrcPath)
-    else:
+    elif conf['type'] == 'docker':
       self.container = DockerContainer(buildmachine, conf, self.logger, packageSrcPath)
+    else:
+      self.container = CoprContainer(buildmachine, conf, self.logger, packageSrcPath)
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
-  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, jobId):
+  def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch):
+    # first build the src rpm locally, and move to public directory
+    # simplification: tarball must be in the git repository
+    # simplification: lbs must run on Fedora
+    self.shell = Shell(self.logger)
+    rpmbuildpath = "/run/uwsgi/rpmbuild_" + username + "_" + projectname + "_" + packagename
+    self.shell.executeshell("mkdir -p " + rpmbuildpath + "/SOURCES; mkdir -p " + rpmbuildpath + "/SPECS")
+    self.shell.executeshell("cp -R " + packageSrcPath + "/* " + rpmbuildpath + "/SOURCES; mv " + rpmbuildpath + "/SOURCES/*.spec " + rpmbuildpath + "/SPECS")
+    if not self.shell.executeshell("rpmbuild --define '_topdir " + rpmbuildpath + "' -bs " + rpmbuildpath + "/SPECS/" + packagename + ".spec"):
+      raise Exception("Problem with building the source rpm file for package " + packagename)
+    myPath = username + "/" + projectname
+    if 'Secret' in self.config['lbs']['Users'][username]:
+      raise Exception("You cannot use a secret path when you are working with Copr")
+    repoPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src"
+    files = os.listdir(rpmbuildpath + "/SRPMS")
+    if files is not None and len(files) == 1:
+      srcrpmfilename = files[0]
+    else:
+      raise Exception("cannot find the source rpm, no files in " + rpmbuildpath + "/SRPMS")
+    if not os.path.isfile(rpmbuildpath + "/SRPMS/" + srcrpmfilename):
+      raise Exception("cannot find the source rpm, " + rpmbuildpath + "/SRPMS/" + srcrpmfilename + " is not a file")
+    if not self.shell.executeshell("mkdir -p " + repoPath + " && mv " + rpmbuildpath + "/SRPMS/" + srcrpmfilename + " " + repoPath + " && rm -Rf " + rpmbuildpath):
+      raise Exception("Problem moving the source rpm file")
+
+    coprtoken_filename = self.config['lbs']['SSHContainerPath'] + '/' + username + '/' + projectname + '/copr'
+    if not os.path.isfile(coprtoken_filename):
+      raise Exception("please download a token file from copr and save in " + coprtoken_filename)
+
     userconfig = self.config['lbs']['Users'][username]
-    self.logger.startTimer()
-    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
-    self.logger.print(" * Preparing the machine...")
+    copr_projectname =  projectname
+    if 'CoprProjectName' in userconfig['Projects'][projectname]:
+      copr_projectname = userconfig['Projects'][projectname]['CoprProjectName']
 
-    # get the sources of the packaging instructions
-    gotPackagingInstructions = False
-    try:
-      pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
-      packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
-      gotPackagingInstructions = True
-    except Exception as e:
-      self.logger.print("LBSERROR: "+str(e))
+    if not self.container.connectToCopr(coprtoken_filename, copr_projectname):
+      raise Exception("problem connecting to copr, does the project " + copr_projectname + " already exist?")
 
-    jobFailed = True
-    if not gotPackagingInstructions:
-      self.LBS.ReleaseMachine(buildmachine, jobFailed)
-    elif self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
+    # tell copr to build this srpm. raise an exception if the build failed.
+    if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src/" + srcrpmfilename):
+      raise Exception("problem building the package on copr")
 
-      try:
+  def buildpackageOnContainer(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease):
         # install a mount for the project repo
         myPath = username + "/" + projectname
         if 'Secret' in self.config['lbs']['Users'][username]:
@@ -133,6 +159,31 @@ class Build:
           raise Exception("Problem with syncing tarballs")
         # create repo file
         self.buildHelper.CreateRepoFile()
+
+  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, jobId):
+    userconfig = self.config['lbs']['Users'][username]
+    self.logger.startTimer()
+    self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
+    self.logger.print(" * Preparing the machine...")
+
+    # get the sources of the packaging instructions
+    gotPackagingInstructions = False
+    try:
+      pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
+      packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
+      gotPackagingInstructions = True
+    except Exception as e:
+      self.logger.print("LBSERROR: "+str(e))
+
+    jobFailed = True
+    if not gotPackagingInstructions:
+      self.LBS.ReleaseMachine(buildmachine, jobFailed)
+    elif self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
+      try:
+        if type(self.container) is CoprContainer:
+          self.buildpackageOnCopr(username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch)
+        else:
+          self.buildpackageOnContainer(username, projectname, packagename, branchname, lxcdistro, lxcrelease)
         self.logger.print("Success!")
         self.LBS.MarkPackageAsBuilt(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
         jobFailed = False

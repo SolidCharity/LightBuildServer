@@ -59,6 +59,12 @@ lbs:
                DisplayOrderBranches: Descending
                Branches: ["monodevelop-5.1-branch", "monodevelop-5.0-branch"]
                Distros: ["fedora/20/amd64"]
+         Kolab_16:
+           Machine: copr.fedorainfracloud.org
+           CoprProjectName: "Kolab_16"
+           Packages:
+             kolab:
+             kolab-webadmin:
          kolab:
            Packages:
              sync:
@@ -124,3 +130,7 @@ lbs:
            static: True
            type: lxc
            cid: 60
+       copr.fedorainfracloud.org:
+           type: copr
+           maxinstances: 4
+           static: True
