@@ -402,6 +402,17 @@ class LightBuildServer:
     for row in data:
       self.MarkPackageAsDirty(con, row['dependantpackage'])
 
+  def MarkProjectAsDirty(self, username, projectname, branchname, distro, release, arch):
+    con = Database(self.config)
+    cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND branchname = ?",  (username, projectname, branchname))
+    data = cursor.fetchall()
+    for row in data:
+      packageid = row['id']
+      stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ? AND distro = ? AND release = ? AND arch = ?"
+      con.execute(stmt, (packageid, distro, release, arch))
+    con.commit()
+    con.close()
+
   def MarkPackageAsBuilt(self, username, projectname, packagename, branchname, distro, release, arch):
     con = Database(self.config)
     cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?",  (username, projectname, packagename, branchname))
@@ -455,6 +466,7 @@ class LightBuildServer:
       cursor = con.execute(stmt, (packageid, distro, release, arch))
       row = cursor.fetchone()
       if row is not None:
+        print(" no need to rebuild " + packagename + " " + str(packageid))
         result = False
     con.close()
     return result
@@ -495,7 +507,10 @@ class LightBuildServer:
     con.commit()
     con.close()
 
-  def BuildProject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+  def BuildProject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, reset = False):
+    if reset == True:
+      self.MarkProjectAsDirty(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch)
+
     packages=self.CalculatePackageOrder(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch)
 
     if packages is None:

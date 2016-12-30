@@ -102,14 +102,20 @@ class LightBuildServerWeb:
         print("Unexpected error:", sys.exc_info()[0])
         print(sys.exc_info())
 
+    def rebuildproject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+        return self.internal_buildproject(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, True)
+
     def buildproject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch):
+        return self.internal_buildproject(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, False)
+
+    def internal_buildproject(self, username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, reset):
         auth_username = request.get_cookie("account", secret='some-secret-key')
         if not auth_username:
             return self.pleaselogin()
         if not auth_username == username:
             return template("message", title="Wrong user", message="You are logged in with username "+auth_username + ". Access denied. Please login as " + username + "!", redirect="/project/" + username + "/" + projectname + "/" + branchname)
 
-        message = self.LBS.BuildProject(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch)
+        message = self.LBS.BuildProject(username, projectname, branchname, lxcdistro, lxcrelease, lxcarch, reset)
 
         # TODO redirect to build queue listing
         return template("<p>Build for project {{projectname}} has been triggered.</p>{{message}}<br/><a href='/'>Back to main page</a>", projectname=projectname, message=message)
@@ -357,6 +363,7 @@ bottle.route('/logout')(myApp.logout)
 bottle.route('/processbuildqueue')(myApp.processbuildqueue)
 bottle.route('/cancelplannedbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.cancelplannedbuild)
 bottle.route('/buildproject/<username>/<projectname>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)
+bottle.route('/rebuildproject/<username>/<projectname>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.rebuildproject)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuild)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.triggerbuildwithbranch)
 bottle.route('/triggerbuild/<username>/<projectname>/<packagename>/<lxcdistro>/<lxcrelease>/<lxcarch>/<auth_username>/<password>')(myApp.triggerbuildwithpwd)

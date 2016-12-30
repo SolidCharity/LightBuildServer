@@ -5,7 +5,11 @@
         	<table class="table">
 		<tr><td>Build all packages:</td>
 		% for buildtarget in sorted(buildtargets):
-		<td><a href="/buildproject/{{username}}/{{project}}/{{branchname}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a></td>
+		<td>
+		<a href="/buildproject/{{username}}/{{project}}/{{branchname}}/{{buildtarget}}"><button class="btn btn-default">Build {{buildtarget}}</button></a>
+		<br/>
+		<a href="/rebuildproject/{{username}}/{{project}}/{{branchname}}/{{buildtarget}}"><button class="btn btn-default">Rebuild {{buildtarget}}</button></a>
+                </td>
 		%end
 		</tr>
 	            % for package in sorted(users[username][project]['Packages']):
