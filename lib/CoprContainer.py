@@ -39,6 +39,21 @@ class CoprContainer(RemoteContainer):
     self.project = projects.projects[0]
     return self.project is not None
 
+  def getLatestReleaseFromCopr(self, packagename):
+    if self.project is not None:
+      builds = self.project.get_builds(limit=500)
+      maxbuildid=-1
+      version=None
+      for build in builds:
+        if build.state == "succeeded" and build.package_name == packagename:
+          self.logger.print("build " + str(build.id) + " state: " + build.state + " v: " + str(build.package_version))
+          if build.id > maxbuildid:
+            maxbuildid = build.id
+            version = build.package_version
+      if version is not None:
+        version = version[version.find("-")+1:]
+      return version
+
   def buildProject(self, urlsrcrpm):
     # TODO: only build for the current chroot?
     # http://python-copr.readthedocs.io/en/latest/client_v2/resource_info/project.html#access-project-chroots

@@ -63,13 +63,38 @@ class Build:
     return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
 
   def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch):
-    # first build the src rpm locally, and move to public directory
+    # connect to copr
+    coprtoken_filename = self.config['lbs']['SSHContainerPath'] + '/' + username + '/' + projectname + '/copr'
+    if not os.path.isfile(coprtoken_filename):
+      raise Exception("please download a token file from copr and save in " + coprtoken_filename)
+
+    userconfig = self.config['lbs']['Users'][username]
+    copr_projectname =  projectname
+    if 'CoprProjectName' in userconfig['Projects'][projectname]:
+      copr_projectname = userconfig['Projects'][projectname]['CoprProjectName']
+
+    if not self.container.connectToCopr(coprtoken_filename, copr_projectname):
+      raise Exception("problem connecting to copr, does the project " + copr_projectname + " already exist?")
+
+    # calculate the release number
+    release = self.container.getLatestReleaseFromCopr(packagename)
+    if release is not None:
+      if release.find('.') > -1:
+        releasenumber = int(release[:release.find('.')])
+        afterreleasenumber = release[release.find('.'):]
+        release = str(releasenumber+1)+afterreleasenumber
+      else:
+        release = str(int(release)+1)
+
+    # build the src rpm locally, and move to public directory
     # simplification: tarball must be in the git repository
     # simplification: lbs must run on Fedora
     self.shell = Shell(self.logger)
     rpmbuildpath = "/run/uwsgi/rpmbuild_" + username + "_" + projectname + "_" + packagename
     self.shell.executeshell("mkdir -p " + rpmbuildpath + "/SOURCES; mkdir -p " + rpmbuildpath + "/SPECS")
     self.shell.executeshell("cp -R " + packageSrcPath + "/* " + rpmbuildpath + "/SOURCES; mv " + rpmbuildpath + "/SOURCES/*.spec " + rpmbuildpath + "/SPECS")
+    if release is not None:
+      self.shell.executeshell("sed -i 's/^Release:.*/Release: " + release + "/g' " + rpmbuildpath + "/SPECS/*.spec")
     if not self.shell.executeshell("rpmbuild --define '_topdir " + rpmbuildpath + "' -bs " + rpmbuildpath + "/SPECS/" + packagename + ".spec"):
       raise Exception("Problem with building the source rpm file for package " + packagename)
     myPath = username + "/" + projectname
@@ -85,18 +110,6 @@ class Build:
       raise Exception("cannot find the source rpm, " + rpmbuildpath + "/SRPMS/" + srcrpmfilename + " is not a file")
     if not self.shell.executeshell("mkdir -p " + repoPath + " && mv " + rpmbuildpath + "/SRPMS/" + srcrpmfilename + " " + repoPath + " && rm -Rf " + rpmbuildpath):
       raise Exception("Problem moving the source rpm file")
-
-    coprtoken_filename = self.config['lbs']['SSHContainerPath'] + '/' + username + '/' + projectname + '/copr'
-    if not os.path.isfile(coprtoken_filename):
-      raise Exception("please download a token file from copr and save in " + coprtoken_filename)
-
-    userconfig = self.config['lbs']['Users'][username]
-    copr_projectname =  projectname
-    if 'CoprProjectName' in userconfig['Projects'][projectname]:
-      copr_projectname = userconfig['Projects'][projectname]['CoprProjectName']
-
-    if not self.container.connectToCopr(coprtoken_filename, copr_projectname):
-      raise Exception("problem connecting to copr, does the project " + copr_projectname + " already exist?")
 
     # tell copr to build this srpm. raise an exception if the build failed.
     if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src/" + srcrpmfilename):
