@@ -66,7 +66,7 @@ class CoprContainer(RemoteContainer):
     # somehow the html characters are encoded 
     #self.logger.print("see the the details of the build with logs at <a href='" + buildurl + "'>" + buildurl + "</a>...")
     self.logger.print("see the details of the build with logs at " + buildurl)
-    while self.build.state != "succeeded" and self.build.state != "failed":
+    while self.build.state != "succeeded" and self.build.state != "failed" and self.build.state != "cancelled":
       time.sleep(15)
       self.build = self.build.get_self()
       self.logger.print("current state of the build: " + self.build.state)
