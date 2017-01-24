@@ -46,7 +46,7 @@ class CoprContainer(RemoteContainer):
       version=None
       for build in builds:
         if build.state == "succeeded" and build.package_name == packagename:
-          self.logger.print("build " + str(build.id) + " state: " + build.state + " v: " + str(build.package_version))
+          #self.logger.print("build " + str(build.id) + " state: " + build.state + " v: " + str(build.package_version))
           if build.id > maxbuildid:
             maxbuildid = build.id
             version = build.package_version
