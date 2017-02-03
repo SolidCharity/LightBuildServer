@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2017 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -265,14 +265,15 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isdir(srcPath):
       latestFile=None
       latestTime=0
-      for fn in os.listdir(srcPath):
-        if fn.startswith(self.GetSpecFilename()[:-5] + "-") and fn[len(self.GetSpecFilename()[:-5]) + 1].isdigit() and fn.endswith(".src.rpm"):
-          fileTime=os.path.getmtime(srcPath + "/" + fn)
-          if fileTime > latestTime:
-            latestTime=fileTime
-            latestFile=fn
-      if latestFile is not None:
-        result = (srcurl + "/src/" + latestFile, latestFile)
+      for packagename in [self.packagename, self.GetSpecFilename()[:-5]]:
+        for fn in os.listdir(srcPath):
+          if fn.startswith(packagename + "-") and fn[len(packagename) + 1].isdigit() and fn.endswith(".src.rpm"):
+            fileTime=os.path.getmtime(srcPath + "/" + fn)
+            if fileTime > latestTime:
+              latestTime=fileTime
+              latestFile=fn
+        if latestFile is not None:
+          return (srcurl + "/src/" + latestFile, latestFile)
     return result
 
   def GetWinInstructions(self, DownloadUrl, buildtarget, branchname):
@@ -308,25 +309,25 @@ class BuildHelperCentos(BuildHelper):
       return None
 
     # packagename: name of spec file, without .spec at the end
-    packagename=self.GetSpecFilename()[:-5]
-    if buildtarget[0] == "centos" and buildtarget[1] == "5":
-      result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
-      result += "yum install " + packagename
-    elif buildtarget[0] == "fedora" and (buildtarget[1] == "rawhide" or int(buildtarget[1]) >= 22):
-      result += "dnf install 'dnf-command(config-manager)'\n"
-      result += "dnf config-manager --add-repo " + repourl + "\n"
-      result += "dnf install " + packagename
-    else:
-      result += "yum install yum-utils\n"
-      result += "yum-config-manager --add-repo " + repourl + "\n"
-      result += "yum install " + packagename
-
-    # check if there is such a package at all
-    checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-      checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
-    checkfile += self.projectname + "/" + self.dist + "/*/*/" + self.GetSpecFilename()[:-5] + "*"
-    if glob.glob(checkfile):
+    for packagename in [self.packagename, self.GetSpecFilename()[:-5]]:
+      # check if there is such a package at all
+      checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
+      if 'Secret' in self.config['lbs']['Users'][self.username]:
+        checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+      checkfile += self.projectname + "/" + self.dist + "/*/*/" + packagename + "-*"
+      if not glob.glob(checkfile):
+        continue
+      if buildtarget[0] == "centos" and buildtarget[1] == "5":
+        result += "wget " + repourl + " -O /etc/yum.repos.d/lbs-"+self.username + "-"+self.projectname +".repo" + "\n"
+        result += "yum install " + packagename
+      elif buildtarget[0] == "fedora" and (buildtarget[1] == "rawhide" or int(buildtarget[1]) >= 22):
+        result += "dnf install 'dnf-command(config-manager)'\n"
+        result += "dnf config-manager --add-repo " + repourl + "\n"
+        result += "dnf install " + packagename
+      else:
+        result += "yum install yum-utils\n"
+        result += "yum-config-manager --add-repo " + repourl + "\n"
+        result += "yum install " + packagename
       return result
  
     return None
