@@ -160,9 +160,9 @@ class BuildHelperCentos(BuildHelper):
       # read version from spec file, that is on the build server
       # (setup.sh might overwrite the version number...)
       temppath = tempfile.mkdtemp()
-      self.container.rsyncContainerGet("/root/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename(), temppath)
+      self.container.rsyncContainerGet("/root/rpmbuild/SPECS/" + self.packagename + ".spec", temppath)
       buildversion = "1.0.0"
-      for line in open(temppath + "/" + self.GetSpecFilename()):
+      for line in open(temppath + "/" + self.packagename + ".spec"):
         if line.startswith("%define version "):
           buildversion=line[len("%define version "):].strip()
         if line.startswith("Version: ") and not "%{version}" in line:
@@ -178,7 +178,6 @@ class BuildHelperCentos(BuildHelper):
       rpmfiles=[]
       if os.path.isdir(repopath + "/" + arch):
         for file in os.listdir(repopath + "/" + arch):
-          # TODO use GetSpecFilename, without spec, instead of packagename
           if file.startswith(self.packagename + "-" + buildversion + "-") and file.endswith("." + arch + ".rpm"):
             oldnumber=file[len(self.packagename + "-" + buildversion + "-"):-1*len("." + arch + ".rpm")]
             if '.' in oldnumber:
