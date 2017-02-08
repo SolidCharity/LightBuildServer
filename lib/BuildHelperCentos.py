@@ -50,6 +50,10 @@ class BuildHelperCentos(BuildHelper):
       yumUtils="'dnf-command(config-manager)'"
     if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl " + yumUtils):
       return False
+    # drop repositories that are installed by the docker image
+    # they become activated by yum-builddep, and then the mirrors might not work
+    self.run("if [ -f /etc/yum.repos.d/CentOS-Sources.repo ]; then rm -Rf /etc/yum.repos.d/CentOS-Sources.repo; fi");
+    self.run("if [ -f /etc/yum.repos.d/CentOS-Vault.repo ]; then rm -Rf /etc/yum.repos.d/CentOS-Vault.repo; fi");
     # CentOS5: /root/rpmbuild should point to /usr/src/redhat
     if self.dist == "centos" and self.release == "5":
       self.run("mkdir -p /usr/src/redhat; ln -s /usr/src/redhat rpmbuild")
