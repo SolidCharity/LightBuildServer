@@ -328,7 +328,7 @@ class LightBuildServer:
         Etag = content_file.read()
         headers['If-None-Match'] = Etag
       r = requests.get(url, headers=headers)
-      if r.headers['Etag'] == '"' + Etag + '"':
+      if 'Etag' in r.headers and r.headers['Etag'] == '"' + Etag + '"':
          needToDownload = False
 
     if not needToDownload and os.path.isdir(pathSrc+'lbs-'+projectname):

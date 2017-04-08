@@ -187,7 +187,8 @@ class Build:
       packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
       gotPackagingInstructions = True
     except Exception as e:
-      self.logger.print("LBSERROR: "+str(e))
+      print(e)
+      self.logger.print("LBSERROR: "+str(e)+ "; for more details see /var/log/uwsgi.log")
 
     jobFailed = True
     if not gotPackagingInstructions:
