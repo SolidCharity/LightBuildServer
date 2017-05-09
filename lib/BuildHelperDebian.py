@@ -40,7 +40,7 @@ class BuildHelperDebian(BuildHelper):
   def PrepareForBuilding(self):
     if not self.run("apt-get update"):
       return False
-    if not self.run("apt-get -y upgrade"):
+    if not self.run("DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"):
       return False
     if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs"):
       #apt-utils
