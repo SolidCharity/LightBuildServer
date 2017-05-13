@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2017 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -347,7 +347,7 @@ class LightBuildServer:
     if r.status_code == 401:
       raise Exception("problem downloading the repository, access denied")
     elif not r.status_code == 200:
-      raise Exception("problem downloading the repository, HTTP error code " + str(r.status_code))
+      raise Exception("problem downloading the repository " + url + ", HTTP error code " + str(r.status_code))
 
     chunk_size = 100000
     with open(sourceFile, 'wb') as fd:
@@ -631,6 +631,7 @@ class LightBuildServer:
       con = Database(self.config)
       stmt = "SELECT * FROM build "
       stmt += "WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ? AND distro = ? AND release = ? AND arch = ? "
+      stmt += "AND hanging = 0 "
       stmt += where
       stmt += " ORDER BY id DESC"
       cursor = con.execute(stmt, (username, projectname, packagename, branchname, distro, release, arch))
