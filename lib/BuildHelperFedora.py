@@ -45,14 +45,18 @@ class BuildHelperFedora(BuildHelperCentos):
     return True
 
   def PrepareMachineAfterStart(self):
-    if self.fedora > self.latestrelease and self.fedora != self.rawhide:
-      # before the final release: make sure we receive the latest packages
-      self.run("dnf install -y dnf-plugins-core")
-      self.run("dnf config-manager --set-enabled updates-testing")
     if self.fedora == self.rawhide:
       self.run("dnf install -y fedora-repos-rawhide dnf-plugins-core")
       self.run("dnf config-manager --set-disabled fedora updates updates-testing")
       self.run("dnf config-manager --set-enabled rawhide")
       self.run("dnf clean -q dbcache plugins metadata")
       self.run("dnf  --releasever=rawhide --setopt=deltarpm=false distro-sync -y --nogpgcheck")
+    elif self.fedora > self.latestrelease:
+      # before the final release: make sure we receive the latest packages
+      self.run("dnf install -y dnf-plugins-core")
+      self.run("dnf config-manager --set-enabled updates-testing")
+    else:
+      # disable updates-testing for the stable release
+      self.run("dnf install -y dnf-plugins-core")
+      self.run("dnf config-manager --set-disabled updates-testing")
     return True
