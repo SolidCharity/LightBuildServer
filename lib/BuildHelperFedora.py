@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Fedora: knows how to build packages for Fedora"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2017 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ class BuildHelperFedora(BuildHelperCentos):
     self.rhel = 0
     self.rawhide = 27
     # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
-    self.latestrelease = 25
+    self.latestrelease = 26
     if self.release == "rawhide":
      self.release = self.rawhide
     self.release = str(self.release)
