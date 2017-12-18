@@ -49,7 +49,7 @@ class BuildHelperFedora(BuildHelperCentos):
       self.run("dnf install -y fedora-repos-rawhide dnf-plugins-core")
       self.run("dnf config-manager --set-disabled fedora updates updates-testing")
       self.run("dnf config-manager --set-enabled rawhide")
-      self.run("dnf clean -q dbcache plugins metadata")
+      self.run("dnf clean -q dbcache metadata")
       self.run("dnf  --releasever=rawhide --setopt=deltarpm=false distro-sync -y --nogpgcheck")
     elif self.fedora > self.latestrelease:
       # before the final release: make sure we receive the latest packages
