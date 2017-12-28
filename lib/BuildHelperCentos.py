@@ -145,8 +145,8 @@ class BuildHelperCentos(BuildHelper):
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run('sed -i "s/0%{?suse_version}/' + str(self.suse_version) + '/g" ' + remoteSpecName)
-      self.run('sed -i "s/0%{?rhel}/' + str(self.rhel) + '/g" ' + remoteSpecName)
-      self.run('sed -i "s/0%{?fedora}/' + str(self.fedora) + '/g" ' + remoteSpecName)
+      #self.run('sed -i "s/0%{?rhel}/' + str(self.rhel) + '/g" ' + remoteSpecName)
+      #self.run('sed -i "s/0%{?fedora}/' + str(self.fedora) + '/g" ' + remoteSpecName)
       self.run("cp " + remoteSpecName + " rpmbuild/SPECS")
 
       # copy patches, and other files (eg. env.sh for mono-opt)
