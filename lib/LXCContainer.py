@@ -135,8 +135,8 @@ class LXCContainer(RemoteContainer):
   def installmount(self, srcpath, hostpath, containerpath):
     result = self.executeOnHost(self.SCRIPTS_PATH + "initMount.sh " + hostpath + " " + self.containername + " " + containerpath)
     if result:
-      if not os.path.exists(hostpath):
-          self.shell.executeshell("mkdir -p " + hostpath)
+      if not os.path.exists(srcpath):
+          self.shell.executeshell("mkdir -p " + srcpath)
       #rsync the contents
       return self.rsyncHostPut(srcpath, hostpath)
     return False

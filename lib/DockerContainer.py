@@ -161,7 +161,7 @@ class DockerContainer(RemoteContainer):
 
   def installmount(self, srcpath, hostpath, containerpath):
     self.mount += " -v "+ hostpath + ":" + containerpath
-    if not os.path.exists(hostpath):
-      self.shell.executeshell("mkdir -p " + hostpath)
+    if not os.path.exists(srcpath):
+      self.shell.executeshell("mkdir -p " + srcpath)
     #rsync the contents
     return self.rsyncHostPut(srcpath, hostpath)

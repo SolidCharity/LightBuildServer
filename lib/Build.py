@@ -121,10 +121,12 @@ class Build:
         if 'Secret' in self.config['lbs']['Users'][username]:
           myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
         mountPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease
-        self.container.installmount(mountPath, "/mnt" + mountPath, "/root/repo")
+        if not self.container.installmount(mountPath, "/mnt" + mountPath, "/root/repo"):
+          raise Exception("Problem with installmount")
         mountPath=self.config['lbs']['TarballsPath'] + "/" + myPath
-        self.container.installmount(mountPath, "/mnt" + mountPath, "/root/tarball")
-      
+        if not self.container.installmount(mountPath, "/mnt" + mountPath, "/root/tarball"):
+          raise Exception("Problem with installmount")
+ 
         # prepare container, install packages that the build requires; this is specific to the distro
         self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, username, projectname, packagename, branchname)
         if not self.buildHelper.PrepareMachineBeforeStart():
