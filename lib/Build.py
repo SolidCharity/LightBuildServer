@@ -145,7 +145,8 @@ class Build:
         # copy the keys to the container
         sshContainerPath = self.config['lbs']['SSHContainerPath']
         if os.path.exists(sshContainerPath + '/' + username + '/' + projectname):
-          self.container.rsyncContainerPut(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/');
+          self.container.rsyncContainerPut(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/')
+          self.container.executeInContainer('chmod 600 /root/.ssh/*')
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
