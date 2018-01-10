@@ -124,9 +124,11 @@ class Logger:
     msg['To'] = toAddress
     msg['Subject'] = subject
     # Send the mail
-    server = smtplib.SMTP_SSL(host=self.emailserver, port=self.emailport, timeout=10)
+    server = smtplib.SMTP(host=self.emailserver, port=self.emailport, timeout=10)
     TO = [toAddress] # must be a list
     try:
+      server.ehlo()
+      server.starttls()
       server.login(self.emailuser, self.emailpassword)
       server.sendmail(fromAddress, TO, msg.as_string())
     finally:
