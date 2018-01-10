@@ -70,10 +70,13 @@ class RemoteContainer:
     # we just test if the host server for the build container is actually hosting the LBS application as well
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
-    s.connect((self.containername, 80))
+    s.connect((self.hostname, 80))
     lbsipaddress=s.getsockname()[0].split('.')
     lbsipaddress.pop()
-    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "10.0.3":
+    # on CentOS: /etc/libvirt/qemu/networks/default.xml 192.168.122
+    # on Fedora 27: /etc/libvirt/qemu/networks/default.xml 192.168.124
+    # on Ubuntu 16.04: /etc/default/lxc-net 10.0.3
+    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "192.168.124" or '.'.join(lbsipaddress) == "10.0.3":
       return '.'.join(lbsipaddress) + "." + str(cid)
 
     # we are running uwsgi and lxc/docker on one host
@@ -81,6 +84,8 @@ class RemoteContainer:
       file = open("/etc/redhat-release", 'r')
       version = file.read()
       if "Fedora" in version:
+        return "192.168.124." + str(cid)
+      if "CentOS" in version:
         return "192.168.122." + str(cid)
     elif os.path.isfile("/etc/lsb-release"):
       file = open("/etc/lsb-release", 'r')
