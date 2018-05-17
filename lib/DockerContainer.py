@@ -66,12 +66,12 @@ class DockerContainer(RemoteContainer):
       elif self.release == 'jessie':
         self.release_for_docker = "8"
     if self.distro == "ubuntu":
+      if self.release == 'bionic':
+        self.release_for_docker = "18.04"
       if self.release == 'xenial':
         self.release_for_docker = "16.04"
       if self.release == 'trusty':
         self.release_for_docker = "14.04"
-      elif self.release == 'precise':
-        self.release_for_docker = "12.04"
 
     return True
 
