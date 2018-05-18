@@ -189,7 +189,7 @@ class BuildHelperDebian(BuildHelper):
       # import the private key for signing the package if the file privateLBSkey exists
       sshContainerPath = self.config['lbs']['SSHContainerPath']
       if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
-        if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf"):
+        if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf && sed -i -e 's/bionic/" + self.release + "/g' repo/conf/distributions"):
           return False
         if not self.run("cd lbs-" + self.projectname + "; dpkg-sig --sign builder *.deb"):
           return False
