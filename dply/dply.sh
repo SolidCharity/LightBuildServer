@@ -1,8 +1,7 @@
 #!/bin/bash
-# this runs on Fedora 25
+# this runs on CentOS7
 
 dbpwd="test"
-Fedora=25
 swapsize="1GB"
 
 # add swap space to deal with small amount of RAM
@@ -11,10 +10,11 @@ mkswap /swapfile1
 swapon /swapfile1
 echo "/swapfile1              swap                    swap    defaults        0 0" >> /etc/fstab
 
-dnf install -y 'dnf-command(config-manager)'
-dnf config-manager --add-repo https://download.solidcharity.com/repos/tpokorra/lbs/fedora/$Fedora/lbs-tpokorra-lbs.repo
+rpm --import "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0x4796B710919684AC"
+yum install yum-utils
+yum-config-manager --add-repo https://lbs.solidcharity.com/repos/tpokorra/lbs/centos/7/lbs-tpokorra-lbs.repo
 
-dnf install -y lightbuildserver lxc-scripts docker-scripts
+yum install -y lightbuildserver lxc-scripts docker-scripts
 # somewhere permissive mode is set in /etc/selinux/config while installing these packages
 # set selinux permissive mode for nginx to work with uwsgi, without reboot
 setenforce 0
