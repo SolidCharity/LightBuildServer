@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper: abstract base class for various builders"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2018 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -104,7 +104,7 @@ class BuildHelper:
     return True
 
   def DisableOutgoingNetwork(self):
-    if not self.run("iptables -P OUTPUT DROP && iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT && iptables -A OUTPUT -j DROP"):
+    if not self.run("mydevice=\`ip -o route get to 8.8.8.8 | awk '{ print \$5 }'\`; myip=\`ip -o route get to 8.8.8.8 | awk '{ print \$7 }'\`; ip route add \$myip dev \$mydevice"):
       return False
     return True
 

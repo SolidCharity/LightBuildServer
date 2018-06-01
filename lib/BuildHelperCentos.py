@@ -48,7 +48,7 @@ class BuildHelperCentos(BuildHelper):
     yumUtils="yum-utils yum-plugin-priorities"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"
-    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl " + yumUtils):
+    if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl iproute " + yumUtils):
       return False
     # drop repositories that are installed by the docker image
     # they become activated by yum-builddep, and then the mirrors might not work
