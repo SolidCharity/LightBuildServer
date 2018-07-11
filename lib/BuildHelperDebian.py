@@ -42,7 +42,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2"):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
