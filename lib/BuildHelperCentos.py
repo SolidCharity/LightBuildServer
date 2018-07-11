@@ -100,7 +100,7 @@ class BuildHelperCentos(BuildHelper):
         if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
           keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("rpm --import 'https://" + self.config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'"):
+            if not self.run("if [ -f ~./.ssh/" + key + ".key ]; then rpm --import ~./.ssh/" + key + ".key; else rpm --import 'https://" + self.config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'; fi"):
               return False
         if 'enable' in prjconfig['lbs'][self.dist][str(self.release)]:
           enables = prjconfig['lbs'][self.dist][str(self.release)]['enable']
