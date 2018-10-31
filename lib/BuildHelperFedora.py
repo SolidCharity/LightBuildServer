@@ -30,9 +30,9 @@ class BuildHelperFedora(BuildHelperCentos):
     BuildHelperCentos.__init__(self, container, username, projectname, packagename, branchname)
     self.dist='fedora'
     self.rhel = 0
-    self.rawhide = 29
+    self.rawhide = 30
     # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
-    self.latestrelease = 28
+    self.latestrelease = 29
     if self.release == "rawhide":
      self.release = self.rawhide
     self.release = str(self.release)
