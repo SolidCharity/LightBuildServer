@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2018 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -230,7 +230,7 @@ class BuildHelperDebian(BuildHelper):
     result = ""
     result += "apt-get install apt-transport-https\n"
     result += keyinstructions
-    result += "echo 'deb " + DownloadUrl + "/repos/" + self.username + "/" 
+    result += "echo 'deb [arch=" + buildtarget[2] + "] " + DownloadUrl + "/repos/" + self.username + "/" 
     if 'Secret' in self.config['lbs']['Users'][self.username]:
         result += self,config['lbs']['Users'][self.username]['Secret'] + "/"
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> /etc/apt/sources.list\n"
