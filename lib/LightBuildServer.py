@@ -600,6 +600,7 @@ class LightBuildServer:
       data = cursor.fetchall()
       for row in data:
         self.attemptToFindBuildMachine(con, row)
+        time.sleep(10);
       cursor.close()
       con.close()
       self.CheckForHangingBuild()
