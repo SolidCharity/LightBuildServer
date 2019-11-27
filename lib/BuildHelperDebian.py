@@ -94,6 +94,8 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " " + self.container.release + " main' > lbs-" + self.username + "-" + self.projectname + ".list")
+      if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+        self.run("apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'])
 
     # update the repository information
     self.run("apt-get update")
