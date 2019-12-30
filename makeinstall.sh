@@ -14,4 +14,4 @@ fi
 
 cp -fR $src/web/* $prod/web
 cp -fR $src/lib/* $prod/lib
-systemctl restart uwsgi
+systemctl restart lbs
