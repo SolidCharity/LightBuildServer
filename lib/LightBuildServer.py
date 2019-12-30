@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2017 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -129,7 +129,7 @@ class LightBuildServer:
         con.commit()
         return None
       con.commit()
-      print("GetAvailableBuildMachine found a free machine")
+      print("GetAvailableBuildMachine found a free machine: " + machineToUse)
       return machineToUse
     return None
 
@@ -582,7 +582,7 @@ class LightBuildServer:
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
     buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC, SpecificMachine)
-    if not buildmachine == None:
+    if buildmachine is not None:
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
       cursor = con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
       con.commit()

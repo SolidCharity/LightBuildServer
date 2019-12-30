@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -85,7 +85,7 @@ class LightBuildServerWeb:
       try:
         self.LBS.ProcessBuildQueue()
       except:
-        logging.error("Unexpected error:", sys.exc_info()[0])
+        logging.error("Unexpected error:")
         logging.error(sys.exc_info())
 
     def cancelplannedbuild(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
@@ -177,10 +177,6 @@ class LightBuildServerWeb:
 
       if auth_username is None:
         return template('message', title="Error", message="You must be logged in to see the machines", redirect="/login")
-
-      # check if there is a process in the queue and a free build machine
-      # this should normally triggered by a cron job, but this is the impatient and backup solution...
-      self.processbuildqueue()
 
       # usually the config is loaded only during startup. but sometimes it is good to add a new branch or package on the fly...
       self.config = Config.LoadConfig()
@@ -360,6 +356,7 @@ myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
 bottle.route('/logout')(myApp.logout)
+bottle.route('/trigger')(myApp.processbuildqueue)
 bottle.route('/processbuildqueue')(myApp.processbuildqueue)
 bottle.route('/cancelplannedbuild/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.cancelplannedbuild)
 bottle.route('/buildproject/<username>/<projectname>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.buildproject)

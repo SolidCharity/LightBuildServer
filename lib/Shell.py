@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run commands on the shell and log the output to our Logger class"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -41,14 +41,14 @@ class Shell:
       except UnicodeDecodeError as e:
         line="UnicodeDecodeError Problem with decoding the log line"
       if "LBSERROR" in line:
-        self.logger.print(line)
+        self.logger.print(line, 0)
       if ((len(line) == 0) and processFinished): # or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
         if not processFinished: # and ("LBSScriptFinished" in line or "LBSERROR" in line):
           returncode = child.poll()
           if returncode is None:
             returncode = 0
         break;
-      self.logger.print(line)
+      self.logger.print(line, 5)
       returncode = child.poll()
       if not processFinished and returncode is not None:
         processFinished = True
@@ -67,7 +67,7 @@ class Shell:
     while True:
       line=child.stdout.readline()
       if "LBSERROR" in line:
-        self.logger.print(line)
+        self.logger.print(line, 0)
       if ((len(line) == 0) and processFinished): # or ("LBSScriptFinished" in line) or ("LBSERROR" in line):
         if not processFinished: # and ("LBSScriptFinished" in line or "LBSERROR" in line):
           returncode = child.poll()

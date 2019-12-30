@@ -23,6 +23,7 @@ lbs:
    #MysqlUser: lbs
    #MysqlPassword: "secret"
    #MysqlDatabase: lbs
+   MaxDebugLevel: 1
    GitSrcPath: /var/lib/lightbuildserver/src
    LogsPath: /var/lib/lightbuildserver/logs
    ReposPath: /var/lib/lightbuildserver/repos
@@ -61,6 +62,7 @@ lbs:
                Distros: ["fedora/20/amd64"]
          Kolab_16:
            Machine: copr.fedorainfracloud.org
+           CoprUserName: "tpokorra"
            CoprProjectName: "Kolab_16"
            Packages:
              kolab:

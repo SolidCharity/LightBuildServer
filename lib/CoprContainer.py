@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dummy Wrapper for building packages on Copr"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -32,10 +32,10 @@ class CoprContainer(RemoteContainer):
   def createmachine(self, distro, release, arch, staticIP):
     return True
 
-  def connectToCopr(self, coprtoken_filename, copr_project):
+  def connectToCopr(self, coprtoken_filename, copr_username, copr_project):
     # establish connection to copr
     self.cl = CoprClient.create_from_file_config(coprtoken_filename)
-    projects = self.cl.projects.get_list(name=copr_project)
+    projects = self.cl.projects.get_list(name=copr_project, owner=copr_username)
     self.project = projects.projects[0]
     return self.project is not None
 

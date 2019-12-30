@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Logger: collects all the output"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -43,6 +43,7 @@ class Logger:
     self.emailuser = self.config['lbs']['EmailUser']
     self.emailpassword = self.config['lbs']['EmailPassword']
     self.buildid = buildid
+    self.MaxDebugLevel = self.config['lbs']['MaxDebugLevel']
 
   def startTimer(self):
     self.starttime = time.time()
@@ -51,7 +52,7 @@ class Logger:
     self.error = False
     self.lastLine = ""
 
-  def print(self, newOutput):
+  def print(self, newOutput, DebugLevel=1):
     if len(newOutput) == 1 and newOutput != "\n":
       self.buffer += newOutput
     elif len(newOutput) > 0:
@@ -83,8 +84,8 @@ class Logger:
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
       # just ignore the exception...
       try:
-        # TODO define in config.yml if we really want the output to the screen (ie uwsgi.log) or just to the log system
-        sys.stdout.write(timeprefix + newOutput)
+        if DebugLevel <= self.MaxDebugLevel:
+          sys.stdout.write(timeprefix + newOutput)
       except BlockingIOError:
         print("Logging print: problem with writing to stdout")
       finally:

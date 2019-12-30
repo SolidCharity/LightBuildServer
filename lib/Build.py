@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -72,8 +72,11 @@ class Build:
     copr_projectname =  projectname
     if 'CoprProjectName' in userconfig['Projects'][projectname]:
       copr_projectname = userconfig['Projects'][projectname]['CoprProjectName']
+    copr_username = username
+    if 'CoprUserName' in userconfig['Projects'][projectname]:
+      copr_username = userconfig['Projects'][projectname]['CoprUserName']
 
-    if not self.container.connectToCopr(coprtoken_filename, copr_projectname):
+    if not self.container.connectToCopr(coprtoken_filename, copr_username, copr_projectname):
       raise Exception("problem connecting to copr, does the project " + copr_projectname + " already exist?")
 
     # calculate the release number
