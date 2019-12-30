@@ -189,7 +189,7 @@ class Logger:
   def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
     filename=self.getLogFile(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
     if os.path.isfile(filename):
-      with open(filename, 'r') as content_file:
+      with open(filename, 'r', encoding="utf-8") as content_file:
         return content_file.read()
     return ""
 
