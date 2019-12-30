@@ -209,10 +209,7 @@ class Build:
         self.LBS.MarkPackageAsBuilt(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
         jobFailed = False
       except Exception as e:
-        # TODO: logging to log file does not work yet?
-        logging.basicConfig(level=logging.DEBUG, filename='/var/log/lbs.log')
-        logging.exception("Error happened...")
-        self.logger.print("LBSERROR: "+str(e))
+        self.logger.print("LBSERROR: "+str(e), 0)
       finally:  
         self.LBS.ReleaseMachine(buildmachine, jobFailed)
     else:

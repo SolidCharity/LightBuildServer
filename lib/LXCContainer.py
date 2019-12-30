@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for LXC Container Management"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -89,7 +89,7 @@ class LXCContainer(RemoteContainer):
                                              self.containername))
     # wait until ssh server is running
     for x in range(0, 24):
-      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.containerIP + " \"export LC_ALL=C; (" + command + ") 2>&1 && echo \$?\"")
+      result = self.shell.executeshell('ssh -f -o "StrictHostKeyChecking no" -o Port=' + self.containerPort + ' -i ' + self.SSHContainerPath + "/container_rsa root@" + self.containerIP + " \"export LC_ALL=C; (" + command + ") 2>&1; echo \$?\"")
       if result:
         return self.logger.getLastLine() == "0"
       if x < 5:

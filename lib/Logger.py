@@ -85,7 +85,7 @@ class Logger:
       # just ignore the exception...
       try:
         if DebugLevel <= self.MaxDebugLevel:
-          sys.stdout.write(timeprefix + newOutput)
+          print(timeprefix + newOutput)
       except BlockingIOError:
         print("Logging print: problem with writing to stdout")
       finally:
@@ -154,7 +154,7 @@ class Logger:
       os.makedirs( LogPath )
     buildnumber=0
     MaximumAgeInSeconds=time.time() - (DeleteLogAfterDays*24*60*60)
-    logfiles=[] 
+    logfiles=[]
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
         logfiles.append(file)
@@ -168,9 +168,14 @@ class Logger:
         # delete older logs, depending on DeleteLogAfterDays
         if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
           os.unlink(LogPath + "/" + file)
+    LogFilePath = LogPath + "/build-" + (str(buildnumber).zfill(6)) + ".log"
     self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
-    with open(LogPath + "/build-" + str(buildnumber).zfill(6) + ".log", 'a') as f:
-      f.write(self.get())
+    try:
+      with open(LogFilePath, 'a') as f:
+        f.write(self.get())
+    except:
+      print ("Unexpected error:", sys.exc_info())
+    sys.stdout.flush()
 
     return buildnumber
 

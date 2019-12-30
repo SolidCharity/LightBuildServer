@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014-2017 Timotheus Pokorra
+# Copyright (c) 2014-2019 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -54,10 +54,6 @@ class BuildHelperCentos(BuildHelper):
     # they become activated by yum-builddep, and then the mirrors might not work
     self.run("if [ -f /etc/yum.repos.d/CentOS-Sources.repo ]; then rm -Rf /etc/yum.repos.d/CentOS-Sources.repo; fi");
     self.run("if [ -f /etc/yum.repos.d/CentOS-Vault.repo ]; then rm -Rf /etc/yum.repos.d/CentOS-Vault.repo; fi");
-    # CentOS5: /root/rpmbuild should point to /usr/src/redhat
-    if self.dist == "centos" and self.release == "5":
-      self.run("mkdir -p /usr/src/redhat; ln -s /usr/src/redhat rpmbuild")
-      self.run("yum -y install make iptables")
     self.run("mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}")
     return True
 
