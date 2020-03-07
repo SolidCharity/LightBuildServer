@@ -141,5 +141,7 @@ class LXDContainer(RemoteContainer):
       if not os.path.exists(srcpath):
           self.shell.executeshell("mkdir -p " + srcpath)
       #rsync the contents
-      return self.rsyncHostPut(srcpath, hostpath)
+      if self.rsyncHostPut(srcpath, hostpath):
+        self.executeOnHost("chmod a+w -R " + hostpath)
+        return True
     return False
