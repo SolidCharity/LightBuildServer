@@ -30,6 +30,7 @@ from Shell import Shell
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
     self.hostname = containername
+    self.containertype = containertype
     self.staticMachine = (True if ('static' in configBuildMachine and configBuildMachine['static'] == "t") else False)
 
     self.port="22"
@@ -40,6 +41,9 @@ class RemoteContainer:
       self.cid=configBuildMachine['cid']
 
     self.containername = str(self.cid).zfill(3) + "-" + containername
+    if containertype == "lxd":
+      self.containername="l" + str(self.cid).zfill(3) + "-" + containername.replace(".","-")
+
     self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
@@ -47,6 +51,9 @@ class RemoteContainer:
       # the host server for the build container is actually hosting the LBS application as well
       # or the container is running on localhost
       if containertype == "lxc":
+        self.containerIP=self.calculateLocalContainerIP(self.cid)
+        self.containerPort="22"
+      if containertype == "lxd":
         self.containerIP=self.calculateLocalContainerIP(self.cid)
         self.containerPort="22"
       if containertype == "docker":
@@ -66,6 +73,11 @@ class RemoteContainer:
     self.packageSrcPath = packageSrcPath
 
   def calculateLocalContainerIP(self, cid):
+    # for LXD, we always configure the bridge with 10.0.4:
+    # lxc network create lxdbr0 ipv6.address=none ipv4.address=10.0.4.1/24 ipv4.nat=true
+    if self.containertype == "lxd":
+      return "10.0.4." + str(cid)
+
     # test if we are inside a container as well
     # we just test if the host server for the build container is actually hosting the LBS application as well
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

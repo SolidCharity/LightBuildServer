@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 from RemoteContainer import RemoteContainer
 from DockerContainer import DockerContainer
 from LXCContainer import LXCContainer
+from LXDContainer import LXDContainer
 from CoprContainer import CoprContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
@@ -107,7 +108,7 @@ class LightBuildServer:
     if AvoidDocker:
       stmt += " AND type <> 'docker'"
     if AvoidLXC:
-      stmt += " AND type <> 'lxc'"
+      stmt += " AND type <> 'lxc' AND type <> 'lxd'"
     if SpecificMachine is None or SpecificMachine == '':
       stmt += " and static='f'"
       cursor = con.execute(stmt)
@@ -213,6 +214,8 @@ class LightBuildServer:
 
       if machine['type'] == 'lxc':
         LXCContainer(buildmachine, machine, Logger(), '').stop()
+      elif machine['type'] == 'lxd':
+        LXDContainer(buildmachine, machine, Logger(), '').stop()
       elif machine['type'] == 'docker':
         DockerContainer(buildmachine, machine, Logger(), '').stop()
       elif machine['type'] == 'copr':
@@ -656,7 +659,7 @@ class LightBuildServer:
 
   def GetFinishedQueue(self):
       con = Database(self.config)
-      cursor = con.execute("SELECT * FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
+      cursor = con.execute("SELECT *, TIMEDIFF(finished,started) as duration FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
       data = cursor.fetchall()
       con.close()
       result = deque()

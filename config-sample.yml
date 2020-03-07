@@ -84,7 +84,9 @@ lbs:
              UseDocker: False
              Distros: ["fedora/25/amd64", "centos/7/amd64"]
            lxc-scripts:
-             Distros: ["ubuntu/xenial/amd64", "fedora/25/amd64", "centos/7/amd64"]
+             Distros: ["ubuntu/bionic/amd64", "fedora/31/amd64", "centos/7/amd64"]
+           lxd-scripts:
+             Distros: ["ubuntu/bionic/amd64", "fedora/31/amd64"]
            docker-scripts:
              Distros: ["fedora/25/amd64", "centos/7/amd64"]
          testLXC:
@@ -105,7 +107,7 @@ lbs:
    Machines:
        # IP is resolved through DNS
        mybuild01.lbs.example.org: 
-          type: lxc
+          type: lxd
           port: 2222
           cid: 10
           priority: 1
@@ -122,7 +124,7 @@ lbs:
            priority: 2
            cid: 5
        build02.localhost:
-           type: lxc
+           type: lxd
            # if this build container is on the same host as the LBS application
            local: True
            priority: 1
@@ -130,7 +132,7 @@ lbs:
        kolabobstogithub.pokorra.de:
            # static machines are not created, just started and stopped. are only used when specified in package
            static: True
-           type: lxc
+           type: lxd
            cid: 60
        copr.fedorainfracloud.org:
            type: copr

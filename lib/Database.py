@@ -95,8 +95,8 @@ CREATE TABLE build (
   avoiddocker INTEGER NOT NULL DEFAULT 0,
   dependsOnOtherProjects TEXT NOT NULL,
   buildmachine char(100),
-  started TIMESTAMP,
-  finished TIMESTAMP,
+  started timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   hanging INTEGER default 0,
   buildsuccess char(20),
   buildnumber INTEGER)

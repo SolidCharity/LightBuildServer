@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@ from RemoteContainer import RemoteContainer
 from DockerContainer import DockerContainer
 from CoprContainer import CoprContainer
 from LXCContainer import LXCContainer
+from LXDContainer import LXDContainer
 from BuildHelper import BuildHelper
 from BuildHelperFactory import BuildHelperFactory
 import Config
@@ -56,6 +57,8 @@ class Build:
     con.close()
     if machine['type'] == 'lxc':
       self.container = LXCContainer(buildmachine, machine, self.logger, packageSrcPath)
+    elif machine['type'] == 'lxd':
+      self.container = LXDContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine['type'] == 'docker':
       self.container = DockerContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine['type'] == 'copr':

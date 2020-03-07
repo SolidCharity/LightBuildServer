@@ -5,6 +5,7 @@
         <ul>
             % for buildmachine in sorted(buildmachines):
               % type = "LXC" if (buildmachines[buildmachine]["type"] == "lxc") else ""
+              % type = "LXD" if (buildmachines[buildmachine]["type"] == "lxd") else type
               % type = "Docker" if (buildmachines[buildmachine]["type"] == "docker") else type
               % type = "Copr" if (buildmachines[buildmachine]["type"] == "copr") else type
               <li>Container {{buildmachine}} ({{type}}):
@@ -43,6 +44,7 @@
 		% for job in finishedjobs:
 		<tr>
 			<td>{{job["finished"]}}</td>
+			<td>{{job["duration"]}}</td>
 			<td>
 				<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
 				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>
