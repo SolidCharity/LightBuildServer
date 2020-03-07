@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -45,7 +45,9 @@ class BuildHelperCentos(BuildHelper):
     #if not self.run(self.yumOrDnf + " -y update"):
     #  if not self.run(self.yumOrDnf + " clean all && " + self.yumOrDnf + " -y update"):
     #    return False
-    yumUtils="yum-utils yum-plugin-priorities"
+    yumUtils="yum-utils"
+    if int(self.release) < 8:
+      yumUtils="yum-utils yum-plugin-priorities"
     if self.yumOrDnf == "dnf":
       yumUtils="'dnf-command(config-manager)'"
     if not self.run(self.yumOrDnf + " -y install tar createrepo gcc rpm-build rpm-sign gnupg make curl iptables rsync perl iproute " + yumUtils):
