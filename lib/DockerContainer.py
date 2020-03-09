@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for Docker Container Management"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@ class DockerContainer(RemoteContainer):
     if self.distro == "fedora":
       if self.release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        self.release_for_docker = "24"
+        self.release_for_docker = "31"
     if self.distro == "debian":
       if self.release == 'wheezy':
         self.release_for_docker = "7"
@@ -70,6 +70,8 @@ class DockerContainer(RemoteContainer):
       elif self.release == 'buster':
         self.release_for_docker = "10"
     if self.distro == "ubuntu":
+      if self.release == 'focal':
+        self.release_for_docker = "20.04"
       if self.release == 'eoan':
         self.release_for_docker = "19.10"
       if self.release == 'bionic':
