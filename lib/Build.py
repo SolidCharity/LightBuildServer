@@ -94,7 +94,6 @@ class Build:
 
     # build the src rpm locally, and move to public directory
     # simplification: tarball must be in the git repository
-    # simplification: lbs must run on Fedora
     self.shell = Shell(self.logger)
     rpmbuildpath = "/run/uwsgi/rpmbuild_" + username + "_" + projectname + "_" + packagename
     self.shell.executeshell("mkdir -p " + rpmbuildpath + "/SOURCES; mkdir -p " + rpmbuildpath + "/SPECS")
