@@ -516,9 +516,6 @@ class LightBuildServer:
     avoidlxc = False if ("UseLXC" not in proj) else (proj["UseLXC"] == False)
     if not avoidlxc:
       avoidlxc = False if (pkg is None or "UseLXC" not in pkg) else (pkg["UseLXC"] == False)
-    if distro == "fedora" and avoiddocker == False:
-      # we have issues with Fedora LXC containers (see https://github.com/tpokorra/lxc-scripts/issues/28)
-      avoidlxc = True
     buildmachine = None if ("Machine" not in proj) else proj["Machine"]
     if buildmachine is None:
       buildmachine = None if (pkg is None or "Machine" not in pkg) else pkg["Machine"]
