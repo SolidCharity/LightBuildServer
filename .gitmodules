@@ -1,6 +1,0 @@
-[submodule "docker-scripts"]
-	path = docker-scripts
-	url = https://github.com/tpokorra/docker-scripts.git
-[submodule "lxc-scripts"]
-	path = lxc-scripts
-	url = https://github.com/tpokorra/lxc-scripts.git
