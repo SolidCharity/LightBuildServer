@@ -43,7 +43,7 @@ class LXDContainer(RemoteContainer):
     self.staticIP = staticIP
 
     if not self.staticMachine:
-      if self.executeOnHost("if [[ ! -z '`lxc list " + self.containername + " | grep RUNNING`' ]]; then lxc stop " + self.containername + "; fi") == False:
+      if self.executeOnHost("lxc stop " + self.containername + " || echo 'container is not running'") == False:
         return False
       if self.executeOnHost("if [ -d /var/lib/lxd/containers/" + self.containername + " ]; then lxc delete " + self.containername + "; fi") == False:
         return False
