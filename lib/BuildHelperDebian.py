@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014-2018 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -130,6 +130,10 @@ class BuildHelperDebian(BuildHelper):
         self.run("cd " + pathPackageSrc + " && (for f in debian.*; do mv \$f debian/\${f:7}; done)")
         # make sure that we only have lowercase letters in the dsc filename
         self.run("cd " + pathPackageSrc + " && (for f in *.dsc; do mv \$f \${f,,}; done)")
+
+      # if *debian.tar.xz exists, the files might come from Debian Launchpad
+      if len(glob.glob(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/*debian.tar.xz")) > 0:
+        self.run("cd " + pathPackageSrc + " && tar xf *debian.tar.xz && rm *debian.tar.xz");
 
       # unpack the sources
       # the sources have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
