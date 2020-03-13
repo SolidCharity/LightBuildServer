@@ -99,7 +99,7 @@ class LightBuildServer:
       result.append(row['name'])
     return result
 
-  def GetAvailableBuildMachine(self, con, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, AvoidDocker, AvoidLXC, SpecificMachine):
+  def GetAvailableBuildMachine(self, con, username, projectname, secret, packagename, branchname, lxcdistro, lxcrelease, lxcarch, AvoidDocker, AvoidLXC, SpecificMachine):
     buildjob=username+"/"+projectname+"/"+packagename+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease+"/"+lxcarch
     queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
     machineToUse=None
@@ -124,8 +124,8 @@ class LightBuildServer:
         machinePriorityToUse = buildmachinePriority
         machineToUse = buildmachine
     if machineToUse is not None:
-      stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,packagename=? WHERE name=? AND status='AVAILABLE'"
-      cursor = con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, packagename, machineToUse))
+      stmt = "UPDATE machine SET status=?,buildjob=?,queue=?,username=?,projectname=?,secret=?,packagename=? WHERE name=? AND status='AVAILABLE'"
+      cursor = con.execute(stmt, ('BUILDING', buildjob, queue, username, projectname, secret, packagename, machineToUse))
       if cursor.rowcount == 0:
         con.commit()
         return None
@@ -229,7 +229,7 @@ class LightBuildServer:
 
   def GetBuildMachineState(self, buildmachine):
     con = Database(self.config)
-    stmt = "SELECT status, buildjob, queue, type, static, packagename FROM machine WHERE name = ?"
+    stmt = "SELECT status, buildjob, queue, type, static, packagename, username, secret FROM machine WHERE name = ?"
     cursor = con.execute(stmt, (buildmachine,))
     data = cursor.fetchone()
     cursor.close()
@@ -503,6 +503,9 @@ class LightBuildServer:
     # find if this project depends on other projects
     DependsOnOtherProjects={}
     proj=self.config['lbs']['Users'][username]['Projects'][projectname]
+    secret = 'f'
+    if "Secret" in self.config['lbs']['Users'][username]:
+      secret = 't'
     if packagename in self.config['lbs']['Users'][username]['Projects'][projectname]:
       pkg=self.config['lbs']['Users'][username]['Projects'][projectname][packagename]
     else:
@@ -521,8 +524,8 @@ class LightBuildServer:
       buildmachine = None if (pkg is None or "Machine" not in pkg) else pkg["Machine"]
 
     con = Database(self.config)
-    stmt = "INSERT INTO build(status,username,projectname,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,buildmachine,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
-    cursor = con.execute(stmt, ('WAITING', username, projectname, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, buildmachine, dependsOnString))
+    stmt = "INSERT INTO build(status,username,projectname,secret,packagename,branchname,distro,release,arch,avoiddocker,avoidlxc,buildmachine,dependsOnOtherProjects) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    cursor = con.execute(stmt, ('WAITING', username, projectname, secret, packagename, branchname, distro, release, arch, avoiddocker, avoidlxc, buildmachine, dependsOnString))
     con.commit()
     con.close()
 
@@ -559,6 +562,7 @@ class LightBuildServer:
   def attemptToFindBuildMachine(self, con, item):
     username = item["username"]
     projectname = item["projectname"]
+    secret = item["secret"]
     packagename = item["packagename"]
     branchname = item["branchname"]
     lxcdistro = item["distro"]
@@ -581,7 +585,7 @@ class LightBuildServer:
     lbs = Build(self, Logger(item['id']))
     lbsName=self.GetLbsName(username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch)
     # get name of available slot
-    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC, SpecificMachine)
+    buildmachine=self.GetAvailableBuildMachine(con,username,projectname,secret,packagename,branchname,lxcdistro,lxcrelease,lxcarch,AvoidDocker,AvoidLXC, SpecificMachine)
     if buildmachine is not None:
       stmt = "UPDATE build SET status='BUILDING', started=?, buildmachine=? WHERE id = ?"
       cursor = con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buildmachine, item['id']))
@@ -644,9 +648,13 @@ class LightBuildServer:
       con.close()
       return data
 
-  def GetBuildQueue(self):
+  def GetBuildQueue(self, auth_username):
       con = Database(self.config)
-      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
+      if auth_username is None:
+        hideJobs = " AND secret = 'f'"
+      else:
+        hideJobs = "AND (username = '" + auth_username + "' OR secret = 'f')"
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' " + hideJobs + " ORDER BY id ASC")
       data = cursor.fetchall()
       con.close()
       result = deque()
@@ -654,9 +662,15 @@ class LightBuildServer:
         result.append(row)
       return result
 
-  def GetFinishedQueue(self):
+  def GetFinishedQueue(self, auth_username):
       con = Database(self.config)
-      cursor = con.execute("SELECT *, TIMEDIFF(finished,started) as duration FROM build WHERE status='FINISHED' ORDER BY finished DESC LIMIT ?", (self.config['lbs']['ShowNumberOfFinishedJobs'],))
+      if auth_username is None:
+        hideJobs = " AND secret = 'f'"
+      else:
+        hideJobs = "AND (username = '" + auth_username + "' OR secret = 'f')"
+      sql = "SELECT *, TIMEDIFF(finished,started) as duration FROM build WHERE status='FINISHED' " + hideJobs + " ORDER BY finished DESC LIMIT ?"
+
+      cursor = con.execute(sql, (self.config['lbs']['ShowNumberOfFinishedJobs'],))
       data = cursor.fetchall()
       con.close()
       result = deque()

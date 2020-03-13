@@ -9,21 +9,22 @@
               % type = "Docker" if (buildmachines[buildmachine]["type"] == "docker") else type
               % type = "Copr" if (buildmachines[buildmachine]["type"] == "copr") else type
               <li>Container {{buildmachine}} ({{type}}):
-		% if buildmachines[buildmachine]["status"] == "BUILDING":
+		% if buildmachines[buildmachine]["status"] == "BUILDING" and (auth_username == buildmachines[buildmachine]["username"] or buildmachines[buildmachine]["secret"] == "f"):
                   % job = buildmachines[buildmachine]["buildjob"].split('/')
                   {{buildmachines[buildmachine]["status"]}} <br/>
 		  Currently building
 			<a href="/package/{{job[0]}}/{{job[1]}}/{{job[2]}}#{{job[3]}}_{{job[4]}}/{{job[5]}}/{{job[6]}}">
 			{{buildmachines[buildmachine]["buildjob"]}}</a>:
 			<a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
-                % end
-                % if not buildmachines[buildmachine]["status"] == "BUILDING": 
+                % else:
                    {{buildmachines[buildmachine]["status"]}} <br/>
 		% end
 
+                % if auth_username is not None:
 		&nbsp; &nbsp; Action: <ul>
 			<li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
 		</ul>
+                % end
                 <br/>
               </li>
            % end
@@ -33,9 +34,11 @@
 		% for job in jobs:
 		<li>
 			<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
-				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>:
-			<a href="/cancelplannedbuild/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
+				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>
+                        % if auth_username is not None:
+			: <a href="/cancelplannedbuild/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
 				Cancel this build</a>
+                        % end
 		</li>
 		% end
 	</ul>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -175,9 +175,6 @@ class LightBuildServerWeb:
       # for displaying the logout link
       auth_username = request.get_cookie("account", secret='some-secret-key')
 
-      if auth_username is None:
-        return template('message', title="Error", message="You must be logged in to see the machines", redirect="/login")
-
       # usually the config is loaded only during startup. but sometimes it is good to add a new branch or package on the fly...
       self.config = Config.LoadConfig()
 
@@ -188,7 +185,11 @@ class LightBuildServerWeb:
         if m["static"] == 'f' or m["status"] != "AVAILABLE":
           buildmachines[buildmachine] = m
 
-      return template('machines', buildmachines=buildmachines, jobs=self.LBS.GetBuildQueue(), finishedjobs=self.LBS.GetFinishedQueue(), auth_username=auth_username, logout_auth_username=self.getLogoutAuthUsername())
+      return template('machines', buildmachines=buildmachines,
+        jobs=self.LBS.GetBuildQueue(auth_username),
+        finishedjobs=self.LBS.GetFinishedQueue(auth_username),
+        auth_username=auth_username,
+        logout_auth_username=self.getLogoutAuthUsername())
 
     def listProjects(self):
       # for displaying the logout link

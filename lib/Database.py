@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Database: access to database"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -51,7 +51,7 @@ class Database:
             self.newdatabase = True
 
   def createOrUpdate(self):
-    dbversion=7
+    dbversion=8
 
     createTablePackageStmt = """
 CREATE TABLE package (
@@ -86,6 +86,7 @@ CREATE TABLE build (
   status char(20) NOT NULL,
   username char(100) NOT NULL,
   projectname char(100) NOT NULL,
+  secret char(1),
   packagename char(100) NOT NULL,
   branchname char(100) NOT NULL,
   distro char(20) NOT NULL,
@@ -117,6 +118,7 @@ CREATE TABLE machine (
   queue TEXT,
   username char(100),
   projectname char(100),
+  secret char(1),
   packagename char(100))
 """
       self.execute(createTableStmt)
@@ -156,6 +158,9 @@ CREATE TABLE log (
         self.execute("ALTER TABLE machine ADD COLUMN port INTEGER")
         self.execute("ALTER TABLE machine ADD COLUMN cid INTEGER")
         self.execute("ALTER TABLE machine ADD COLUMN local CHAR(1)")
+      if currentdbversion < 8:
+        self.execute("ALTER TABLE build ADD COLUMN secret char(1) NOT NULL DEFAULT 't' AFTER projectname")
+        self.execute("ALTER TABLE machine ADD COLUMN secret char(1) NOT NULL DEFAULT 't' AFTER projectname")
       self.execute("UPDATE dbversion SET version = %d" % (dbversion))
       self.commit()
 
