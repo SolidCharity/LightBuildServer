@@ -13,8 +13,8 @@
 				</a>
 			% end
                         % if len(package['Branches']) == 1:
-				<a name="master_{{buildtarget}}"></a><br/><br/><br/>
-				<a href="#master_{{buildtarget}}">
+				<a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
+				<a href="#{{branchname}}_{{buildtarget}}">
 					<h4>{{buildtarget}}</h4>
 				</a>
 			% end
