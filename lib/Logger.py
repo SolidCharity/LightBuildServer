@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Logger: collects all the output"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -124,6 +124,7 @@ class Logger:
     msg['From'] = fromAddress
     msg['To'] = toAddress
     msg['Subject'] = subject
+    msg["Date"] = formatdate(localtime=True)
     # Send the mail
     server = smtplib.SMTP(host=self.emailserver, port=self.emailport, timeout=10)
     TO = [toAddress] # must be a list
