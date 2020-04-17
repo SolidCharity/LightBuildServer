@@ -164,7 +164,7 @@ class BuildHelperCentos(BuildHelper):
       temppath = tempfile.mkdtemp()
       self.container.rsyncContainerGet("/root/rpmbuild/SPECS/" + self.packagename + ".spec", temppath)
       buildversion = "1.0.0"
-      for line in open(temppath + "/" + self.packagename + ".spec"):
+      for line in open(temppath + "/" + self.packagename + ".spec", encoding="utf-8"):
         if line.startswith("%define version "):
           buildversion=line[len("%define version "):].strip()
         if line.startswith("Version: ") and not "%{version}" in line:
@@ -368,7 +368,7 @@ class BuildHelperCentos(BuildHelper):
       current_if_block_depth = -1
 
       # print(specfile)
-      for line_loop in open(specfile):
+      for line_loop in open(specfile, encoding="utf-8"):
         line = line_loop
         if line.lower().startswith("%changelog"):
           break
