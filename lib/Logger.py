@@ -173,8 +173,8 @@ class Logger:
     LogFilePath = LogPath + "/build-" + (str(buildnumber).zfill(6)) + ".log"
     self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
     try:
-      with open(LogFilePath, 'a') as f:
-        f.write(self.get())
+      with open(LogFilePath, 'ab') as f:
+        f.write(self.get().encode('utf8'))
     except:
       print ("Unexpected error:", sys.exc_info())
     sys.stdout.flush()
