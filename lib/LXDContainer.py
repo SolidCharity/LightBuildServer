@@ -45,7 +45,7 @@ class LXDContainer(RemoteContainer):
     if not self.staticMachine:
       if self.executeOnHost("lxc stop " + self.containername + " || echo 'container is not running'") == False:
         return False
-      if self.executeOnHost("if [ -d /var/lib/lxd/containers/" + self.containername + " ]; then lxc delete " + self.containername + "; fi") == False:
+      if self.executeOnHost("if [ -d /var/lib/lxd/containers/" + self.containername + " ]; then lxc delete " + self.containername + "; else echo 'container does not exist'; fi") == False:
         return False
     result = False
     if self.staticMachine:
