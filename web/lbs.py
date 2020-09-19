@@ -77,7 +77,7 @@ class LightBuildServerWeb:
         return ""
 
     def checkPermission(self, auth_username, username):
-        if 'Secret' in self.config['lbs']['Users'][username] and not auth_username == username:
+        if (username not in self.config['lbs']['Users']) or ('Secret' in self.config['lbs']['Users'][username] and not auth_username == username):
           return template("message", title="Error", message="You don't have the permissions to see this content", redirect="/")
         return None
 
