@@ -224,7 +224,10 @@ class Build:
       if self.config['lbs']['EmailFromAddress'] == 'lbs@example.org':
         self.logger.print("Please configure the email settings for sending notification emails")
       else:
-        self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+        try:
+          self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+        except Exception as e:
+          self.logger.print("ERROR: we could not send the email")
 
     # now mark the build finished
     con = Database(self.config)
