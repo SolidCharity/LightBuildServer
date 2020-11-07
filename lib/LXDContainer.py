@@ -32,6 +32,14 @@ class LXDContainer(RemoteContainer):
     RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath, "lxd")
     self.SCRIPTS_PATH = "/usr/share/lxd-scripts/"
 
+    self.CONTAINER_PATH = "/var/snap/lxd/common/lxd/storage-pools/default/containers/"
+    if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
+      self.CONTAINER_PATH = "/var/lib/lxd/containers/"
+      if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
+        self.CONTAINER_PATH = "/var/snap/lxd/common/lxd/containers/"
+        if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
+          raise Exception("cannot find path for LXC containers")
+
   def executeOnHost(self, command):
     return RemoteContainer.executeOnHost(self, command)
 
@@ -62,7 +70,7 @@ class LXDContainer(RemoteContainer):
         result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
     if result == True:
       result = self.executeOnHost(self.SCRIPTS_PATH + "tunnelport.sh " + str(self.cid) + " 22")
-    sshpath="/var/lib/lxd/containers/" + self.containername + "/rootfs/root/.ssh/"
+    sshpath=self.CONTAINER_PATH + self.containername + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
     if result == True:
@@ -122,7 +130,7 @@ class LXDContainer(RemoteContainer):
       dest = path[:path.rindex("/")]
     if not os.path.isdir(dest):
       os.makedirs(dest)
-    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':/var/lib/lxd/containers/' + self.containername + '/rootfs' + path + ' ' + dest)
+    result = self.shell.executeshell('rsync -avz -e "ssh -i ' + self.SSHContainerPath + "/container_rsa -p " + self.port + '" root@' + self.hostname + ':' + self.CONTAINER_PATH + self.containername + '/rootfs' + path + ' ' + dest)
     return result
 
   def rsyncHostPut(self, src, dest = None):
