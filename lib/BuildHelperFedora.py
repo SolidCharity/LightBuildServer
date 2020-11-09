@@ -30,15 +30,14 @@ class BuildHelperFedora(BuildHelperCentos):
     BuildHelperCentos.__init__(self, container, username, projectname, packagename, branchname)
     self.dist='fedora'
     self.rhel = 0
-    self.rawhide = 33
+    self.rawhide = 34
     # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
-    self.latestrelease = 32
+    self.latestrelease = 33
     if self.release == "rawhide":
      self.release = self.rawhide
     self.release = str(self.release)
     self.fedora = int(self.release)
     self.releaseForRepoFile = "$releasever"
-    # use dnf instead of rpm, starting with Fedora 22
     self.yumOrDnf = "dnf"
 
   def PrepareMachineBeforeStart(self):
