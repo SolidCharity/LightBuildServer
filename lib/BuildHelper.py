@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper: abstract base class for various builders"""
 
-# Copyright (c) 2014-2018 Timotheus Pokorra
+# Copyright (c) 2014-2020 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -99,7 +99,7 @@ class BuildHelper:
       return False
     setupfile=path + "/setup.sh"
     if os.path.isfile(self.pathSrc + "/" + setupfile):
-      if not self.run("cd " + path + "; ./setup.sh " + branchname):
+      if not self.run("cd " + path + "; HOSTNAME='" + container.hostname + "' ./setup.sh " + branchname):
         return False
     return True
 
