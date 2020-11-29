@@ -99,7 +99,7 @@ class BuildHelper:
       return False
     setupfile=path + "/setup.sh"
     if os.path.isfile(self.pathSrc + "/" + setupfile):
-      if not self.run("cd " + path + "; HOSTNAME='" + self.container.hostname + "' ./setup.sh " + branchname):
+      if not self.run("cd " + path + "; DOMAINNAME='" + self.container.hostname + "' ./setup.sh " + branchname):
         return False
     return True
 
