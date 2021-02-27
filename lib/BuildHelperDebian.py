@@ -234,7 +234,7 @@ class BuildHelperDebian(BuildHelper):
         return None
    
     result = ""
-    result += "apt-get install apt-transport-https\n"
+    result += "apt-get install apt-transport-https gnupg ca-certificates\n"
     result += keyinstructions
     result += "echo 'deb [arch=" + buildtarget[2] + "] " + DownloadUrl + "/repos/" + self.username + "/" 
     if 'Secret' in self.config['lbs']['Users'][self.username]:
