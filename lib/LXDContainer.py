@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for LXD Container Management"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2021 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -88,7 +88,7 @@ class LXDContainer(RemoteContainer):
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
       else:
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
-      if self.distro == "fedora":
+      if self.distro == "fedora" or self.distro == "centos":
         # need to request IPv4 address. cgroup v2 issue?
         # see https://stackoverflow.com/questions/59535007/how-to-fix-network-issues-with-lxd-on-fedora-31
         self.executeOnHost("lxc exec " + self.containername + " -- /bin/bash -c 'dhclient eth0'")
