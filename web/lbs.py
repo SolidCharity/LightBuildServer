@@ -380,11 +380,6 @@ bottle.route('/machines/<action>/<buildmachine>')(myApp.manageBuildMachines)
 bottle.route('/css/<filename>')(myApp.css)
 bottle.route('/ext/<filepath:path>')(myApp.ext)
 if __name__ == '__main__':
-  # we need the IP address that connects to the outside world
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
-  s.connect(("www.solidcharity.com", 80))
-  ipaddress=s.getsockname()[0]
-  bottle.run(host=ipaddress, port=80, debug=False)
+  bottle.run(port=8000, debug=False)
 else:
   app = application = bottle.default_app()

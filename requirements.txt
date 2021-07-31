@@ -1,0 +1,6 @@
+gunicorn
+gunicorn[gevent]
+bottle
+PyYAML
+requests
+copr

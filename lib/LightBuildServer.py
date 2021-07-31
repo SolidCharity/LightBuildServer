@@ -47,7 +47,6 @@ class LightBuildServer:
   def __init__(self):
     self.config = Config.LoadConfig()
     con = Database(self.config)
-    con.createOrUpdate()
 
     con.execute("DELETE FROM machine")
     # keep WAITING build jobs
