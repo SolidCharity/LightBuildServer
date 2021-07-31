@@ -185,7 +185,7 @@ class LightBuildServer:
       con = Database(self.config)
       # TODO: add arch to the queue as well?
       # queue=username+"/"+projectname+"/"+branchname+"/"+lxcdistro+"/"+lxcrelease
-      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' AND CONCAT_WS('/', username, projectname, branchname, distro, release) = ?", (queue,))
+      cursor = con.execute("SELECT * FROM build WHERE status='WAITING' AND (username || '/' || projectname || '/' || branchname || '/' || distro || '/' || release) = ?", (queue,))
       data = cursor.fetchall()
       for row in data:
         cursor = con.execute("UPDATE build SET status = 'CANCELLED' WHERE id=?", (row['id'],))

@@ -43,6 +43,7 @@ class Database:
   def execute(self, stmt, values = ()):
     if 'SqliteFile' in self.config['lbs']:
       cur = self.con.cursor()
+      print(stmt)
       cur.execute(stmt, values)
       return cur
 

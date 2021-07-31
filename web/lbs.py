@@ -178,6 +178,8 @@ class LightBuildServerWeb:
       # usually the config is loaded only during startup. but sometimes it is good to add a new branch or package on the fly...
       self.config = Config.LoadConfig()
 
+      self.processbuildqueue()
+
       buildmachines={}
       for buildmachine in self.LBS.GetMachines():
         m = self.LBS.GetBuildMachineState(buildmachine)

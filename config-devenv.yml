@@ -17,13 +17,13 @@ lbs:
    BuildingTimeout: 600
    LBSUrl: http://localhost:8000
    DownloadUrl: http://lbs.example.org
-   SSHContainerPath: /etc/lightbuildserver/container
-   SqliteFile: db.sqlite3
+   SSHContainerPath: ../var/container
+   SqliteFile: ../var/db.sqlite3
    MaxDebugLevel: 1
-   GitSrcPath: /var/lib/lightbuildserver/src
-   LogsPath: /var/lib/lightbuildserver/logs
-   ReposPath: /var/lib/lightbuildserver/repos
-   TarballsPath: /var/lib/lightbuildserver/tarballs
+   GitSrcPath: ../var/src
+   LogsPath: ../var/logs
+   ReposPath: ../var/repos
+   TarballsPath: ../var/tarballs
    Users:
      demo:
        Password: demo
@@ -37,7 +37,7 @@ lbs:
              Distros: ["debian/buster/amd64", "fedora/34/amd64"]
 
    Machines:
-       mybuild01.lbs.example.org: 
+       testbuild01lxd.lbs.solidcharity.com:
           type: lxd
           port: 2222
           cid: 10

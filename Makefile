@@ -28,10 +28,12 @@ pip_packages:
 	${VENV} pip install -r requirements.txt
 
 create_db:
-	cat sql/create_tables.sql | sqlite3 db.sqlite3
+	mkdir -p var
+	cat sql/create_tables.sql | sqlite3 var/db.sqlite3
 
 init_config:
 	cp config-devenv.yml config.yml
+	mkdir -p var/repos var/tarballs var/logs var/src var/container
 
 runserver:
 	${VENV} cd web && python3 lbs.py
