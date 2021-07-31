@@ -667,7 +667,7 @@ class LightBuildServer:
         hideJobs = " AND secret = 'f'"
       else:
         hideJobs = "AND (username = '" + auth_username + "' OR secret = 'f')"
-      sql = "SELECT *, TIMEDIFF(finished,started) as duration FROM build WHERE status='FINISHED' " + hideJobs + " ORDER BY finished DESC LIMIT ?"
+      sql = "SELECT *, (finished - started) as duration FROM build WHERE status='FINISHED' " + hideJobs + " ORDER BY finished DESC LIMIT ?"
 
       cursor = con.execute(sql, (self.config['lbs']['ShowNumberOfFinishedJobs'],))
       data = cursor.fetchall()
