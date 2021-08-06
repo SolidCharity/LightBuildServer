@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load counter %}
+{% block title %}Projects{% endblock %}
+{% block navbar_projects %}class="active"{% endblock %}
+{% block content %}
+
+
+{% counter accordionCounter %}
+{% counter projectCounter %}
+{% for user, projects in projects_list %}
+{% counter accordionCounter inc %}
+<h2>Projects of user {{user.get_username}}</h2>
+<div class="panel-group" id="accordion-{{accordionCounter}}">
+  {% for project in projects %}
+  {% counter projectCounter inc %}
+  <div class="panel panel-default">
+  <div class="panel-heading" role="tab" id="heading-{{projectCounter}}">
+  <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion-{{accordionCounter}}" href="#collapse-{{projectCounter}}">{{project.name}}</a>
+  </h4>
+  </div>
+  <div id="collapse-{{projectCounter}}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-{{projectCounter}}">
+  <div class="panel-body">
+    <a href="#">Go to Project {{project.name}}/{{project.git_branch}}</a>    <!-- Project detail view: /project/%user%/%project%/%branch% -->
+    <ul>
+    {% for package in project.package_set.all %}
+    <li><a href="#">Package {{package.name}}</a></li>    <!-- Package detail view -->
+    {% endfor %}
+    </ul>
+    </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endcounter accordionCounter %}
+{% endcounter projectCounter %}
+
+
+{% endblock %}

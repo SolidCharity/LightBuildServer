@@ -1,6 +1,6 @@
 config.yml
 .venv
 var
-lib/__pycache__/
-test/__pycache__/
+**.pyc
 web/nohup.out
+db.sqlite3

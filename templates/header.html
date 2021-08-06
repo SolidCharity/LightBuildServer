@@ -1,0 +1,53 @@
+{% load static %}
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightBuildServer: {{ title }}</title>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="{% static "styles/main.css" %}">
+
+</head>
+<body>
+  <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">LightBuildServer</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li {% if page == "projects" %} class="active" {% endif %}><a href="/projects">Projects</a></li>
+          {% comment %}
+          {% if page == "package" %}
+            li class="active"><a href="/package/{{username}}/{{projectname}}/{{packagename}}
+               % if defined("buildtarget") and defined("branchname"):
+#{{branchname}}_{{buildtarget}}
+               % end
+">Package {{username}}:{{projectname}}:{{packagename}}</a></li>-->
+          {% endif %}
+          {% endcomment %}
+          <li {% if page == "machines" %} class="active" {% endif %}><a href="/machines">Machines</a></li>
+          <li><a href="http://www.lightbuildserver.org" target="_blank">About</a></li>
+        </ul>
+        {% if user.is_authenticated %}
+        <form class="navbar-form navbar-right" role="form" action="{% url "logout" %}">
+          <button type="submit" class="btn-xs btn-success">Logout {{ user.get_username }}</button>
+        </form>
+        {% else %}
+        <form class="navbar-form navbar-right" role="form" action="{% url "login" %}">
+          <button type="submit" class="btn-xs btn-success">Login</button>
+        </form>
+        {% endif %}
+      </div><!--/.navbar-collapse -->
+    </div>
+  </div>

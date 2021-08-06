@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Projects{% endblock %}
+
+{% block navbar_projects %}class="active"{% endblock %}
+
+{% block content %}
+<div class="col-sm-6 col-md-4 col-md-offset-4">
+  <h2>Login</h2>
+
+  {% if user.is_authenticated %}
+  You are already logged in!
+  {% else %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="input-group">
+      <input type="text" placeholder="Username" name="username" class="form-control">
+    </div>
+    <br/>
+    <div class="input-group">
+      <input type="password" placeholder="Password" name="password" class="form-control">
+    </div>
+    <br/>
+    <button type="submit" class="btn btn-success">Sign in</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
