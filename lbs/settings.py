@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'toolbox',
     'projects',
     'machines',
+    'builder',
 ]
 
 MIDDLEWARE = [
