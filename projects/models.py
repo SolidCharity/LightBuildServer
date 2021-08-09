@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from django.contrib.auth.models import User
 from machines.models import Machine
 
@@ -20,12 +21,15 @@ class Project(models.Model):
     def __str__(self):
         return self.name
     
+    def get_buildtargets(self):
+        return sorted(set([distro for package in self.package_set.all() for distro in package.distro_set.all()]))
+
     class Meta:
         ordering = ("name",)
 
 
 class Package(models.Model):
-    project_id = models.ForeignKey(Project, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     name = models.CharField(max_length=250)
     machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True, blank=True)
     use_docker = models.BooleanField()
@@ -39,7 +43,7 @@ class Package(models.Model):
 
 
 class Distro(models.Model):
-    package_id = models.ForeignKey(Package, on_delete=models.CASCADE)
+    package = models.ForeignKey(Package, on_delete=models.CASCADE)
     name = models.CharField(max_length=250)
 
     def __str__(self):
@@ -50,7 +54,7 @@ class Distro(models.Model):
 
 
 class Branch(models.Model):
-    package_id = models.ForeignKey(Package, on_delete=models.CASCADE)
+    package = models.ForeignKey(Package, on_delete=models.CASCADE)
     name = models.CharField(max_length=250)
 
     def __str__(self):
