@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load counter %}
+{% block title %}Projects{% endblock %}
+{% block navbar_projects %}class="active"{% endblock %}
+{% block content %}
+
+
+<h2>Details of Package {{package.project.user.get_username}}:{{package.project.name}}:{{package.name}}</h2>
+
+<ul>
+  <li><a href="{{package.git_url}}" target="_blank">Project sources</a></li>
+  {% comment %}
+  % for branchname in sorted(package['Branches'], reverse=package['ReverseDisplayOrderBranches']):
+    % for buildtarget in sorted(package['Distros']):
+                      % if len(package['Branches']) > 1:
+      <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
+      <a href="#{{branchname}}_{{buildtarget}}">
+        <h4>{{branchname}} - {{buildtarget}}</h4>
+      </a>
+    % end
+                      % if len(package['Branches']) == 1:
+      <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
+      <a href="#{{branchname}}_{{buildtarget}}">
+        <h4>{{buildtarget}}</h4>
+      </a>
+    % end
+    <ul>
+                  <li><a href="{{package['buildurl']}}/{{branchname}}/{{buildtarget}}">Trigger build</a></li>
+      <li><a href="/livelog/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}">view current build</a></li>
+      <li>Build history and logs:<ul>
+        % for buildnumber in package['logs'][buildtarget+"-"+branchname]:
+        <li class="{{package['logs'][buildtarget+"-"+branchname][buildnumber]["resultcode"]}}"> 
+          <a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget+"-"+branchname][buildnumber]["timefinished"]}}
+          &nbsp;
+          {{"Succeeded" if package['logs'][buildtarget+"-"+branchname][buildnumber]["resultcode"] == "success" else "Failure"}}
+        </li>
+        % end  
+      </ul></li>
+      % if buildtarget in package['repoinstructions'] and package['repoinstructions'][buildtarget] is not None:
+        <li>Installation instructions:
+        <pre>{{package['repoinstructions'][buildtarget]}}</pre>
+        </li>
+      % end
+      % if buildtarget in package['srcinstructions'] and package['srcinstructions'][buildtarget] is not None:
+        <li>Download Source package:
+        <a href="{{package['srcinstructions'][buildtarget][0]}}">{{package['srcinstructions'][buildtarget][1]}}</a>
+        </li>
+      % end
+      % if branchname in package['wininstructions'] and package['wininstructions'][branchname] is not None:
+        <li>Download Windows Installer:
+        <a href="{{package['wininstructions'][branchname][0]}}">{{package['wininstructions'][branchname][1]}}</a>
+        </li>
+      % end
+    </ul>
+    %end
+              % end
+  {% endcomment %}
+</ul>
+
+
+{% endblock %}

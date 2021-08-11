@@ -36,3 +36,14 @@ License
 -------
 
 the LightBuildServer is published with the GNU Lesser General Public License v2 (or 2.1) or later.
+
+Setup for Development
+---------------------
+
+1. Create a Python 3 virtual environment: `LightBuildServer$ python -m venv .venv`
+
+2. Activate the virtual environment: [See venv documentation](https://docs.python.org/3/tutorial/venv.html#creating-virtual-environments)
+
+3. Install all requirements: `(.venv) LightBuildServer$ pip install -r requirements.txt`
+
+4. Create the database: `(.venv) LightBuildServer$ python manage.py migrate --run-syncdb`
