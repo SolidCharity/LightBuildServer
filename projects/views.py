@@ -15,7 +15,7 @@ class IndexView(generic.ListView):
                 if self.request.user.is_authenticated else User.objects.all()
         ) ]
 
-class ProjectView(generic.DeleteView):
+class ProjectView(generic.DetailView):
     template_name = "projects/project.html"
     context_object_name = "project"
 
