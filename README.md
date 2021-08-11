@@ -42,7 +42,7 @@ Setup for Development
 
 1. Create a Python 3 virtual environment: `LightBuildServer$ python -m venv .venv`
 
-2. Actvate the virtual environment: [See venv documentation](https://docs.python.org/3/tutorial/venv.html#creating-virtual-environments)
+2. Activate the virtual environment: [See venv documentation](https://docs.python.org/3/tutorial/venv.html#creating-virtual-environments)
 
 3. Install all requirements: `(.venv) LightBuildServer$ pip install -r requirements.txt`
 
