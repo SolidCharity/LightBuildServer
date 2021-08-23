@@ -88,7 +88,7 @@ class LXDContainer(RemoteContainer):
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
       else:
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R [' + self.containerIP + ']:' + self.containerPort)
-      if self.distro == "fedora" or self.distro == "centos":
+      if self.distro == "fedora" or self.distro == "centos" or self.distro == "debian":
         # need to request IPv4 address. cgroup v2 issue?
         # see https://stackoverflow.com/questions/59535007/how-to-fix-network-issues-with-lxd-on-fedora-31
         self.executeOnHost("lxc exec " + self.containername + " -- /bin/bash -c 'dhclient eth0'")
