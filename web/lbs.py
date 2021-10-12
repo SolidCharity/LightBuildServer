@@ -353,6 +353,9 @@ class LightBuildServerWeb:
         self.LBS.ReleaseMachine(buildmachine, True)
       return template("message", title="machine available", message="The machine "+buildmachine+" should now be available.", redirect="/machines")
 
+currentpath=os.path.abspath(os.path.dirname(__file__))
+bottle.TEMPLATE_PATH.insert(0, os.path.join(currentpath, 'views'))
+
 myApp=LightBuildServerWeb()
 bottle.route('/login')(myApp.login)
 bottle.route('/do_login', method="POST")(myApp.do_login)
@@ -370,6 +373,7 @@ bottle.route('/triggerbuildproject/<username>/<projectname>/<branchname>/<lxcdis
 bottle.route('/livelog/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>')(myApp.livelog)
 bottle.route('/package/<username>/<projectname>/<packagename>')(myApp.package)
 bottle.route('/project/<user>/<project>/<branchname>')(myApp.project)
+bottle.route('/index.html')(myApp.listProjects)
 bottle.route('/')(myApp.listProjects)
 bottle.route('/projects')(myApp.listProjects)
 bottle.route('/logs/<username>/<projectname>/<packagename>/<branchname>/<lxcdistro>/<lxcrelease>/<lxcarch>/<buildnumber>')(myApp.logs)
@@ -385,6 +389,6 @@ if __name__ == '__main__':
   # just need to connect to any external host to know which is the IP address of the machine that hosts LBS
   s.connect(("www.solidcharity.com", 80))
   ipaddress=s.getsockname()[0]
-  bottle.run(host=ipaddress, port=80, debug=False)
+  bottle.run(host=ipaddress, port=8080, debug=False)
 else:
   app = application = bottle.default_app()

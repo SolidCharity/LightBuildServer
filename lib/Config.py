@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Config: load configuration parameters"""
 
-# Copyright (c) 2014-2015 Timotheus Pokorra
+# Copyright (c) 2014-2021 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -24,8 +24,11 @@ import yaml
 
 def LoadConfig():
   'load configuration parameters'
-  configfile="../config.yml"
+  currentpath=os.path.abspath(os.path.dirname(__file__))
+  configfile=os.path.join(currentpath, "../config.yml")
+  if not os.path.isfile(configfile):
+    configfile=os.path.join(currentpath, "../../etc/config.yml")
   if not os.path.isfile(configfile):
     configfile="/etc/lightbuildserver/config.yml"
   stream = open(configfile, 'r')
-  return yaml.load(stream)
+  return yaml.safe_load(stream)
