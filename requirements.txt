@@ -1,0 +1,4 @@
+bottle
+pyyaml
+mysql
+copr

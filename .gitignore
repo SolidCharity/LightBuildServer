@@ -1,4 +1,4 @@
+.venv
 config.yml
-lib/__pycache__/
-test/__pycache__/
+__pycache__
 web/nohup.out
