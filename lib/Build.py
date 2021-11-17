@@ -152,6 +152,7 @@ class Build:
         if os.path.exists(sshContainerPath + '/' + username + '/' + projectname):
           self.container.rsyncContainerPut(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/')
           self.container.executeInContainer('chmod 600 /root/.ssh/*')
+          self.container.executeInContainer('chown root:root /root/.ssh/*')
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")

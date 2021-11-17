@@ -603,8 +603,8 @@ class LightBuildServer:
       cursor = con.execute("SELECT * FROM build WHERE status='WAITING' ORDER BY id ASC")
       data = cursor.fetchall()
       for row in data:
-        self.attemptToFindBuildMachine(con, row)
-        time.sleep(10);
+          if self.attemptToFindBuildMachine(con, row):
+              time.sleep(10);
       cursor.close()
       con.close()
       self.CheckForHangingBuild()

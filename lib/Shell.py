@@ -47,6 +47,7 @@ class Shell:
       returncode = child.poll()
       if not processFinished and returncode is not None:
         processFinished = True
+    child.stdout.close()
     return (not returncode)
 
   def evaluateshell(self, command):
@@ -69,6 +70,7 @@ class Shell:
       returncode = child.poll()
       if not processFinished and returncode is not None:
         processFinished = True
+    child.stdout.close()
     if (not returncode):
       return result
     return returncode
