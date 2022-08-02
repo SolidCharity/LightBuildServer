@@ -140,6 +140,7 @@ class BuildHelperDebian(BuildHelper):
       self.run("cp /root/sources/* " + pathPackageSrc)
       self.run("rm -Rf tmpSource && mkdir tmpSource")
       self.run("for file in " + pathPackageSrc + "/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
+      self.run("for file in " + pathPackageSrc + "/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in " + pathPackageSrc + "/*.tgz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.xz; do if [ -f \$file ]; then cd tmpSource && tar xf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
