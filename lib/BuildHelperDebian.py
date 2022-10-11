@@ -76,11 +76,12 @@ class BuildHelperDebian(BuildHelper):
       if self.dist in prjconfig['lbs'] and self.container.release in prjconfig['lbs'][self.dist]:
         repos = prjconfig['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
-          self.run("cd /etc/apt/sources.list.d/; echo '" + repos[repo] + " ' > " + repo + ".list")
+          self.run(f"cd /etc/apt/sources.list.d/; echo '{repos[repo]}' > {repo}.list")
+        # TODO: keys must belong to a repository
         if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
           keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + key):
+            if not self.run(f"gpg --no-default-keyring --keyring /usr/share/keyrings/lbs-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}"):
               return False
 
     # install own repo as well if it exists
@@ -93,9 +94,10 @@ class BuildHelperDebian(BuildHelper):
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
-      self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " " + self.container.release + " main' > lbs-" + self.username + "-" + self.projectname + ".list")
+      self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
       if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        self.run("apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'])
+        key = self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey']
+        self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}")
 
     # update the repository information
     self.run("apt-get update")
@@ -226,7 +228,8 @@ class BuildHelperDebian(BuildHelper):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
       if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        keyinstructions += "apt-key adv --keyserver " + self.config['lbs']['PublicKeyServer'] + " --recv-keys " + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + "\n"
+        key = self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey']
+        keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}\n"
     else:
       checkfile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
@@ -235,15 +238,18 @@ class BuildHelperDebian(BuildHelper):
         return None
    
     result = ""
-    result += "apt-get install apt-transport-https gnupg ca-certificates\n"
+    result += "apt install apt-transport-https gnupg ca-certificates\n"
     result += keyinstructions
-    result += "echo 'deb [arch=" + buildtarget[2] + "] " + DownloadUrl + "/repos/" + self.username + "/" 
+    if keyinstructions:
+      result += f"echo 'deb [arch={buildtarget[2]} signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {DownloadUrl}/repos/{self.username}/"
+    else:
+      result += f"echo 'deb [arch={buildtarget[2]}] {DownloadUrl}/repos/{self.username}/"
     if 'Secret' in self.config['lbs']['Users'][self.username]:
-        result += self,config['lbs']['Users'][self.username]['Secret'] + "/"
-    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> /etc/apt/sources.list\n"
-    result += "apt-get update\n"
+        result += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+    result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> " + f"/etc/apt/sources.list.d/{self.username}-{self.projectname}.list\n"
+    result += "apt update\n"
     # packagename: name of dsc file, without .dsc at the end
-    result += "apt-get install " + self.GetDscFilename()[:-4].lower()
+    result += "apt install " + self.GetDscFilename()[:-4].lower()
 
     return result
 
