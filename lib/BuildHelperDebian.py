@@ -88,16 +88,16 @@ class BuildHelperDebian(BuildHelper):
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/Packages.gz"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/"
-      self.run("cd /etc/apt/sources.list.d/; echo 'deb " + repopath + " /' > lbs-" + self.username + "-" + self.projectname + ".list")
+      self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} /' > lbs-{self.username}-{self.projectname}.list")
       DownloadUrlServer = DownloadUrl.replace('https://', '').replace('http://', '')
       self.run("mkdir -p /etc/apt/preferences.d && echo 'Package: *' > /etc/apt/preferences.d/lbs && echo 'Pin: origin " + DownloadUrlServer + "' >> /etc/apt/preferences.d/lbs && echo 'Pin-Priority: 501' >> /etc/apt/preferences.d/lbs")
     repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release + "/db/packages.db"
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
-      if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        key = self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey']
-        self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}")
+    if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
+      key = self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey']
+      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}")
 
     # update the repository information
     self.run("apt-get update")
