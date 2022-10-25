@@ -4,7 +4,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Machine(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
     host = models.CharField(max_length=250)
     port = models.PositiveIntegerField(validators=[ # not validators -> min_value, max_value
         MinValueValidator(0),
