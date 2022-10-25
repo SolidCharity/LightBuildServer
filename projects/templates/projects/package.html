@@ -8,7 +8,7 @@
 <h2>Details of Package {{package.project.user.get_username}}:{{package.project.name}}:{{package.name}}</h2>
 
 <ul>
-  <li><a href="{{package.git_url}}" target="_blank">Project sources</a></li>
+  <li><a href="{{package.project.git_url}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
   {% comment %}
   % for branchname in sorted(package['Branches'], reverse=package['ReverseDisplayOrderBranches']):
     % for buildtarget in sorted(package['Distros']):
