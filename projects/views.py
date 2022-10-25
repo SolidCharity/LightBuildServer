@@ -10,10 +10,14 @@ class IndexView(generic.ListView):
     context_object_name = "projects_list"
 
     def get_queryset(self):
-        return [ (user, Project.objects.filter(user__exact=user)) for user in (
-            chain([self.request.user], User.objects.exclude(pk__exact=self.request.user.pk))
-                if self.request.user.is_authenticated else User.objects.all()
-        ) ]
+        result = []
+        for user in User.objects.all().order_by('username'):
+            projects = Project.objects.filter(user__exact=user)
+            if self.request.user.pk != user.pk and not self.request.user.is_staff:
+                projects = projects.filter(visible=True)
+            if projects:
+                result.append([user, projects])
+        return result
 
 class ProjectView(generic.DetailView):
     template_name = "projects/project.html"
