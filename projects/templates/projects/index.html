@@ -21,10 +21,10 @@
   </div>
   <div id="collapse-{{projectCounter}}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-{{projectCounter}}">
   <div class="panel-body">
-    <a href="#">Go to Project {{project.name}}/{{project.git_branch}}</a>    <!-- Project detail view: /project/%user%/%project%/%branch% -->
+    <a href="{% url "projects:project" project.user.get_username project.name project.git_branch %}">Go to Project {{project.name}}/{{project.git_branch}}</a>    <!-- Project detail view: /project/%user%/%project%/%branch% -->
     <ul>
     {% for package in project.package_set.all %}
-    <li><a href="#">Package {{package.name}}</a></li>    <!-- Package detail view -->
+    <li><a href="{% url "projects:package" project.user.get_username project.name project.git_branch package.name %}">Package {{package.name}}</a></li>    <!-- Package detail view -->
     {% endfor %}
     </ul>
     </div>

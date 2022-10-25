@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load counter %}
+{% block title %}Projects{% endblock %}
+{% block navbar_projects %}class="active"{% endblock %}
+{% block content %}
+
+
+<h2>Details of Project {{project.user.get_username}}:{{project.name}}:{{project.git_branch}}</h2>
+<table class="table">
+  <tr>
+    <td>Build all packages:</td>
+    {% for buildtarget in project.get_buildtargets %}
+    <td>
+      <a href="#"><button class="btn btn-default">Build {{buildtarget.name}}</button></a>
+      <br>
+      <a href="#"><button class="btn btn-default">Rebuild {{buildtarget.name}}</button></a>
+    </td>
+    {% endfor %}
+  </tr>
+  {% for package in project.package_set.all %}
+               <tr><td><a href="{% url "projects:package" project.user.get_username project.name project.git_branch package.name %}">Package {{package.name}}</a></td>
+	  {% comment %}
+% buildresult = users[username][project]['Packages'][package]['buildresult']
+          % for buildtarget in sorted(buildtargets):
+         <td>
+         % if buildtarget in buildresult and 'resultcode' in buildresult[buildtarget]:
+            <a href="/logs/{{username}}/{{project}}/{{package}}/{{branchname}}/{{buildtarget}}/{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['number']}}" class="{{users[username][project]['Packages'][package]['buildresult'][buildtarget]['resultcode']}}">{{buildtarget}}</a>
+         % end
+         </td>
+      % end
+	  {% endcomment %}
+      </tr>
+  {% endfor %}
+</table>
+
+
+{% endblock %}
