@@ -22,7 +22,11 @@ class Project(models.Model):
         return f"{self.user}::{self.name}"
     
     def get_buildtargets(self):
-        return sorted(set([distro for package in self.package_set.all() for distro in package.distro_set.all()]))
+        targets = []
+        for package in self.package_set.all():
+            for distro in package.distro_set.all():
+                targets.append(distro.name)
+        return sorted(targets)
 
     class Meta:
         ordering = ("name",)
