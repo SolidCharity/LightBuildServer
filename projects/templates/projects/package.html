@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load counter %}
+{% load filter %}
 {% block title %}Projects{% endblock %}
 {% block navbar_projects %}class="active"{% endblock %}
 {% block content %}
@@ -9,22 +10,25 @@
 
 <ul>
   <li><a href="{{package.project.git_url}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
+
+  {% for branchname in package.get_branches %}
+  {% for buildtarget in package.get_buildtargets %}
+
+  <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
+  <a href="#{{branchname}}_{{buildtarget}}">
+    {% if package.get_branches|length == 1 %}
+    <h4>{{buildtarget|replace:"__|/"}}</h4>
+    {% else %}
+    <h4>{{branchname}} - {{buildtarget}}|replace:"__|/"</h4>
+    {% endif %}
+  </a>
+  <ul>
+    <li><a href="{% url "builder:triggerbuild" package.project.user.get_username package.project.name package.name branchname buildtarget %}">Trigger build</a></li>
+  </ul>
+
+  {% endfor %}
+  {% endfor %}
   {% comment %}
-  % for branchname in sorted(package['Branches'], reverse=package['ReverseDisplayOrderBranches']):
-    % for buildtarget in sorted(package['Distros']):
-                      % if len(package['Branches']) > 1:
-      <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
-      <a href="#{{branchname}}_{{buildtarget}}">
-        <h4>{{branchname}} - {{buildtarget}}</h4>
-      </a>
-    % end
-                      % if len(package['Branches']) == 1:
-      <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
-      <a href="#{{branchname}}_{{buildtarget}}">
-        <h4>{{buildtarget}}</h4>
-      </a>
-    % end
-    <ul>
                   <li><a href="{{package['buildurl']}}/{{branchname}}/{{buildtarget}}">Trigger build</a></li>
       <li><a href="/livelog/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}">view current build</a></li>
       <li>Build history and logs:<ul>
@@ -51,9 +55,6 @@
         <a href="{{package['wininstructions'][branchname][0]}}">{{package['wininstructions'][branchname][1]}}</a>
         </li>
       % end
-    </ul>
-    %end
-              % end
   {% endcomment %}
 </ul>
 

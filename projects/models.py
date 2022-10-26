@@ -21,12 +21,12 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.user}::{self.name}"
-    
+
     def get_buildtargets(self):
         targets = []
         for package in self.package_set.all():
             for distro in package.distro_set.all():
-                targets.append(distro.name)
+                targets.append(distro.name.replace("/", "__"))
         return sorted(targets)
 
     class Meta:
@@ -52,6 +52,20 @@ class Package(models.Model):
         return u''
     changeform_link.allow_tags = True
     changeform_link.short_description = ''   # omit column header
+
+    def get_buildtargets(self):
+        targets = []
+        for distro in self.distro_set.all():
+            targets.append(distro.name.replace("/", "__"))
+        return sorted(targets)
+
+    def get_branches(self):
+        branches = []
+        for branch in self.branch_set.all():
+            branches.append(branch.name)
+        if not branches:
+            branches.append(self.project.git_branch)
+        return sorted(branches)
 
     class Meta:
         ordering = ("name",)

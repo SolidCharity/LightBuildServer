@@ -26,4 +26,5 @@ urlpatterns = [
     path('accounts/logout/', logout_then_login, {'login_url': '/accounts/login/'}, name='logout'),
     path('projects/', include('projects.urls')),
     path('machines/', include('machines.urls')),
+    path('', include('builder.urls')),
 ]

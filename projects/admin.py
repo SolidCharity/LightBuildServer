@@ -6,6 +6,9 @@ from .models import Project, Package, Distro, Branch
 class DistroAdminInline(admin.TabularInline):
     model = Distro
 
+class BranchAdminInline(admin.TabularInline):
+    model = Branch
+
 
 class PackageAdminInline(admin.TabularInline):
     model = Package
@@ -23,7 +26,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
 class PackageAdmin(admin.ModelAdmin):
     list_display = ['name', 'project']
-    inlines = (DistroAdminInline, )
+    inlines = (DistroAdminInline, BranchAdminInline, )
 
     class Meta:
         None
