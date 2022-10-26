@@ -38,8 +38,7 @@ class PackageView(generic.DetailView):
         return Package.objects.get(
             project__exact=Project.objects.get(
                 user__exact=User.objects.get(username__exact=self.kwargs["user"]),
-                name__exact=self.kwargs["project"],
-                git_branch__exact=self.kwargs["branch"]
+                name__exact=self.kwargs["project"]
             ),
             name__exact=self.kwargs["package"]
         )
