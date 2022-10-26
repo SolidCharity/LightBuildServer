@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.utils.safestring import mark_safe
 from machines.models import Machine
 
 
@@ -41,7 +42,20 @@ class Package(models.Model):
 
     def __str__(self):
         return self.name
-    
+
+    def changeform_link(self):
+        print("changeform")
+        if self.id:
+            print(self.id)
+            changeform_url = reverse(
+                'admin:projects_package_change', args=(self.id,)
+            )
+            print(changeform_url)
+            return mark_safe(f'<a href="{changeform_url}" target="_blank">Details</a>')
+        return u''
+    changeform_link.allow_tags = True
+    changeform_link.short_description = ''   # omit column header
+
     class Meta:
         ordering = ("name",)
 
