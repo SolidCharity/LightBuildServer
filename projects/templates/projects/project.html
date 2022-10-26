@@ -18,7 +18,7 @@
     {% endfor %}
   </tr>
   {% for package in project.package_set.all %}
-               <tr><td><a href="{% url "projects:package" project.user.get_username project.name project.git_branch package.name %}">Package {{package.name}}</a></td>
+               <tr><td><a href="{% url "projects:package" project.user.get_username project.name package.name %}">Package {{package.name}}</a></td>
 	  {% comment %}
 % buildresult = users[username][project]['Packages'][package]['buildresult']
           % for buildtarget in sorted(buildtargets):
