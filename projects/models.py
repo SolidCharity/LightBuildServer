@@ -15,9 +15,9 @@ class Project(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True, blank=True)
     copr_user_name = models.CharField(max_length=250, null=True, blank=True)    # solve copr-stuff later
     copr_project_name = models.CharField(max_length=250, null=True, blank=True)
-    use_lxc = models.BooleanField()
-    use_docker = models.BooleanField()
-    visible = models.BooleanField()
+    use_lxc = models.BooleanField(default = False)
+    use_docker = models.BooleanField(default = False)
+    visible = models.BooleanField(default = True)
 
     def __str__(self):
         return f"{self.user}::{self.name}"
@@ -37,20 +37,17 @@ class Package(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     name = models.CharField(max_length=250)
     machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True, blank=True)
-    use_docker = models.BooleanField()
-    windows_installer = models.BooleanField()
+    use_docker = models.BooleanField(default = False)
+    windows_installer = models.BooleanField(default = False)
 
     def __str__(self):
         return self.name
 
     def changeform_link(self):
-        print("changeform")
         if self.id:
-            print(self.id)
             changeform_url = reverse(
                 'admin:projects_package_change', args=(self.id,)
             )
-            print(changeform_url)
             return mark_safe(f'<a href="{changeform_url}" target="_blank">Details</a>')
         return u''
     changeform_link.allow_tags = True
