@@ -19,7 +19,7 @@ quickstart: create_venv pip_packages create_db init_config
 	@echo Installation has finished successfully
 	@echo Run '"'make runserver'"' in order to start the server and access it through one of the following IP addresses
 	@ip addr | sed 's/\/[0-9]*//' | awk '/inet / {print "http://" $$2 ":8000/"}'
-	@echo Login user is '"'demo'"' password is '"'demo'"'
+	@echo Admin user is '"'admin'"' password is '"'admin'"'
 
 create_venv:
 	python3 -m venv .venv
@@ -28,13 +28,12 @@ pip_packages:
 	${VENV} pip install -r requirements.txt
 
 create_db:
-	mkdir -p var
-	cat sql/create_tables.sql | sqlite3 var/db.sqlite3
+	${VENV} python manage.py migrate
+	${VENV} echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(is_superuser=True).exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin')" | python manage.py shell
 
 init_config:
-	cp config-devenv.yml config.yml
 	mkdir -p var/repos var/tarballs var/logs var/src var/container
 
 runserver:
-	${VENV} cd web && python3 lbs.py
+	${VENV} python manage.py runserver
 
