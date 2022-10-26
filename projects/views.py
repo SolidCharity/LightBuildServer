@@ -31,10 +31,9 @@ class ProjectView(generic.DetailView):
         )
 
         # only public projects, or own project, or I am staff
-        if project.visible == False:
-            if not self.request.user.is_staff:
-                if self.request.user != project.user:
-                    raise Exception("you do not have permission for this project")
+        if not project.visible and not self.request.user.is_staff:
+            if self.request.user != project.user:
+                raise Exception("you do not have permission for this project")
 
         return project
 
@@ -52,9 +51,8 @@ class PackageView(generic.DetailView):
         )
 
         # only public projects, or own project, or I am staff
-        if package.project.visible == False:
-            if not self.request.user.is_staff:
-                if self.request.user != package.project.user:
-                    raise Exception("you do not have permission for this project")
+        if not package.project.visible and not self.request.user.is_staff:
+            if self.request.user != package.project.user:
+                raise Exception("you do not have permission for this project")
 
         return package
