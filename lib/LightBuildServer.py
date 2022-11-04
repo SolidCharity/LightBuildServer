@@ -389,11 +389,7 @@ class LightBuildServer:
   def AddToBuildQueue(self, project, packagename, branchname, distro, release, arch):
     # find if this project depends on other projects
     DependsOnOtherProjects={}
-    print(project)
     pkgs = Package.objects.filter(project = project).all()
-    for pkg in pkgs:
-        print(pkg.name)
-    print(packagename)
     pkg = Package.objects.filter(project = project).filter(name=packagename).first()
     avoiddocker = project.use_docker == False
     avoidlxc = project.use_lxc == False
@@ -471,8 +467,8 @@ class LightBuildServer:
         time.sleep(10)
       self.CheckForHangingBuild()
 
-  def LiveLog(self, username, projectname, packagename, branchname, distro, release, arch):
-      data = self.GetJob(username, projectname, packagename, branchname, distro, release, arch, False)
+  def LiveLog(self, username, project, packagename, branchname, distro, release, arch):
+      data = self.GetJob(project, packagename, branchname, distro, release, arch, False)
       if data is None:
         return ("No build is planned for this package at the moment...", -1)
       elif data.status == 'BUILDING':
@@ -494,7 +490,7 @@ class LightBuildServer:
       return (output, timeout)
 
   def GetJob(self, project, packagename, branchname, distro, release, arch, only_waiting_or_building):
-      build = Build.objects.filter(project=project). \
+      build = Build.objects.filter(user=project.user).filter(project=project.name). \
         filter(package=packagename).filter(branchname=branchname).filter(distro=distro). \
         filter(release=release).filter(arch=arch).filter(hanging=False)
       if only_waiting_or_building:

@@ -18,17 +18,17 @@ class Build(models.Model):
     arch = models.CharField(max_length=10)
     # this is used for packages or projects that should run on a designated build machine.
     # we are not using a link to avoid circular dependencies
-    designated_build_machine = models.CharField(max_length=250, default=None)
+    designated_build_machine = models.CharField(max_length=250, default=None, null=True)
     avoidlxc = models.BooleanField()
     avoiddocker = models.BooleanField()
-    dependsOnOtherProjects = models.TextField(default=None)
-    started = models.DateTimeField(default=None)
-    finished = models.DateTimeField(default=None)
+    dependsOnOtherProjects = models.TextField(default=None, null=True)
+    started = models.DateTimeField(default=None, null=True)
+    finished = models.DateTimeField(default=None, null=True)
     hanging = models.BooleanField(default=False)
-    buildsuccess = models.CharField(max_length=20,default=None)
+    buildsuccess = models.CharField(max_length=20,default=None, null=True)
 
 
 class Log(models.Model):
-    build = models.ForeignKey(Build, on_delete=models.CASCADE, default=None)
+    build = models.ForeignKey(Build, on_delete=models.CASCADE)
     line = models.TextField()
     created = models.DateTimeField()
