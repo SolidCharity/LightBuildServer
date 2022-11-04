@@ -6,3 +6,4 @@ web/nohup.out
 db.sqlite3
 *.code-workspace
 .vscode/settings.json
+settings_local.py
