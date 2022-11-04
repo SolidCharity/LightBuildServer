@@ -497,19 +497,19 @@ class LightBuildServer:
         build = build.filter(Q(Q(status='WAITING') | Q(status='BUILDING')))
       return build.first()
 
-  def GetBuildQueue(self, auth_username):
+  def GetBuildQueue(self, auth_user):
       builds = Build.objects.filter(status='WAITING')
-      if auth_username is None:
+      if auth_user is None:
         builds = builds.filter(secret=False)
       else:
-        builds = builds.filter(Q(Q(username=auth_username) | Q(secret=False)))
+        builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
       return builds
 
-  def GetFinishedQueue(self, auth_username):
+  def GetFinishedQueue(self, auth_user):
       builds = Build.objects.filter(status='FINISHED')
-      if auth_username is None:
+      if auth_user is None:
         builds = builds.filter(secret=False)
       else:
-        builds = builds.filter(Q(Q(username=auth_username) | Q(secret=False)))
+        builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
       builds = builds.order_by('finished').reverse()[:settings.SHOW_NUMBER_OF_FINISHED_JOBS]
       return builds

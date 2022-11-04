@@ -5,76 +5,63 @@
 {% block navbar_machines %}class="active"{% endblock %}
 
 {% block content %}
-<h2>Machines</h2>
 
-<ul>
-{% for machine in machines_list %}
-    <li>{{ machine.host }}</li>
-{% endfor %}
-</ul>
-
-{% comment %}
-    <div class="container">
-      <div class="row">
+<div class="container">
+    <div class="row">
         <h2>Build Machines</h2>
         <ul>
-            % for buildmachine in sorted(buildmachines):
-              % type = "LXC" if (buildmachines[buildmachine]["type"] == "lxc") else ""
-              % type = "LXD" if (buildmachines[buildmachine]["type"] == "lxd") else type
-              % type = "Docker" if (buildmachines[buildmachine]["type"] == "docker") else type
-              % type = "Copr" if (buildmachines[buildmachine]["type"] == "copr") else type
-              <li>Container {{buildmachine}} ({{type}}):
-		% if buildmachines[buildmachine]["status"] == "BUILDING" and (auth_username == buildmachines[buildmachine]["username"] or buildmachines[buildmachine]["secret"] == "f"):
-                  % job = buildmachines[buildmachine]["buildjob"].split('/')
-                  {{buildmachines[buildmachine]["status"]}} <br/>
-		  Currently building
-			<a href="/package/{{job[0]}}/{{job[1]}}/{{job[2]}}#{{job[3]}}_{{job[4]}}/{{job[5]}}/{{job[6]}}">
-			{{buildmachines[buildmachine]["buildjob"]}}</a>:
-			<a href="/livelog/{{buildmachines[buildmachine]["buildjob"]}}">View live log</a><br/>
-                % else:
-                   {{buildmachines[buildmachine]["status"]}} <br/>
-		% end
+            {% for machine in machines_list %}
+            <li>Container {{machine.host}} ({{machine.type}}): {{machine.status}} <br/>
+                {% if machine.status == "BUILDING" %}
+                    {% if request.user == machine.user or not machine.secret %}
+                    Currently building
+                    <a href="/projects/{{machine.build.user.username}}/{{machine.build.project}}/package/{{machine.build.package}}#{{machine.build.branchname}}_{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}">
+                        {{machine.build.user.username}}/{{machine.build.project}}/{{machine.build.package}}/{{machine.build.branchname}}/{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}</a>:
+                        <a href="/livelog/{{machine.build.user.username}}/{{machine.build.project}}/{{machine.build.package}}/{{machine.build.branchname}}/{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}">View live log</a><br/>
+                    {% endif %}
+                {% endif %}
 
-                % if auth_username is not None:
-		&nbsp; &nbsp; Action: <ul>
-			<li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
-		</ul>
-                % end
+                {% if request.user %}
+                    &nbsp; &nbsp; Action: <ul>
+                    <li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
+                </ul>
+                {% endif %}
                 <br/>
               </li>
-           % end
+           {% endfor %}
         </ul>
-	<h2>Planned Jobs</h2>
-	<ul>
-		% for job in jobs:
-		<li>
-			<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
-				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>
-                        % if auth_username is not None:
-			: <a href="/cancelplannedbuild/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
-				Cancel this build</a>
-                        % end
-		</li>
-		% end
-	</ul>
-	<h2>Recent Jobs</h2>
-	<table class="table">
-		% for job in finishedjobs:
-		<tr>
-			<td>{{job["finished"]}}</td>
-			<td>{{job["duration"]}}</td>
-			<td>
-				<a href="/package/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}#{{job["branchname"]}}_{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}">
-				{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}-{{job["release"]}}-{{job["arch"]}}</a>
-			</td>
-			<td><a href="/logs/{{job["username"]}}/{{job["projectname"]}}/{{job["packagename"]}}/{{job["branchname"]}}/{{job["distro"]}}/{{job["release"]}}/{{job["arch"]}}/{{job["buildnumber"]}}">
-				build {{job["buildnumber"]}}</a></td>
-			<td>
-			<code class="{{job["buildsuccess"]}}">{{"Succeeded" if job["buildsuccess"] == "success" else "Failure"}}</code></td>
-		</tr>
-		% end
-	</table>
-      </div>
+        <h2>Planned Jobs</h2>
+        <ul>
+            {% for job in waiting_builds %}
+            <li>
+                <a href="/package/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
+                    {{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branch}}/{{job.distro}}-{{job.release}}-{{job.arch}}</a>
+                {% if request.user %}
+                : <a href="/cancelplannedbuild/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branch}}/{{job.distro}}-{{job.release}}-{{job.arch}}">
+                    Cancel this build</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        <h2>Recent Jobs</h2>
+        <table class="table">
+            {% for job in finished_builds %}
+            <tr>
+                <td>{{job.finished}}</td>
+                <td>{{job.duration}}</td>
+                <td>
+                    <a href="/package/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
+                        {{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}</a>
+                </td>
+                <td><a href="/logs/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}/{{job.id}}">
+                    build {{job.id}}</a></td>
+                <td>
+                <code class="{{job.buildsuccess}}">
+                    {% if job.buildsuccess == "success" %}Succeeded{% else %}Failure{% endif %}
+                </code></td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
-{% endcomment %}
+</div>
 {% endblock %}
