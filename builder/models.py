@@ -1,6 +1,5 @@
 from django.db import models
-from projects.models import Package, Project, Distro
-from machines.models import Machine
+from django.contrib.auth.models import User
 
 class Build(models.Model):
     status = models.CharField(max_length=20, choices=[
@@ -9,26 +8,27 @@ class Build(models.Model):
         ("CANCELLED", "cancelled"),
         ("FINISHED", "finished"),
     ])
-    user = max_length=250
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    project = models.CharField(max_length=250)
     secret = models.BooleanField()
-    package = models.ForeignKey(Package, on_delete=models.CASCADE)
+    package = models.CharField(max_length=250)
     branchname = models.CharField(max_length=250)
-    distro = models.ForeignKey(Distro, on_delete=models.CASCADE)
+    distro = models.CharField(max_length=20)
     release = models.CharField(max_length=20)
     arch = models.CharField(max_length=10)
+    # this is used for packages or projects that should run on a designated build machine.
+    # we are not using a link to avoid circular dependencies
+    designated_build_machine = models.CharField(max_length=250, default=None)
     avoidlxc = models.BooleanField()
     avoiddocker = models.BooleanField()
-    dependsOnOtherProjects = models.TextField()
-    buildmachine = models.ForeignKey(Machine, on_delete=models.CASCADE)
-    started = models.DateTimeField()
-    finished = models.DateTimeField()
-    hanging = models.BooleanField()
-    buildsuccess = models.CharField(max_length=20)
-    buildnumber = models.IntegerField()
+    dependsOnOtherProjects = models.TextField(default=None)
+    started = models.DateTimeField(default=None)
+    finished = models.DateTimeField(default=None)
+    hanging = models.BooleanField(default=False)
+    buildsuccess = models.CharField(max_length=20,default=None)
 
-    def __str__(self):
-        return self.buildnumber
-    
-    class Meta:
-        ordering = ("buildnumber",)
+
+class Log(models.Model):
+    build = models.ForeignKey(Build, on_delete=models.CASCADE, default=None)
+    line = models.TextField()
+    created = models.DateTimeField()
