@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,22 +19,25 @@
 # USA
 #
 
-from RemoteContainer import RemoteContainer
-from DockerContainer import DockerContainer
-from CoprContainer import CoprContainer
-from LXCContainer import LXCContainer
-from LXDContainer import LXDContainer
-from BuildHelper import BuildHelper
-from BuildHelperFactory import BuildHelperFactory
-import Config
 from time import gmtime, strftime
 import datetime
 import os
 import shutil
-from Shell import Shell
 import logging
-from Logger import Logger
-from Database import Database
+
+from django.conf import settings
+
+from lib.RemoteContainer import RemoteContainer
+from lib.DockerContainer import DockerContainer
+from lib.CoprContainer import CoprContainer
+from lib.LXCContainer import LXCContainer
+from lib.LXDContainer import LXDContainer
+from lib.BuildHelper import BuildHelper
+from lib.BuildHelperFactory import BuildHelperFactory
+from lib.Shell import Shell
+from lib.Logger import Logger
+
+from machines.models import Machine
 
 class Build:
   'run one specific build of one package'
@@ -45,25 +48,20 @@ class Build:
     self.container = None
     self.finished = False
     self.buildmachine = None
-    self.config = Config.LoadConfig()
 
-  def createbuildmachine(self, lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
-    # create a container on a remote machine
+  def createbuildmachine(self, distro, release, arch, buildmachine, packageSrcPath):
     self.buildmachine = buildmachine
-    con = Database(self.config)
-    stmt = "SELECT * FROM machine WHERE name = ?"
-    cursor = con.execute(stmt, (buildmachine,))
-    machine = cursor.fetchone()
-    con.close()
-    if machine['type'] == 'lxc':
+    # create a container on a remote machine
+    machine = Machine.objects.filter(name=buildmachine).first()
+    if machine.type == 'lxc':
       self.container = LXCContainer(buildmachine, machine, self.logger, packageSrcPath)
-    elif machine['type'] == 'lxd':
+    elif machine.type == 'lxd':
       self.container = LXDContainer(buildmachine, machine, self.logger, packageSrcPath)
-    elif machine['type'] == 'docker':
+    elif machine.type == 'docker':
       self.container = DockerContainer(buildmachine, machine, self.logger, packageSrcPath)
-    elif machine['type'] == 'copr':
+    elif machine.type == 'copr':
       self.container = CoprContainer(buildmachine, machine, self.logger, packageSrcPath)
-    return self.container.createmachine(lxcdistro, lxcrelease, lxcarch, buildmachine)
+    return self.container.createmachine(distro, release, arch, buildmachine)
 
   def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch):
     # connect to copr
@@ -182,8 +180,7 @@ class Build:
         # create repo file
         self.buildHelper.CreateRepoFile()
 
-  def buildpackage(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildmachine, jobId):
-    userconfig = self.config['lbs']['Users'][username]
+  def buildpackage(self, build):
     self.logger.startTimer()
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
     self.logger.print(" * Preparing the machine...")
@@ -191,8 +188,8 @@ class Build:
     # get the sources of the packaging instructions
     gotPackagingInstructions = False
     try:
-      pathSrc=self.LBS.getPackagingInstructions(userconfig, username, projectname, branchname)
-      packageSrcPath=pathSrc + '/lbs-'+projectname + '/' + packagename
+      pathSrc=self.LBS.getPackagingInstructions(build.username, build.projectname, build.branchname)
+      packageSrcPath=pathSrc + '/lbs-'+build.projectname + '/' + build.packagename
       gotPackagingInstructions = True
     except Exception as e:
       print(e)
@@ -200,42 +197,44 @@ class Build:
 
     jobFailed = True
     if not gotPackagingInstructions:
-      self.LBS.ReleaseMachine(buildmachine, jobFailed)
-    elif self.createbuildmachine(lxcdistro, lxcrelease, lxcarch, buildmachine, packageSrcPath):
+      self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
+    elif self.createbuildmachine(build.distro, build.release, build.arch, build.buildmachine, packageSrcPath):
       try:
         if type(self.container) is CoprContainer:
-          self.buildpackageOnCopr(username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch)
+          self.buildpackageOnCopr(build, packageSrcPath)
         else:
-          self.buildpackageOnContainer(username, projectname, packagename, branchname, lxcdistro, lxcrelease, pathSrc)
+          self.buildpackageOnContainer(build, pathSrc)
         self.logger.print("Success!")
-        self.LBS.MarkPackageAsBuilt(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
+        self.LBS.MarkPackageAsBuilt(build)
         jobFailed = False
       except Exception as e:
         self.logger.print("LBSERROR: "+str(e), 0)
       finally:  
-        self.LBS.ReleaseMachine(buildmachine, jobFailed)
+        self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
     else:
       self.logger.print("LBSERROR: There is a problem with creating the container!")
-      self.LBS.ReleaseMachine(buildmachine, jobFailed)
+      self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
     self.finished = True
-    logpath=self.logger.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    buildnumber=self.logger.store(self.config['lbs']['DeleteLogAfterDays'], self.config['lbs']['KeepMinimumLogs'], logpath)
-    if self.logger.hasLBSERROR() or not self.config['lbs']['SendEmailOnSuccess'] == False:
-      if self.config['lbs']['EmailFromAddress'] == 'lbs@example.org':
+    logpath=self.logger.getLogPath(build)
+    buildnumber=self.logger.store(settings.DELETE_LOG_AFTER_DAYS, settings.KEEP_MINIMUM_LOGS, logpath)
+    if self.logger.hasLBSERROR() or settings.SEND_EMAIL_ON_SUCCESS:
+      if settings.EMAIL_FROM_ADDRESS == 'lbs@example.org':
         self.logger.print("Please configure the email settings for sending notification emails")
       else:
         try:
-          self.logger.email(self.config['lbs']['EmailFromAddress'], userconfig['EmailToAddress'], "LBS Result for " + projectname + "/" + packagename, self.config['lbs']['LBSUrl'] + "/logs/" + logpath + "/" + str(buildnumber))
+          self.logger.email(settings.EMAIL_FROM_ADDRESS, build.user.email, \
+            "LBS Result for " + build.projectname + "/" + build.packagename, \
+            settings.LBS_URL + "/logs/" + logpath + "/" + str(buildnumber))
         except Exception as e:
           self.logger.print("ERROR: we could not send the email")
 
     # now mark the build finished
-    con = Database(self.config)
-    stmt = "UPDATE build SET status='FINISHED', finished=?, buildsuccess=?, buildnumber=? WHERE id = ?"
-    lastBuild = Logger().getLastBuild(username, projectname, packagename, branchname, lxcdistro+"/"+lxcrelease+"/"+lxcarch)
-    con.execute(stmt, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), lastBuild["resultcode"], lastBuild["number"], jobId))
-    con.commit()
-    con.close()
+    build.status = 'FINISHED'
+    build.finished = datetime.datetime.now()
+    lastBuild = Logger().getLastBuild(build)
+    build.buildsuccess = lastBuild['resultcode']
+    build.buildnumber = lastBuild['number']
+    build.save()
 
     self.logger.clean()
     return self.logger.get()

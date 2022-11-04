@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Interface class for Container Management"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,9 +23,9 @@ import sys
 import os
 import time
 import socket
-import Config
-from Logger import Logger
-from Shell import Shell
+
+from lib.Logger import Logger
+from lib.Shell import Shell
 
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
@@ -60,7 +60,6 @@ class RemoteContainer:
         self.containerIP=self.calculateLocalContainerIP(1)
         self.containerPort=str(2000+int(self.cid))
 
-    self.config = Config.LoadConfig()
     self.SSHContainerPath = self.config['lbs']['SSHContainerPath']
     self.logger = logger
     self.shell = Shell(logger)

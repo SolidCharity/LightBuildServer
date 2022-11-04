@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run commands on the shell and log the output to our Logger class"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@
 #
 
 from subprocess import Popen, PIPE, STDOUT
-from Logger import Logger
+from lib.Logger import Logger
 
 class Shell:
   def __init__(self, logger):

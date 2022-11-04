@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Logger: collects all the output"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from collections import OrderedDict
-import Config
-from Database import Database
 
 class Logger:
   'collect all the output'
@@ -37,7 +35,6 @@ class Logger:
   def __init__(self, buildid=-1):
     self.lastTimeUpdate = int(time.time())
     self.startTimer()
-    self.config = Config.LoadConfig()
     self.logspath = self.config['lbs']['LogsPath']
     self.emailserver = self.config['lbs']['EmailServer']
     self.emailport = self.config['lbs']['EmailPort']

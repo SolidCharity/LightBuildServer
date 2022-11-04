@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper: abstract base class for various builders"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -21,8 +21,6 @@
 import yaml
 import os.path
 from collections import deque
-import Config
-from Database import Database
 
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
@@ -41,7 +39,6 @@ class BuildHelper:
     self.projectname = projectname
     self.packagename = packagename
     self.branchname = branchname
-    self.config = Config.LoadConfig()
     self.pathSrc=self.config['lbs']['GitSrcPath']+"/"+self.username
 
   def log(self, message):
