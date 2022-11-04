@@ -17,13 +17,15 @@
   <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
   <a href="#{{branchname}}_{{buildtarget}}">
     {% if package.get_branches|length == 1 %}
-    <h4>{{buildtarget|replace:"__|/"}}</h4>
+    <h4>{{buildtarget}}</h4>
     {% else %}
-    <h4>{{branchname}} - {{buildtarget}}|replace:"__|/"</h4>
+    <h4>{{branchname}} - {{buildtarget}}</h4>
     {% endif %}
   </a>
   <ul>
-    <li><a href="{% url "builder:triggerbuild" package.project.user.get_username package.project.name package.name branchname buildtarget %}">Trigger build</a></li>
+    {% with buildtargetlist=buildtarget|split:"/" %}
+    <li><a href="{% url "builder:triggerbuild" package.project.user.get_username package.project.name package.name branchname buildtargetlist.0 buildtargetlist.1 buildtargetlist.2 %}">Trigger build</a></li>
+    {% endwith %}
   </ul>
 
   {% endfor %}
