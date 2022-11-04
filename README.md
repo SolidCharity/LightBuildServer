@@ -24,13 +24,13 @@ The goal is not to create a replacement for the [openSUSE Build Service](https:/
 Implementation
 --------------
 
-The web interface and the server itself are being implemented in Python3. The main reason for this is that LXC has some Python3 bindings...
+The web interface and the server itself are being implemented in Python3 and with Django. The main reason for this is that LXC has some Python3 bindings...
 
-The server will use a MySQL database for the storage of users and projects, and build queues.
+The server will use the database backend of Django (Postgresql, Sqlilte, MySQL) for the storage of users and projects, and build queues.
 
 The generated packages are delivered from the server directly, via apt or yum repositories.
 
-We are using LXC to build the packages. We are mounting network shares to reduce the amount of downloading required packages.
+We are using LXC/LXD/Docker to build the packages. We are mounting network shares to reduce the amount of downloading required packages.
 
 License
 -------
@@ -40,10 +40,6 @@ the LightBuildServer is published with the GNU Lesser General Public License v2 
 Setup for Development
 ---------------------
 
-1. Create a Python 3 virtual environment: `LightBuildServer$ python -m venv .venv`
+You can run `make quickstart` to create a Python3 virtual environment, install all required packages, and create the database.
 
-2. Activate the virtual environment: [See venv documentation](https://docs.python.org/3/tutorial/venv.html#creating-virtual-environments)
-
-3. Install all requirements: `(.venv) LightBuildServer$ pip install -r requirements.txt`
-
-4. Create the database: `(.venv) LightBuildServer$ python manage.py migrate --run-syncdb`
+You can run `make initdemo` for loading initial users, projects and packages for development and testing.
