@@ -318,7 +318,7 @@ class LightBuildServer:
 
   def MarkProjectAsDirty(self, username, projectname, branchname, distro, release, arch):
     project = Project.objects.filter(user__username=username).filter(name=projectname).first()
-    packagebuildstatus = PackageBuildStatus.objects.filter(project=project). \
+    packagebuildstatus = PackageBuildStatus.objects.filter(package=project.package). \
         filter(branchname=branchname). \
         filter(distro=distro).filter(release=release).filter(arch=arch)
     for p in packagebuildstatus:
@@ -326,15 +326,16 @@ class LightBuildServer:
       packagebuildstatus.save()
 
   def MarkPackageAsBuilt(self, build):
-    packagebuildstatus = PackageBuildStatus.objects.filter(project=build.project). \
-        filter(package=build.package). \
+    project = Project.objects.filter(user__username=build.user.username).filter(name=build.project).first()
+    package = Package.objects.filter(project=project).filter(name=build.package).first()
+    packagebuildstatus = PackageBuildStatus.objects.filter(package=package). \
         filter(branchname=build.branchname). \
         filter(distro=build.distro).filter(release=build.release).filter(arch=build.arch).first()
     if packagebuildstatus:
         packagebuildstatus.dirty = False;
         packagebuildstatus.save()
     else:
-        packagebuildstatus = PackageBuildStatus(project=build.project, package=build.package, branchname=build.branchname,
+        packagebuildstatus = PackageBuildStatus(package=package, branchname=build.branchname,
             distro=build.distro, release=build.release, arch=build.arch, dirty=False)
         packagebuildstatus.save()
 

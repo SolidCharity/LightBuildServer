@@ -26,4 +26,7 @@ REPOS_PATH = "var/repos"
 TARBALLS_PATH = "var/tarballs"
 SSH_TMP_PATH = "var/ssh"
 
+PUBLIC_KEY_SERVER = "keyserver.ubuntu.com"
+
 LBS_URL = "http://localhost:8000"
+DOWNLOAD_URL = "http://lbs.example.org"

@@ -17,11 +17,15 @@ class Project(models.Model):
     ])
     git_private_token = models.CharField(max_length=250, default=None, null=True, blank=True)
 
-    public_key = models.TextField(null=True, blank=True)  # generate keys autom. at project setup
+    public_key_id = models.CharField(max_length=250, null=True, blank=True)
+    public_key = models.TextField(null=True, blank=True)
     private_key = models.TextField(null=True, blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT, null=True, blank=True)
+
     copr_user_name = models.CharField(max_length=250, null=True, blank=True)    # solve copr-stuff later
     copr_project_name = models.CharField(max_length=250, null=True, blank=True)
+    copr_token = models.CharField(max_length=250, null=True, blank=True)
+
     use_lxc = models.BooleanField(default = True)
     use_docker = models.BooleanField(default = True)
     visible = models.BooleanField(default = True)

@@ -25,6 +25,7 @@ import os
 import traceback
 import shutil
 import logging
+from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
@@ -66,25 +67,30 @@ class Builder:
       self.container = CoprContainer(buildmachine, machine, self.logger, packageSrcPath)
     return self.container.createmachine(distro, release, arch, buildmachine)
 
-  def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, distro, release, arch):
-    # connect to copr
-    coprtoken_filename = self.config['lbs']['SSHContainerPath'] + '/' + username + '/' + projectname + '/copr'
-    if not os.path.isfile(coprtoken_filename):
-      raise Exception("please download a token file from copr and save in " + coprtoken_filename)
+  def buildpackageOnCopr(self, build, packageSrcPath):
+    project = Project.objects.filter(user = build.user, name=build.project).first()
 
-    userconfig = self.config['lbs']['Users'][username]
-    copr_projectname =  projectname
-    if 'CoprProjectName' in userconfig['Projects'][projectname]:
-      copr_projectname = userconfig['Projects'][projectname]['CoprProjectName']
-    copr_username = username
-    if 'CoprUserName' in userconfig['Projects'][projectname]:
-      copr_username = userconfig['Projects'][projectname]['CoprUserName']
+    # connect to copr
+    SSHContainerPath = f"{settings.SSH_TMP_PATH}/{build.user.username}/{build.project}"
+    Path(self.SSHContainerPath).mkdir(parents=True, exist_ok=True)
+    if not project.copr_token:
+        raise Exception("problem connecting to copr, we are missing the copr token")
+    coprtoken_filename = self.SSHContainerPath + '/copr'
+    with open(coprtoken_filename, 'w') as f:
+        f.write(project.copr_token)
+
+    copr_projectname =  build.project
+    if project.copr_project_name:
+      copr_projectname = project.copr_project_name
+    copr_username = build.user.username
+    if project.copr_user_name:
+      copr_username = project.copr_user_name
 
     if not self.container.connectToCopr(coprtoken_filename, copr_username, copr_projectname):
       raise Exception("problem connecting to copr, does the project " + copr_projectname + " already exist?")
 
     # calculate the release number
-    release = self.container.getLatestReleaseFromCopr(packagename)
+    release = self.container.getLatestReleaseFromCopr(build.package)
     if release is not None:
       if release.find('.') > -1:
         releasenumber = int(release[:release.find('.')])
@@ -96,17 +102,17 @@ class Builder:
     # build the src rpm locally, and move to public directory
     # simplification: tarball must be in the git repository
     self.shell = Shell(self.logger)
-    rpmbuildpath = "/run/uwsgi/rpmbuild_" + username + "_" + projectname + "_" + packagename
+    rpmbuildpath = "/run/uwsgi/rpmbuild_" + build.user.username + "_" + build.project + "_" + build.package
     self.shell.executeshell("mkdir -p " + rpmbuildpath + "/SOURCES; mkdir -p " + rpmbuildpath + "/SPECS")
     self.shell.executeshell("cp -R " + packageSrcPath + "/* " + rpmbuildpath + "/SOURCES; mv " + rpmbuildpath + "/SOURCES/*.spec " + rpmbuildpath + "/SPECS")
     if release is not None:
       self.shell.executeshell("sed -i 's/^Release:.*/Release: " + release + "/g' " + rpmbuildpath + "/SPECS/*.spec")
     if not self.shell.executeshell("rpmbuild --define '_topdir " + rpmbuildpath + "' -bs " + rpmbuildpath + "/SPECS/" + packagename + ".spec"):
-      raise Exception("Problem with building the source rpm file for package " + packagename)
-    myPath = username + "/" + projectname
-    if 'Secret' in self.config['lbs']['Users'][username]:
+      raise Exception("Problem with building the source rpm file for package " + build.package)
+    myPath = build.user.username + "/" + build.project
+    if project.secret:
       raise Exception("You cannot use a secret path when you are working with Copr")
-    repoPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + distro + "/" + release + "/src"
+    repoPath=settings.REPOS_PATH + "/" + myPath + "/" + build.distro + "/" + build.release + "/src"
     files = os.listdir(rpmbuildpath + "/SRPMS")
     if files is not None and len(files) == 1:
       srcrpmfilename = files[0]
@@ -118,7 +124,7 @@ class Builder:
       raise Exception("Problem moving the source rpm file")
 
     # tell copr to build this srpm. raise an exception if the build failed.
-    if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + distro + "/" + release + "/src/" + srcrpmfilename):
+    if not self.container.buildProject(settings.DOWNLOAD_URL + "/repos/" + myPath + "/" + build.distro + "/" + build.release + "/src/" + srcrpmfilename):
       raise Exception("problem building the package on copr")
 
   def buildpackageOnContainer(self, build, pathSrc):
@@ -150,14 +156,15 @@ class Builder:
         # copy the repo to the container
         self.container.rsyncContainerPut(pathSrc+'lbs-'+build.project, "/root/lbs-"+build.project)
         # copy the keys to the container
-        sshContainerPath = self.config['lbs']['SSHContainerPath']
-        if os.path.exists(sshContainerPath + '/' + build.user.username + '/' + build.project):
-          self.container.rsyncContainerPut(sshContainerPath + '/' + build.user.username + '/' + build.project + '/*', '/root/.ssh/')
-          self.container.executeInContainer('chmod 600 /root/.ssh/*')
+        SSHContainerPath = f"{settings.SSH_TMP_PATH}/{build.user.username}/{build.project}"
+        Path(SSHContainerPath).mkdir(parents=True, exist_ok=True)
+        # TODO: store keys and other files in this directory
+        self.container.rsyncContainerPut(SSHContainerPath + '/*', '/root/.ssh/')
+        self.container.executeInContainer('chmod 600 /root/.ssh/*')
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
-        if not self.buildHelper.InstallRepositories(self.config['lbs']['DownloadUrl']):
+        if not self.buildHelper.InstallRepositories(settings.DOWNLOAD_URL):
           raise Exception("Problem with InstallRepositories")
         if not self.buildHelper.SetupEnvironment(build.branchname):
           raise Exception("Setup script did not succeed")
@@ -169,14 +176,14 @@ class Builder:
         if not self.buildHelper.BuildPackage():
           raise Exception("Problem with building the package")
         myPath = build.user.username + "/" + build.project
-        if 'Secret' in self.config['lbs']['Users'][username]:
-          myPath = build.user.username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + build.project
-        srcPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + build.distro + "/" + build.release
+        if project.secret:
+          myPath = build.user.username + "/" + project.secret + "/" + build.project
+        srcPath=settings.REPOS_PATH + "/" + myPath + "/" + build.distro + "/" + build.release
         destPath=srcPath[:srcPath.rindex("/")]
         srcPath="/mnt"+srcPath
         if not self.container.rsyncHostGet(srcPath, destPath):
           raise Exception("Problem with syncing repos")
-        srcPath=self.config['lbs']['TarballsPath'] + "/" + myPath
+        srcPath=settings.TARBALLS_PATH + "/" + myPath
         destPath=srcPath[:srcPath.rindex("/")]
         srcPath="/mnt"+srcPath
         if not self.container.rsyncHostGet(srcPath, destPath):
