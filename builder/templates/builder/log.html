@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Build Result for {{build_descr}}{% endblock %}
+
+{% block navbar_machines %}class="active"{% endblock %}
+
+{% block content %}
+
+<script type="text/JavaScript">
+function timedRefresh(timeoutPeriod) {
+    if (timeoutPeriod > 0) {
+        setTimeout("location.reload(true);",timeoutPeriod);
+    }
+}
+timedRefresh({{timeoutInSeconds}}*1000);
+</script>
+    <div class="container">
+      <div class="row">
+        <h2>Build Result for {{build_descr}}</h2>
+        {% if not timeoutInSeconds > 0 %}
+            <a href="#bottom">go to bottom of this page</a>
+        {% endif %}
+        <pre style="white-space:pre-wrap;">{{buildresult}}</pre>
+            <a name="bottom"></a>
+            {% if not timeoutInSeconds > 0 %}
+            <a href="#top">go to top of this page</a>
+            {% endif %}
+      </div>
+    </div>
+
+{% endblock %}

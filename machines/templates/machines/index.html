@@ -24,7 +24,7 @@
                     Currently building
                     <a href="/projects/{{machine.build.user.username}}/{{machine.build.project}}/package/{{machine.build.package}}#{{machine.build.branchname}}_{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}">
                         {{machine.build.user.username}}/{{machine.build.project}}/{{machine.build.package}}/{{machine.build.branchname}}/{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}</a>:
-                        <a href="/livelog/{{machine.build.user.username}}/{{machine.build.project}}/{{machine.build.package}}/{{machine.build.branchname}}/{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}">View live log</a><br/>
+                        <a href="/livelog/{{machine.build.user.username}}/{{machine.build.project}}/{{machine.build.package}}/{{machine.build.branchname}}/{{machine.build.distro}}/{{machine.build.release}}/{{machine.build.arch}}/{{machine.build.id}}">View live log</a><br/>
                     {% endif %}
                 {% endif %}
 
@@ -57,10 +57,10 @@
                 <td>{{job.finished}}</td>
                 <td>{{job.duration}}</td>
                 <td>
-                    <a href="/package/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
+                    <a href="/projects/{{job.user.username}}/{{job.project}}/package/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
                         {{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}</a>
                 </td>
-                <td><a href="/logs/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}/{{job.id}}">
+                <td><a href="/logs/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branchname}}/{{job.distro}}/{{job.release}}/{{job.arch}}/{{job.id}}">
                     build {{job.id}}</a></td>
                 <td>
                 <code class="{{job.buildsuccess}}">

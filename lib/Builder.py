@@ -244,12 +244,7 @@ class Builder:
     # now mark the build finished
     build.status = 'FINISHED'
     build.finished = timezone.now()
-    lastBuild = Logger().getLastBuild(build)
-    if lastBuild:
-        build.buildsuccess = lastBuild['resultcode']
-        build.buildnumber = lastBuild['number']
-    else:
-        build.buildsuccess = "failure"
+    build.buildsuccess = Logger(build).getBuildResult()
     build.save()
 
     self.logger.clean()

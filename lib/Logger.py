@@ -21,6 +21,7 @@
 import codecs
 import sys
 import time
+import datetime
 import smtplib
 from smtplib import SMTP_SSL
 import os
@@ -31,6 +32,7 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.timezone import make_aware
 
 from builder.models import Log
 
@@ -38,7 +40,7 @@ class Logger:
   'collect all the output'
 
   def __init__(self, build=None):
-    self.lastTimeUpdate = int(time.time())
+    self.lastTimeUpdate = timezone.now()
     self.startTimer()
     self.logspath = settings.LOGS_PATH
     self.emailserver = settings.EMAIL_SERVER
@@ -49,7 +51,7 @@ class Logger:
     self.MaxDebugLevel = settings.MAX_DEBUG_LEVEL
 
   def startTimer(self):
-    self.starttime = time.time()
+    self.starttime = timezone.now()
     self.linebuffer = []
     self.buffer = ""
     self.error = False
@@ -65,7 +67,7 @@ class Logger:
       self.lastLine = newOutput
       if newOutput[-1:] != "\n":
         newOutput += "\n"
-      timeseconds = int(time.time() - self.starttime)
+      timeseconds = round((timezone.now() - self.starttime).total_seconds())
       timeprefix = "[" + str(int(timeseconds/60/60)).zfill(2) + ":" + str(int(timeseconds/60)%60).zfill(2) + ":" + str(timeseconds%60).zfill(2)  + "] "
       if "LBSERROR" in newOutput:
         self.error = True
@@ -73,14 +75,14 @@ class Logger:
 
       # only write new lines every other second, to avoid putting locks on the database
       # also write often enough, do not collect too many lines
-      if self.build and (self.lastTimeUpdate + 2 < int(time.time()) or len(self.linebuffer) > 20):
+      if self.build and ((timezone.now() - self.lastTimeUpdate).total_seconds() > 2 or len(self.linebuffer) > 20):
 
         # write the lines to database, and then dump to file when build is finished
         for line in self.linebuffer:
             log = Log(build = self.build, line = line, created = timezone.now())
             log.save()
         self.linebuffer = []
-      self.lastTimeUpdate = int(time.time())
+      self.lastTimeUpdate = timezone.now()
 
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
       # just ignore the exception...
@@ -107,7 +109,7 @@ class Logger:
       log = log[:limit]
     output = ""
     for row in log:
-       output = row.line + output
+       output += row.line
 
     return output
 
@@ -146,7 +148,7 @@ class Logger:
     if not os.path.exists(LogPath):
       os.makedirs( LogPath )
     buildnumber=0
-    MaximumAgeInSeconds=time.time() - (DeleteLogAfterDays*24*60*60)
+    MaximumAgeInSeconds = timezone.now() - datetime.timedelta(days = DeleteLogAfterDays)
     logfiles=[]
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
@@ -159,10 +161,10 @@ class Logger:
       for i in range(1, len(logfiles) - KeepMinimumLogs):
         file=logfiles[i - 1]
         # delete older logs, depending on DeleteLogAfterDays
-        if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
+        if make_aware(datetime.datetime.fromtimestamp(os.path.getmtime(LogPath + "/" + file))) < MaximumAgeInSeconds:
           os.unlink(LogPath + "/" + file)
-    LogFilePath = LogPath + "/build-" + (str(buildnumber).zfill(6)) + ".log"
-    self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
+    self.print("This build took about " + str(round((timezone.now() - self.starttime).total_seconds() / 60)) + " minutes")
+    LogFilePath = self.getLogFile(self.build)
     try:
       with open(LogFilePath, 'ab') as f:
         f.write(self.get().encode('utf8'))
@@ -206,22 +208,12 @@ class Logger:
             result[number]["resultcode"] = "failure"
     return OrderedDict(reversed(sorted(result.items())))
 
-  def getLastBuild(self, build):
-    LogPath = self.getLogPath(build)
-    result={}
-    if not os.path.exists(LogPath):
-      return result
-    previousNumber = -1
-    for file in os.listdir(LogPath):
-      if file.endswith(".log"):
-        number=int(file[6:-4])
-        if number > previousNumber:
-          previousNumber = number
-          result = {}
-          result['number'] = number
-          result['resultcode'] = "success"
-          with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
-            content = f.read()
-            if content.find('LBSERROR') >= 0:
-              result['resultcode'] = "failure"
-    return result 
+  def getBuildResult(self):
+    LogFilePath = self.getLogFile(self.build)
+    if not os.path.exists(LogFilePath):
+      return "failure"
+    with codecs.open(LogFilePath, encoding='utf-8', mode='r') as f:
+        content = f.read()
+    if content.find('LBSERROR') >= 0:
+        return "failure"
+    return "success"

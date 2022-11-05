@@ -51,24 +51,11 @@ from builder.models import Build, Log
 class LightBuildServer:
   'light build server based on lxc and git'
 
-  def __init__(self):
-    machines = Machine.objects.all()
-    for m in machines:
-        m.build = None
-        m.status = "AVAILABLE"
-        m.save()
-    # keep WAITING build jobs
-    Build.objects.filter(status='BUILDING').delete()
-    Log.objects.all().delete()
-
   def GetLbsName(self, build):
     return build.user.username+"/"+build.project+"/"+build.package+"/"+build.branchname+"/"+build.distro+"/"+build.release+"/"+build.arch
 
 
   def GetAvailableBuildMachine(self, build):
-    machineToUse=None
-    machinePriorityToUse=101
-
     m = Machine.objects.filter(status='AVAILABLE')
     if build.avoiddocker:
       m = m.exclude(type='docker')
@@ -79,12 +66,13 @@ class LightBuildServer:
     else:
       m = m.filter(Q(host=build.designated_build_machine) | Q(Q(type='copr') & Q(host__startswith=build.designated_build_machine) & Q(static=True)))
 
+    machineToUse=None
+    machinePriorityToUse=101
     for row in m:
-      buildmachine=row.host
-      buildmachinePriority=row.priority
-      if buildmachinePriority < machinePriorityToUse:
-        machinePriorityToUse = buildmachinePriority
-        machineToUse = buildmachine
+      if row.priority < machinePriorityToUse:
+        machinePriorityToUse = row.priority
+        machineToUse = row.host
+
     if machineToUse is not None:
       m = Machine.objects.filter(host=machineToUse).filter(status='AVAILABLE').first()
       if m:
@@ -465,16 +453,15 @@ class LightBuildServer:
 
       self.CheckForHangingBuild()
 
-  def LiveLog(self, username, project, packagename, branchname, distro, release, arch):
-      build = self.GetJob(project, packagename, branchname, distro, release, arch, False)
+  def LiveLog(self, build):
       if build is None:
         return ("No build is planned for this package at the moment...", -1)
       elif build.status == 'BUILDING':
         rowsToShow=40
-        logs = Log.objects.filter(buildid=build.id).reverse()[:rowsToShow]
+        logs = Log.objects.filter(build=build).order_by('-id')[:rowsToShow:-1]
         output = ""
         for row in logs:
-          output = row.line + output
+          output += row.line
         timeout = 2
       elif build.status == 'CANCELLED':
         return ("This build has been removed from the build queue...", -1)
@@ -499,7 +486,7 @@ class LightBuildServer:
       builds = Build.objects.filter(status='WAITING')
       if auth_user is None:
         builds = builds.filter(secret=False)
-      else:
+      elif not auth_user.is_staff:
         builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
       return builds
 
@@ -507,7 +494,7 @@ class LightBuildServer:
       builds = Build.objects.filter(status='FINISHED')
       if auth_user is None:
         builds = builds.filter(secret=False)
-      else:
+      elif not auth_user.is_staff:
         builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
       builds = builds.order_by('finished').reverse()[:settings.SHOW_NUMBER_OF_FINISHED_JOBS]
       return builds

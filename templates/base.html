@@ -26,9 +26,6 @@
       </div>
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
-          {% if request.user.is_staff %}
-          <li><a href="/admin" target="_blank">Admin</a></li>
-          {% endif %}
           <li {% block navbar_projects %}{% endblock %}><a href="/projects">Projects</a></li>
           {% comment %} ------------------------------------------------- TODO: Django-ify
           {% if page == "package" %}
@@ -50,6 +47,11 @@
         <form class="navbar-form navbar-right" role="form" action="{% url "login" %}">
           <button type="submit" class="btn-xs btn-success">Login</button>
         </form>
+        {% endif %}
+        {% if request.user.is_staff %}
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="/admin" target="_blank">Admin</a></li>
+        </ul>
         {% endif %}
       </div><!--/.navbar-collapse -->
     </div>
