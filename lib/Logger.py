@@ -34,7 +34,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.timezone import make_aware
 
-from builder.models import Log
+from builder.models import Build, Log
 
 class Logger:
   'collect all the output'
@@ -191,22 +191,23 @@ class Logger:
         return content_file.read()
     return ""
 
-  def getBuildNumbers(self, build):
-    LogPath = self.getLogPath(build)
-    result={}
-    if not os.path.exists(LogPath):
-      return result
-    for file in os.listdir(LogPath):
-      if file.endswith(".log"):
-        number=int(file[6:-4])
-        result[number] = {}
-        result[number]["timefinished"] = time.ctime( os.path.getmtime(LogPath + "/" + file))
-        result[number]["resultcode"] = "success"
-        with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
-          content = f.read()
-          if content.find('LBSERROR') >= 0:
-            result[number]["resultcode"] = "failure"
-    return OrderedDict(reversed(sorted(result.items())))
+  def getBuildsOfPackage(self, package):
+    result = dict()
+
+    builds = Build.objects. \
+        filter(user = package.project.user). \
+        filter(project=package.project.name). \
+        filter(package=package.name).order_by('-id')
+
+    for b in builds:
+        key = f"{b.distro}/{b.release}/{b.arch}-{b.branchname}"
+        if not key in result:
+            result[key] = []
+        if len(result[key]) < settings.DISPLAY_MAX_BUILDS_PER_PACKAGE:
+            result[key].append(b)
+
+    return result
+
 
   def getBuildResult(self):
     LogFilePath = self.getLogFile(self.build)

@@ -1,6 +1,9 @@
 from itertools import chain
 from django.views import generic
+from django.shortcuts import render
 from django.contrib.auth.models import User
+
+from lib.Logger import Logger
 
 from .models import Project, Package
 
@@ -37,22 +40,27 @@ class ProjectView(generic.DetailView):
 
         return project
 
-class PackageView(generic.DetailView):
+def view_package(request, user, project, package):
+
+    package = Package.objects.get(
+        project__exact=Project.objects.get(
+            user__exact=User.objects.get(username__exact=user),
+            name__exact=project
+        ),
+        name__exact=package
+    )
+
+    # only public projects, or own project, or I am staff
+    if not package.project.visible and not request.user.is_staff:
+        if request.user != package.project.user:
+            raise Exception("you do not have permission for this project")
+
+    logger = Logger()
+    builds_per_target_and_branch = logger.getBuildsOfPackage(package)
+
     template_name = "projects/package.html"
-    context_object_name = "package"
-
-    def get_object(self):
-        package = Package.objects.get(
-            project__exact=Project.objects.get(
-                user__exact=User.objects.get(username__exact=self.kwargs["user"]),
-                name__exact=self.kwargs["project"]
-            ),
-            name__exact=self.kwargs["package"]
-        )
-
-        # only public projects, or own project, or I am staff
-        if not package.project.visible and not self.request.user.is_staff:
-            if self.request.user != package.project.user:
-                raise Exception("you do not have permission for this project")
-
-        return package
+    return render(request, template_name,
+            {
+             'package': package,
+             'builds_per_target_and_branch': builds_per_target_and_branch,
+            })
