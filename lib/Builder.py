@@ -33,7 +33,6 @@ from django.utils import timezone
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
 from lib.CoprContainer import CoprContainer
-from lib.LXCContainer import LXCContainer
 from lib.LXDContainer import LXDContainer
 from lib.BuildHelper import BuildHelper
 from lib.BuildHelperFactory import BuildHelperFactory
@@ -57,9 +56,7 @@ class Builder:
     self.buildmachine = buildmachine
     # create a container on a remote machine
     machine = Machine.objects.filter(host=buildmachine).first()
-    if machine.type == 'lxc':
-      self.container = LXCContainer(buildmachine, machine, self.logger, packageSrcPath)
-    elif machine.type == 'lxd':
+    if machine.type == 'lxd':
       self.container = LXDContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine.type == 'docker':
       self.container = DockerContainer(buildmachine, machine, self.logger, packageSrcPath)
@@ -72,10 +69,10 @@ class Builder:
 
     # connect to copr
     SSHContainerPath = f"{settings.SSH_TMP_PATH}/{build.user.username}/{build.project}"
-    Path(self.SSHContainerPath).mkdir(parents=True, exist_ok=True)
+    Path(SSHContainerPath).mkdir(parents=True, exist_ok=True)
     if not project.copr_token:
         raise Exception("problem connecting to copr, we are missing the copr token")
-    coprtoken_filename = self.SSHContainerPath + '/copr'
+    coprtoken_filename = SSHContainerPath + '/copr'
     with open(coprtoken_filename, 'w') as f:
         f.write(project.copr_token)
 

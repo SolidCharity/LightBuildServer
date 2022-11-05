@@ -74,10 +74,6 @@ class LXDContainer(RemoteContainer):
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
     if result == True:
-     result = self.shell.executeshell('echo "put ' + self.SSHContainerPath + '/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i ' + self.SSHContainerPath + '/container_rsa root@' + self.hostname + ':' + sshpath)
-    if result == True:
-      result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
-    if result == True:
       result = self.executeOnHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result
 

@@ -35,7 +35,6 @@ from django.utils import timezone
 
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
-from lib.LXCContainer import LXCContainer
 from lib.LXDContainer import LXDContainer
 from lib.CoprContainer import CoprContainer
 from lib.BuildHelper import BuildHelper
@@ -137,9 +136,7 @@ class LightBuildServer:
       machine.status = 'STOPPING'
       machine.save()
 
-      if machine.type == 'lxc':
-        LXCContainer(buildmachine, machine, Logger(), '').stop()
-      elif machine.type == 'lxd':
+      if machine.type == 'lxd':
         LXDContainer(buildmachine, machine, Logger(), '').stop()
       elif machine.type == 'docker':
         DockerContainer(buildmachine, machine, Logger(), '').stop()
