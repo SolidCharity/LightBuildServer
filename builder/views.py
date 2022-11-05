@@ -19,10 +19,10 @@ def buildtarget(request, user, project, package, branchname, lxcdistro, lxcrelea
 
     # start building
     LBS = LightBuildServer()
-    LBS.BuildProjectWithBranch(project, package, branchname, lxcdistro, lxcrelease, lxcarch)
-
-    # TODO: redirect to livelog
-    return redirect('/')
+    if LBS.BuildProjectWithBranch(project, package, branchname, lxcdistro, lxcrelease, lxcarch):
+        return machine_view.monitor(request, successmessage="Build job has been added to the queue")
+    else:
+        return machine_view.monitor(request, errormessage="This build job is already in the queue")
 
 @login_required
 def cancelbuild(request, user, project, package, branchname, lxcdistro, lxcrelease, lxcarch):
