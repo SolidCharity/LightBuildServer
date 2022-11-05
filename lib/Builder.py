@@ -41,7 +41,7 @@ from lib.Shell import Shell
 from lib.Logger import Logger
 
 from machines.models import Machine
-from projects.models import Project
+from projects.models import Project, ProjectFile
 
 class Builder:
   'run one specific build of one package'
@@ -155,10 +155,16 @@ class Builder:
 
         # copy the repo to the container
         self.container.rsyncContainerPut(pathSrc+'lbs-'+build.project, "/root/lbs-"+build.project)
-        # copy the keys to the container
-        SSHContainerPath = f"{settings.SSH_TMP_PATH}/{build.user.username}/{build.project}"
+
+        # copy the keys and other files to the container into the /root/.ssh directory
+        SSHContainerPath = os.path.join(settings.SSH_TMP_PATH, build.user.username, build.project)
         Path(SSHContainerPath).mkdir(parents=True, exist_ok=True)
-        # TODO: store keys and other files in this directory
+        # store project files in this directory
+        files = ProjectFile.objects.filter(project=project)
+        for file in files:
+            filename = os.path.join(SSHContainerPath, file.filename)
+            with open(filename, 'w') as f:
+                f.write(file.content)
         self.container.rsyncContainerPut(SSHContainerPath + '/*', '/root/.ssh/')
         self.container.executeInContainer('chmod 600 /root/.ssh/*')
 

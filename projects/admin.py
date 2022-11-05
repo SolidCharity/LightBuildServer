@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Project, Package, Distro, Branch
+from .models import Project, Package, Distro, Branch, ProjectFile
 
 
 class DistroAdminInline(admin.TabularInline):
@@ -16,12 +16,22 @@ class PackageAdminInline(admin.TabularInline):
     readonly_fields = ('changeform_link',)
 
 
+class ProjectFileAdminInline(admin.TabularInline):
+    model = ProjectFile
+    fields = ('filename', 'changeform_link')
+    readonly_fields = ('changeform_link',)
+
+
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ['name', 'user', 'visible']
-    inlines = (PackageAdminInline, )
+    inlines = (PackageAdminInline, ProjectFileAdminInline)
 
     class Meta:
         None
+
+
+class ProjectFileAdmin(admin.ModelAdmin):
+    list_display = ['project', 'filename']
 
 
 class PackageAdmin(admin.ModelAdmin):
@@ -34,3 +44,4 @@ class PackageAdmin(admin.ModelAdmin):
 
 admin.site.register(Package, PackageAdmin)
 admin.site.register(Project, ProjectAdmin)
+admin.site.register(ProjectFile, ProjectFileAdmin)

@@ -18,8 +18,6 @@ class Project(models.Model):
     git_private_token = models.CharField(max_length=250, default=None, null=True, blank=True)
 
     public_key_id = models.CharField(max_length=250, null=True, blank=True)
-    public_key = models.TextField(null=True, blank=True)
-    private_key = models.TextField(null=True, blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT, null=True, blank=True)
 
     copr_user_name = models.CharField(max_length=250, null=True, blank=True)    # solve copr-stuff later
@@ -124,3 +122,25 @@ class Branch(models.Model):
     class Meta:
         ordering = ("name",)
         verbose_name_plural = "branches"
+
+
+class ProjectFile(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    filename = models.CharField(max_length=250)
+    content = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.filename
+
+    class Meta:
+        ordering = ("project", "filename",)
+
+    def changeform_link(self):
+        if self.id:
+            changeform_url = reverse(
+                'admin:projects_projectfile_change', args=(self.id,)
+            )
+            return mark_safe(f'<a href="{changeform_url}" target="_blank">Details</a>')
+        return u''
+    changeform_link.allow_tags = True
+    changeform_link.short_description = ''   # omit column header
