@@ -22,10 +22,12 @@
 from time import gmtime, strftime
 import datetime
 import os
+import traceback
 import shutil
 import logging
 
 from django.conf import settings
+from django.utils import timezone
 
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
@@ -38,8 +40,9 @@ from lib.Shell import Shell
 from lib.Logger import Logger
 
 from machines.models import Machine
+from projects.models import Project
 
-class Build:
+class Builder:
   'run one specific build of one package'
 
   def __init__(self, LBS, logger):
@@ -52,7 +55,7 @@ class Build:
   def createbuildmachine(self, distro, release, arch, buildmachine, packageSrcPath):
     self.buildmachine = buildmachine
     # create a container on a remote machine
-    machine = Machine.objects.filter(name=buildmachine).first()
+    machine = Machine.objects.filter(host=buildmachine).first()
     if machine.type == 'lxc':
       self.container = LXCContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine.type == 'lxd':
@@ -63,7 +66,7 @@ class Build:
       self.container = CoprContainer(buildmachine, machine, self.logger, packageSrcPath)
     return self.container.createmachine(distro, release, arch, buildmachine)
 
-  def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, lxcdistro, lxcrelease, lxcarch):
+  def buildpackageOnCopr(self, username, projectname, packagename, branchname, packageSrcPath, distro, release, arch):
     # connect to copr
     coprtoken_filename = self.config['lbs']['SSHContainerPath'] + '/' + username + '/' + projectname + '/copr'
     if not os.path.isfile(coprtoken_filename):
@@ -103,7 +106,7 @@ class Build:
     myPath = username + "/" + projectname
     if 'Secret' in self.config['lbs']['Users'][username]:
       raise Exception("You cannot use a secret path when you are working with Copr")
-    repoPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src"
+    repoPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + distro + "/" + release + "/src"
     files = os.listdir(rpmbuildpath + "/SRPMS")
     if files is not None and len(files) == 1:
       srcrpmfilename = files[0]
@@ -115,23 +118,24 @@ class Build:
       raise Exception("Problem moving the source rpm file")
 
     # tell copr to build this srpm. raise an exception if the build failed.
-    if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + lxcdistro + "/" + lxcrelease + "/src/" + srcrpmfilename):
+    if not self.container.buildProject(self.config['lbs']['DownloadUrl'] + "/repos/" + myPath + "/" + distro + "/" + release + "/src/" + srcrpmfilename):
       raise Exception("problem building the package on copr")
 
-  def buildpackageOnContainer(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, pathSrc):
+  def buildpackageOnContainer(self, build, pathSrc):
         # install a mount for the project repo
-        myPath = username + "/" + projectname
-        if 'Secret' in self.config['lbs']['Users'][username]:
-          myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        mountPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease
+        myPath = build.user.username + "/" + build.project
+        project = Project.objects.filter(user = build.user, name=build.project).first()
+        if project.secret:
+          myPath = build.user.username + "/" + project.secret + "/" + build.project
+        mountPath=settings.REPOS_PATH + "/" + myPath + "/" + build.distro + "/" + build.release
         if not self.container.installmount(mountPath, "/mnt" + mountPath, "/root/repo"):
           raise Exception("Problem with installmount")
-        mountPath=self.config['lbs']['TarballsPath'] + "/" + myPath
+        mountPath=settings.TARBALLS_PATH + "/" + myPath
         if not self.container.installmount(mountPath, "/mnt" + mountPath, "/root/tarball"):
           raise Exception("Problem with installmount")
  
         # prepare container, install packages that the build requires; this is specific to the distro
-        self.buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, self.container, username, projectname, packagename, branchname)
+        self.buildHelper = BuildHelperFactory.GetBuildHelper(build.distro, self.container, build)
         if not self.buildHelper.PrepareMachineBeforeStart():
           raise Exception("Problem with PrepareMachineBeforeStart")
         if self.container.startmachine():
@@ -144,18 +148,18 @@ class Build:
           raise Exception("Problem with PrepareForBuilding")
 
         # copy the repo to the container
-        self.container.rsyncContainerPut(pathSrc+'lbs-'+projectname, "/root/lbs-"+projectname)
+        self.container.rsyncContainerPut(pathSrc+'lbs-'+build.project, "/root/lbs-"+build.project)
         # copy the keys to the container
         sshContainerPath = self.config['lbs']['SSHContainerPath']
-        if os.path.exists(sshContainerPath + '/' + username + '/' + projectname):
-          self.container.rsyncContainerPut(sshContainerPath + '/' + username + '/' + projectname + '/*', '/root/.ssh/')
+        if os.path.exists(sshContainerPath + '/' + build.user.username + '/' + build.project):
+          self.container.rsyncContainerPut(sshContainerPath + '/' + build.user.username + '/' + build.project + '/*', '/root/.ssh/')
           self.container.executeInContainer('chmod 600 /root/.ssh/*')
 
         if not self.buildHelper.DownloadSources():
           raise Exception("Problem with DownloadSources")
         if not self.buildHelper.InstallRepositories(self.config['lbs']['DownloadUrl']):
           raise Exception("Problem with InstallRepositories")
-        if not self.buildHelper.SetupEnvironment(branchname):
+        if not self.buildHelper.SetupEnvironment(build.branchname):
           raise Exception("Setup script did not succeed")
         if not self.buildHelper.InstallRequiredPackages():
           raise Exception("Problem with InstallRequiredPackages")
@@ -164,10 +168,10 @@ class Build:
           raise Exception("Problem with disabling the network")
         if not self.buildHelper.BuildPackage():
           raise Exception("Problem with building the package")
-        myPath = username + "/" + projectname
+        myPath = build.user.username + "/" + build.project
         if 'Secret' in self.config['lbs']['Users'][username]:
-          myPath = username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + projectname
-        srcPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + lxcdistro + "/" + lxcrelease
+          myPath = build.user.username + "/" + self.config['lbs']['Users'][username]['Secret'] + "/" + build.project
+        srcPath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + build.distro + "/" + build.release
         destPath=srcPath[:srcPath.rindex("/")]
         srcPath="/mnt"+srcPath
         if not self.container.rsyncHostGet(srcPath, destPath):
@@ -188,12 +192,12 @@ class Build:
     # get the sources of the packaging instructions
     gotPackagingInstructions = False
     try:
-      pathSrc=self.LBS.getPackagingInstructions(build.username, build.projectname, build.branchname)
-      packageSrcPath=pathSrc + '/lbs-'+build.projectname + '/' + build.packagename
+      pathSrc=self.LBS.getPackagingInstructions(build)
+      packageSrcPath=pathSrc + '/lbs-' + build.project + '/' + build.package
       gotPackagingInstructions = True
     except Exception as e:
-      print(e)
-      self.logger.print("LBSERROR: "+str(e)+ "; for more details see /var/log/uwsgi.log")
+      self.logger.print("LBSERROR: "+str(e)+ "; for more details see the server log")
+      traceback.print_exc()
 
     jobFailed = True
     if not gotPackagingInstructions:
@@ -209,7 +213,8 @@ class Build:
         jobFailed = False
       except Exception as e:
         self.logger.print("LBSERROR: "+str(e), 0)
-      finally:  
+        traceback.print_exc()
+      finally:
         self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
     else:
       self.logger.print("LBSERROR: There is a problem with creating the container!")
@@ -223,17 +228,21 @@ class Build:
       else:
         try:
           self.logger.email(settings.EMAIL_FROM_ADDRESS, build.user.email, \
-            "LBS Result for " + build.projectname + "/" + build.packagename, \
+            "LBS Result for " + build.project + "/" + build.package, \
             settings.LBS_URL + "/logs/" + logpath + "/" + str(buildnumber))
         except Exception as e:
           self.logger.print("ERROR: we could not send the email")
+          traceback.print_exc()
 
     # now mark the build finished
     build.status = 'FINISHED'
-    build.finished = datetime.datetime.now()
+    build.finished = timezone.now()
     lastBuild = Logger().getLastBuild(build)
-    build.buildsuccess = lastBuild['resultcode']
-    build.buildnumber = lastBuild['number']
+    if lastBuild:
+        build.buildsuccess = lastBuild['resultcode']
+        build.buildnumber = lastBuild['number']
+    else:
+        build.buildsuccess = "failure"
     build.save()
 
     self.logger.clean()

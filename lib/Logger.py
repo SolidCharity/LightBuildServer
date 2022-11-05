@@ -29,19 +29,24 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from collections import OrderedDict
 
+from django.conf import settings
+from django.utils import timezone
+
+from builder.models import Log
+
 class Logger:
   'collect all the output'
 
-  def __init__(self, buildid=-1):
+  def __init__(self, build=None):
     self.lastTimeUpdate = int(time.time())
     self.startTimer()
-    self.logspath = self.config['lbs']['LogsPath']
-    self.emailserver = self.config['lbs']['EmailServer']
-    self.emailport = self.config['lbs']['EmailPort']
-    self.emailuser = self.config['lbs']['EmailUser']
-    self.emailpassword = self.config['lbs']['EmailPassword']
-    self.buildid = buildid
-    self.MaxDebugLevel = self.config['lbs']['MaxDebugLevel']
+    self.logspath = settings.LOGS_PATH
+    self.emailserver = settings.EMAIL_SERVER
+    self.emailport = settings.EMAIL_PORT
+    self.emailuser = settings.EMAIL_USER
+    self.emailpassword = settings.EMAIL_PASSWORD
+    self.build = build
+    self.MaxDebugLevel = settings.MAX_DEBUG_LEVEL
 
   def startTimer(self):
     self.starttime = time.time()
@@ -68,15 +73,13 @@ class Logger:
 
       # only write new lines every other second, to avoid putting locks on the database
       # also write often enough, do not collect too many lines
-      if self.buildid != -1 and (self.lastTimeUpdate + 2 < int(time.time()) or len(self.linebuffer) > 20):
-        con = Database(self.config)
-        stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
+      if self.build and (self.lastTimeUpdate + 2 < int(time.time()) or len(self.linebuffer) > 20):
+
         # write the lines to database, and then dump to file when build is finished
         for line in self.linebuffer:
-          con.execute(stmt, (self.buildid, line))
+            log = Log(build = self.build, line = line, created = timezone.now())
+            log.save()
         self.linebuffer = []
-        con.commit()
-        con.close()
       self.lastTimeUpdate = int(time.time())
 
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
@@ -96,21 +99,15 @@ class Logger:
     return self.lastLine.strip()
 
   def get(self, limit=None):
-    if self.buildid == -1:
+    if not self.build:
       return "no log available"
 
-    con = Database(self.config)
-    stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC"
+    log = Log.objects.filter(build = self.build)
     if limit is not None:
-      stmt = stmt + " LIMIT ?"
-      cursor = con.execute(stmt, (self.buildid, limit))
-    else:
-      cursor = con.execute(stmt, (self.buildid,))
-    data = cursor.fetchall()
-    con.close()
+      log = log[:limit]
     output = ""
-    for row in data:
-       output = row['line'] + output
+    for row in log:
+       output = row.line + output
 
     return output
 
@@ -134,19 +131,16 @@ class Logger:
     finally:
       server.quit()
 
-  def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-     return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+  def getLogPath(self, build):
+     return build.user.username + "/" + build.project + "/" + build.package + "/" + build.branchname + "/" + build.distro + "/" + build.release + "/" + build.arch
 
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
-    if self.buildid != -1:
+    if self.build and self.build.id:
       # store buffered lines to the database
-      con = Database(self.config)
-      stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
       for line in self.linebuffer:
-        con.execute(stmt, (self.buildid, line))
+        log = Log(build = self.build, line = line, created=timezone.now())
+        log.save()
       self.linebuffer = []
-      con.commit()
-      con.close()
 
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
@@ -180,26 +174,23 @@ class Logger:
 
   def clean(self):
     # clear log from database
-    if self.buildid != -1:
-      con = Database(self.config)
-      stmt = "DELETE FROM log WHERE buildid = ?"
-      con.execute(stmt, (self.buildid, ))
-      con.commit()
-      con.close()
+    if self.build:
+      logs = Log.objects.filter(build = self.build)
+      logs.delete()
 
-  def getLogFile(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    return LogPath + "/build-" + str(buildnumber).zfill(6) + ".log"
+  def getLogFile(self, build):
+    LogPath = self.logspath + "/" + self.getLogPath(build)
+    return LogPath + "/build-" + str(build.id).zfill(6) + ".log"
 
-  def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    filename=self.getLogFile(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
+  def getLog(self, build):
+    filename=self.getLogFile(build)
     if os.path.isfile(filename):
       with open(filename, 'r', encoding="utf-8") as content_file:
         return content_file.read()
     return ""
 
-  def getBuildNumbers(self, username, projectname, packagename, branchname, buildtarget):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
+  def getBuildNumbers(self, build):
+    LogPath = self.getLogPath(build)
     result={}
     if not os.path.exists(LogPath):
       return result
@@ -215,8 +206,8 @@ class Logger:
             result[number]["resultcode"] = "failure"
     return OrderedDict(reversed(sorted(result.items())))
 
-  def getLastBuild(self, username, projectname, packagename, branchname, buildtarget):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
+  def getLastBuild(self, build):
+    LogPath = self.getLogPath(build)
     result={}
     if not os.path.exists(LogPath):
       return result

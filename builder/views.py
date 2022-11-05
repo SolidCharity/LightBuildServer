@@ -9,7 +9,7 @@ from projects.models import Package, Project
 from machines import views as machine_view
 
 @login_required
-def buildtarget(request, user, project, package, branchname, lxcdistro, lxcrelease, lxcarch):
+def buildtarget(request, user, project, package, branchname, distro, release, arch):
     project = Project.objects.get(user=User.objects.get(username__exact=user), name=project)
 
     # is the correct user logged in? or the admin?
@@ -19,13 +19,13 @@ def buildtarget(request, user, project, package, branchname, lxcdistro, lxcrelea
 
     # start building
     LBS = LightBuildServer()
-    if LBS.BuildProjectWithBranch(project, package, branchname, lxcdistro, lxcrelease, lxcarch):
+    if LBS.BuildProjectWithBranch(project, package, branchname, distro, release, arch):
         return machine_view.monitor(request, successmessage="Build job has been added to the queue")
     else:
         return machine_view.monitor(request, errormessage="This build job is already in the queue")
 
 @login_required
-def cancelbuild(request, user, project, package, branchname, lxcdistro, lxcrelease, lxcarch):
+def cancelbuild(request, user, project, package, branchname, distro, release, arch):
     project = Project.objects.get(user=User.objects.get(username__exact=user), name=project)
 
     # is the correct user logged in? or the admin?
@@ -36,7 +36,7 @@ def cancelbuild(request, user, project, package, branchname, lxcdistro, lxcrelea
     # stop building
     try:
         LBS = LightBuildServer()
-        LBS.CancelPlannedBuild(project, package, branchname, lxcdistro, lxcrelease, lxcarch)
+        LBS.CancelPlannedBuild(project, package, branchname, distro, release, arch)
         return machine_view.monitor(request, successmessage="Build job has been removed from the queue")
     except:
         print("Unexpected error:", sys.exc_info()[0])

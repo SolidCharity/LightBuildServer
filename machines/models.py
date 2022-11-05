@@ -16,11 +16,11 @@ class Machine(models.Model):
         ("copr", "Copr"),
     ])
     private_key = models.TextField()
-    static = models.BooleanField()
-    local = models.BooleanField()
-    priority = models.IntegerField()
+    static = models.BooleanField(default = False)
+    local = models.BooleanField(default = False)
+    priority = models.IntegerField(default = 1)
     cid = models.IntegerField()
-    enabled = models.BooleanField()
+    enabled = models.BooleanField(default = True)
 
     status = models.CharField(max_length=20, default="AVAILABLE", choices=[
         ("AVAILABLE", "AVAILABLE"),
@@ -29,7 +29,7 @@ class Machine(models.Model):
     ])
 
     # link to the current build running on this machine
-    build = models.ForeignKey(Build, on_delete=models.PROTECT, default=None, null=True)
+    build = models.ForeignKey(Build, on_delete=models.PROTECT, default=None, null=True, blank=True)
 
     def __str__(self):
         return self.host

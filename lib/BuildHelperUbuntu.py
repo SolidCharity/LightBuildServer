@@ -26,6 +26,6 @@ import yaml
 class BuildHelperUbuntu(BuildHelperDebian):
   'build packages for Ubuntu'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
-    BuildHelperDebian.__init__(self, container, username, projectname, packagename, branchname)
+  def __init__(self, container, build):
+    BuildHelperDebian.__init__(self, container, build)
     self.dist='ubuntu'

@@ -31,9 +31,9 @@ import logging
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
+  def __init__(self, container, build):
     self.dist='centos'
-    BuildHelper.__init__(self, container, username, projectname, packagename, branchname)
+    BuildHelper.__init__(self, container, build)
     self.yumOrDnf = 'yum'
     self.releaseForRepoFile = self.release
 

@@ -19,8 +19,8 @@ class Build(models.Model):
     # this is used for packages or projects that should run on a designated build machine.
     # we are not using a link to avoid circular dependencies
     designated_build_machine = models.CharField(max_length=250, default=None, null=True)
-    avoidlxc = models.BooleanField()
-    avoiddocker = models.BooleanField()
+    avoidlxc = models.BooleanField(default = False)
+    avoiddocker = models.BooleanField(default = False)
     dependsOnOtherProjects = models.TextField(default=None, null=True)
     started = models.DateTimeField(default=None, null=True)
     finished = models.DateTimeField(default=None, null=True)

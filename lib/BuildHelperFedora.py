@@ -26,8 +26,8 @@ import yaml
 class BuildHelperFedora(BuildHelperCentos):
   'build packages for Fedora'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
-    BuildHelperCentos.__init__(self, container, username, projectname, packagename, branchname)
+  def __init__(self, container, build):
+    BuildHelperCentos.__init__(self, container, build)
     self.dist='fedora'
     self.rhel = 0
     self.rawhide = 35

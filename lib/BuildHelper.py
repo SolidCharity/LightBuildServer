@@ -22,10 +22,12 @@ import yaml
 import os.path
 from collections import deque
 
+from django.conf import settings
+
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
+  def __init__(self, container, build):
     self.container = container
     self.fedora = 0
     self.suse_version = 0
@@ -35,11 +37,11 @@ class BuildHelper:
       self.arch = container.arch
       self.release = container.release
       self.rhel = self.release
-    self.username = username
-    self.projectname = projectname
-    self.packagename = packagename
-    self.branchname = branchname
-    self.pathSrc=self.config['lbs']['GitSrcPath']+"/"+self.username
+    self.username = build.user.username
+    self.projectname = build.project
+    self.packagename = build.package
+    self.branchname = build.branchname
+    self.pathSrc = settings.GIT_SRC_PATH+"/"+self.username
 
   def log(self, message):
     if self.container is not None:
@@ -117,7 +119,7 @@ class BuildHelper:
   def CreateRepoFile(self):
     return "not implemented"
  
-  def GetDependanciesAndProvides(self, lxcdistro, lxcrelease, lxcarch):
+  def GetDependanciesAndProvides(self, distro, release, arch):
     print("not implemented")
     return False
 
@@ -147,10 +149,10 @@ class BuildHelper:
     con.close()
     return
 
-  def CalculatePackageOrder(self, lxcdistro, lxcrelease, lxcarch):
+  def CalculatePackageOrder(self, distro, release, arch):
     result = deque()
-    self.release = lxcrelease
-    self.arch = lxcarch
+    self.release = release
+    self.arch = arch
     userconfig=self.config['lbs']['Users'][self.username]
     projectconfig=userconfig['Projects'][self.projectname]
     if 'Packages' in projectconfig:
@@ -166,13 +168,13 @@ class BuildHelper:
       excludeDistro=False
       if packages[package] is not None and "ExcludeDistros" in packages[package]:
         for exclude in packages[package]['ExcludeDistros']:
-          if (lxcdistro + "/" + lxcrelease + "/" + lxcarch).startswith(exclude):
+          if (distro + "/" + release + "/" + arch).startswith(exclude):
             excludeDistro = True
       includeDistro=True
       if packages[package] is not None and "Distros" in packages[package]:
         includeDistro=False
         for incl in packages[package]['Distros']:
-          if (lxcdistro + "/" + lxcrelease + "/" + lxcarch) == incl:
+          if (distro + "/" + release + "/" + arch) == incl:
             includeDistro=True
       if includeDistro and not excludeDistro:
         self.packagename=package
@@ -244,9 +246,6 @@ class BuildHelper:
           del unsorted[p]
       if nextPackage in unsorted:
         del unsorted[nextPackage]
-
-    #print(result)
-    #raise Exception("test")
 
     self.StorePackageDependancies(packages, builddepends)
 

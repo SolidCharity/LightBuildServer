@@ -69,6 +69,8 @@ class DockerContainer(RemoteContainer):
         self.release_for_docker = "9"
       elif self.release == 'buster':
         self.release_for_docker = "10"
+      elif self.release == 'bullseye':
+        self.release_for_docker = "11"
     if self.distro == "ubuntu":
       if self.release == 'focal':
         self.release_for_docker = "20.04"

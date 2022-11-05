@@ -31,6 +31,7 @@ from collections import deque
 
 from django.conf import settings
 from django.db.models import Q
+from django.utils import timezone
 
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
@@ -40,10 +41,10 @@ from lib.CoprContainer import CoprContainer
 from lib.BuildHelper import BuildHelper
 from lib.BuildHelperFactory import BuildHelperFactory
 from lib.Logger import Logger
-from lib.Build import Build
+from lib.Builder import Builder
 from lib.Shell import Shell
 
-from projects.models import Project, Package, PackageDependancy
+from projects.models import Project, Package, PackageDependancy, PackageSrcHash, PackageBuildStatus
 from machines.models import Machine
 from builder.models import Build, Log
 
@@ -51,12 +52,17 @@ class LightBuildServer:
   'light build server based on lxc and git'
 
   def __init__(self):
+    machines = Machine.objects.all()
+    for m in machines:
+        m.build = None
+        m.status = "AVAILABLE"
+        m.save()
     # keep WAITING build jobs
     Build.objects.filter(status='BUILDING').delete()
     Log.objects.all().delete()
 
   def GetLbsName(self, build):
-    return build.username+"/"+build.projectname+"/"+build.packagename+"/"+build.branchname+"/"+build.distro+"/"+build.release+"/"+build.arch
+    return build.user.username+"/"+build.project+"/"+build.package+"/"+build.branchname+"/"+build.distro+"/"+build.release+"/"+build.arch
 
 
   def GetAvailableBuildMachine(self, build):
@@ -68,35 +74,38 @@ class LightBuildServer:
       m = m.exclude(type='docker')
     if build.avoidlxc:
       m = m.exclude(type='lxc').exclude(type='lxd')
-    if not build.buildmachine:
+    if not build.designated_build_machine:
       m = m.filter(static=False)
     else:
-      m = m.filter(Q(name=build.buildmachine) | Q(Q(type='copr') & Q(name__startswith=build.buildmachine) & Q(static=True)))
+      m = m.filter(Q(host=build.designated_build_machine) | Q(Q(type='copr') & Q(host__startswith=build.designated_build_machine) & Q(static=True)))
 
     for row in m:
-      buildmachine=row.name
+      buildmachine=row.host
       buildmachinePriority=row.priority
       if buildmachinePriority < machinePriorityToUse:
         machinePriorityToUse = buildmachinePriority
         machineToUse = buildmachine
     if machineToUse is not None:
-      m = Machine.objects.filter(name=machineToUse).filter(status='AVAILABLE').first()
+      m = Machine.objects.filter(host=machineToUse).filter(status='AVAILABLE').first()
       if m:
         m.status = 'BUILDING'
         m.build = build
         m.save()
         print("GetAvailableBuildMachine found a free machine: " + machineToUse)
         return machineToUse
+
+    print("GetAvailableBuildMachine cannot find a machine")
     return None
 
   def CheckForHangingBuild(self):
+
       # check for hanging build (BuildingTimeout in config.yml)
       builds = Build.objects.filter(status='BUILDING'). \
         filter(hanging=False). \
-        filter(Q(started__lt=datetime.datetime.now()-datetime.timedelta(seconds=settings.BUILDING_TIMEOUT))). \
-        order_by(id).reverse()
+        filter(Q(started__lt=timezone.now()-datetime.timedelta(seconds=settings.BUILDING_TIMEOUT))). \
+        order_by('id').reverse()
       for row in builds:
-        log = Log.objects.filter(build_id=row.id).filter(Q(created__gt=datetime.datetime.now()-datetime.timedelta(seconds=settings.BUILDING_TIMEOUT)))
+        log = Log.objects.filter(build=row).filter(Q(created__gt=datetime.datetime.now()-datetime.timedelta(seconds=settings.BUILDING_TIMEOUT)))
         if not log.exists():
           # mark the build as hanging, so that we don't try to release the machine several times
           row.hanging = 1
@@ -119,25 +128,23 @@ class LightBuildServer:
       else:
         raise Exception(f"cannot find build {project} {packagename} {branchname} {distro} {release} {arch}")
 
-  def CancelWaitingJobsInQueue(self, queue):
-      # TODO: add arch to the queue as well?
-      # queue=username+"/"+projectname+"/"+branchname+"/"+distro+"/"+release
-      q = queue.split('/')
-      builds = Build.objects.filter(status='WAITING').filter(username=q[0]). \
-            filter(projectname=q[1]).filter(packagename=q[2]). \
-            filter(branchname=q[3]).filter(distro=q[4]).filter(release=q[5])
+  def CancelWaitingJobsInQueue(self, build):
+      builds = Build.objects.filter(status='WAITING').filter(user=build.user). \
+            filter(project=build.project).filter(package=build.package). \
+            filter(branchname=build.branchname). \
+            filter(distro=build.distro).filter(release=build.release).filter(arch=build.arch)
       for row in builds:
         row.status = 'CANCELLED'
         row.save()
 
   def ReleaseMachine(self, buildmachine, jobFailed):
     print("ReleaseMachine %s" % (buildmachine))
-    machine = Machine.filter(name=buildmachine).first()
+    machine = Machine.objects.filter(host=buildmachine).first()
 
     # only release the machine when it is building. if it is already being stopped, do nothing
     if machine.status == 'BUILDING':
       if jobFailed:
-        self.CancelWaitingJobsInQueue(machine.queue)
+        self.CancelWaitingJobsInQueue(machine.build)
 
       machine.status = 'STOPPING'
       machine.save()
@@ -155,13 +162,18 @@ class LightBuildServer:
       machine.save()
 
   def CanFindDependanciesBuilding(self, build):
-    queue=build.username+"/"+build.projectname+"/"+build.branchname+"/"+build.distro+"/"+build.release
-    machines = Machine.objects.filter(status='BUILDING').filter(queue=queue)
+    machines = Machine.objects.filter(status='BUILDING'). \
+        filter(build__user__username=build.user.username). \
+        filter(build__project=build.project). \
+        filter(build__branchname=build.branchname). \
+        filter(build__distro=build.distro). \
+        filter(build__release=build.release). \
+        filter(build__arch=build.arch)
     for row in machines:
       # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
       # does this package actually depend on that other package?
-      dependantpackage = self.GetPackage(build.username, build.projectname, build.packagename, build.branchname)
-      requiredpackage = self.GetPackage(build.username, build.projectname, row.packagename, build.branchname)
+      dependantpackage = self.GetPackage(build.user.username, build.projectname, build.packagename, build.branchname)
+      requiredpackage = self.GetPackage(build.user.username, build.projectname, row.packagename, build.branchname)
       result = self.DoesPackageDependOnOtherPackage(dependantpackage, requiredpackage)
       if result:
         print("cannot build " + build.packagename + " because it depends on another package")
@@ -177,25 +189,19 @@ class LightBuildServer:
     return False
 
   # this is called from Build.py buildpackage, and from LightBuildServer.py CalculatePackageOrder
-  def getPackagingInstructions(self, username, projectname, branchname):
-    gitprojectname = projectname
-    gitbranchname = "master"
-    project = Project.objects.filter(name=projectname).filter(username=username)
-    if 'GitProjectName' in userconfig['Projects'][projectname]:
-      gitprojectname = userconfig['Projects'][projectname]['GitProjectName']
-    if 'GitBranchName' in userconfig['Projects'][projectname]:
-      gitbranchname = userconfig['Projects'][projectname]['GitBranchName']
-    lbsproject=userconfig['GitURL'] + 'lbs-' + gitprojectname
-    pathSrc=self.config['lbs']['GitSrcPath']+"/"+username+"/"
+  def getPackagingInstructions(self, build):
+    project = Project.objects.filter(name=build.project).filter(user=build.user).first()
+    lbsproject = project.git_url + '/lbs-' + project.name
+    pathSrc = settings.GIT_SRC_PATH+"/"+build.user.username+"/"
 
     # first try with git branch master, to see if the branch is decided in the setup.sh. then there must be a config.yml
-    self.getPackagingInstructionsInternal(username, projectname, gitbranchname, gitprojectname, lbsproject, pathSrc)
+    self.getPackagingInstructionsInternal(project, build, project.git_branch, lbsproject, pathSrc)
 
-    if not os.path.isfile(pathSrc+'lbs-'+projectname+"/config.yml"):
-      self.getPackagingInstructionsInternal(username, projectname, branchname, gitprojectname, lbsproject, pathSrc)
+    if not os.path.isfile(pathSrc+'lbs-'+build.project+"/config.yml"):
+      self.getPackagingInstructionsInternal(project, build, build.branchname, lbsproject, pathSrc)
     return pathSrc
 
-  def getPackagingInstructionsInternal(self, username, projectname, branchname, gitprojectname, lbsproject, pathSrc):
+  def getPackagingInstructionsInternal(self, project, build, branchname, lbsproject, pathSrc):
     os.makedirs(pathSrc, exist_ok=True)
 
     needToDownload = True
@@ -203,28 +209,27 @@ class LightBuildServer:
     #we want a clean clone
     #but do not delete the tree if it is being used by another build
     t = None
-    if os.path.isfile(pathSrc+'lbs-'+projectname+'-lastused'):
-      t = os.path.getmtime(pathSrc+'lbs-'+projectname+'-lastused')
+    if os.path.isfile(pathSrc+'lbs-'+build.project+'-lastused'):
+      t = os.path.getmtime(pathSrc+'lbs-'+build.project+'-lastused')
       # delete the tree only if it has not been used within the last 3 minutes
       if (time.time() - t) < 3*60:
         needToDownload = False
       # update the timestamp
-      os.utime(pathSrc+'lbs-'+projectname+'-lastused')
+      os.utime(pathSrc+'lbs-'+build.project+'-lastused')
     else:
-      open(pathSrc+'lbs-'+projectname+'-lastused', 'a').close()
+      open(pathSrc+'lbs-'+build.project+'-lastused', 'a').close()
 
     headers = {}
-    if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
-      url=lbsproject + "/archive/" + branchname + ".tar.gz"
-    elif userconfig['GitType'] == 'gitlab':
-      url=lbsproject + "/repository/archive.tar.gz?ref=" + branchname
-      tokenfilename=self.config["lbs"]["SSHContainerPath"] + "/" + username + "/" + projectname + "/gitlab_token"
-      if os.path.isfile(tokenfilename):
-        with open (tokenfilename, "r") as myfile:
-          headers['PRIVATE-TOKEN'] = myfile.read().strip()
+    url = None
+    if project.git_type == 'github':
+      url = lbsproject + "/archive/" + branchname + ".tar.gz"
+    elif project.git_type == 'gitlab':
+      url = lbsproject + "/repository/archive.tar.gz?ref=" + branchname
+      if project.git_private_token:
+        headers['PRIVATE-TOKEN'] = project.git_private_token
 
     # check if the version we have is still uptodate
-    etagFile = pathSrc+'lbs-'+projectname+'-etag'
+    etagFile = pathSrc+'lbs-'+build.project+'-etag'
     if needToDownload and os.path.isfile(etagFile):
       with open(etagFile, 'r') as content_file:
         Etag = content_file.read()
@@ -233,14 +238,14 @@ class LightBuildServer:
       if 'Etag' in r.headers and r.headers['Etag'] == '"' + Etag + '"':
          needToDownload = False
 
-    if not needToDownload and os.path.isdir(pathSrc+'lbs-'+projectname):
+    if not needToDownload and os.path.isdir(pathSrc+'lbs-'+build.project):
       # we can reuse the existing source, it was used just recently, or has not changed on the server
-      self.StorePackageHashes(pathSrc+'lbs-'+projectname, username, projectname, branchname)
+      self.StorePackageHashes(pathSrc+'lbs-'+build.project, project, branchname)
       return
 
     # delete the working tree
-    if os.path.isdir(pathSrc+'lbs-'+projectname):
-      shutil.rmtree(pathSrc+'lbs-'+projectname)
+    if os.path.isdir(pathSrc+'lbs-'+build.project):
+      shutil.rmtree(pathSrc+'lbs-'+build.project)
 
     sourceFile = pathSrc + "/" + branchname + ".tar.gz"
     if os.path.isfile(sourceFile):
@@ -261,90 +266,77 @@ class LightBuildServer:
         fd.write(Etag.strip('"'))
 
     shell = Shell(Logger())
-    if not 'GitType' in userconfig or userconfig['GitType'] == 'github':
+    if project.git_type == 'github':
       cmd="cd " + pathSrc + ";"
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + " lbs-" + projectname
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + build.project + "-" + branchname + " lbs-" + build.project
       shell.executeshell(cmd)
-    elif userconfig['GitType'] == 'gitlab':
+    elif project.git_type == 'gitlab':
       cmd="cd " + pathSrc + ";"
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + gitprojectname + "-" + branchname + "-* lbs-" + projectname
+      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + build.project + "-" + branchname + "-* lbs-" + build.project
       shell.executeshell(cmd)
 
     if os.path.isfile(sourceFile):
       os.remove(sourceFile)
-    if not os.path.isdir(pathSrc+'lbs-'+projectname):
+    if not os.path.isdir(pathSrc+'lbs-'+build.project):
       raise Exception("Problem with cloning the git repo")
 
-    self.StorePackageHashes(pathSrc+'lbs-'+projectname, username, projectname, branchname)
+    self.StorePackageHashes(pathSrc+'lbs-'+build.project, project, branchname)
 
-  def StorePackageHashes(self, projectPathSrc, username, projectname, branchname):
+  def StorePackageHashes(self, projectPathSrc, project, branchname):
     shell = Shell(Logger())
     for dir in os.listdir(projectPathSrc):
       if os.path.isdir(projectPathSrc + "/" + dir):
         packagename = os.path.basename(dir)
         # update hash of each package
         cmd = "find " + projectPathSrc + "/" + dir + " -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | awk '{print $1}'"
-        hash = shell.evaluateshell(cmd)
+        sourcehash = shell.evaluateshell(cmd)
         # print(packagename + " " + hash)
-        cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (username, projectname, packagename, branchname))
-        row = cursor.fetchone()
-        alreadyuptodate = False
-        idToUpdate = None
-        if row is not None:
-          if row['sourcehash'] == hash:
-            alreadyuptodate = True
-          else:
-            idToUpdate = row['id']
-        if not alreadyuptodate:
-          if idToUpdate is None:
-            stmt = "INSERT INTO package(username, projectname, packagename, branchname, sourcehash) VALUES(?,?,?,?,?)"
-            cursor = con.execute(stmt, (username, projectname, packagename, branchname, hash))
-          else:
-            stmt = "UPDATE package SET sourcehash = ? WHERE id = ?"
-            cursor = con.execute(stmt, (hash, idToUpdate))
-            self.MarkPackageAsDirty(con, idToUpdate)
+        package = Package.objects.filter(project = project).filter(name=packagename).first()
+        if package:
+          hash, created = PackageSrcHash.objects.get_or_create(package=package,branchname=branchname)
+          if not hash.sourcehash == sourcehash:
+            hash.sourcehash = sourcehash
+            hash.save()
+            if not created:
+                self.MarkPackageAsDirty(package, branchname)
 
   # this changes the status of the package, and requires itself and all depending packages to be rebuilt
-  def MarkPackageAsDirty(self, packageid):
+  def MarkPackageAsDirty(self, package, branchname):
     # invalidate the package on all distros/release/arch combinations
-    stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ?"
-    cursor = con.execute(stmt, (packageid,))
+    packagebuildstatus = PackageBuildStatus.objects.filter(package=package).filter(branchname=branchname)
+    for p in packagebuildstatus:
+        p.dirty = True
+        p.save()
 
     # find all packages depending on it, and invalidate their builds as well
-    stmt = "SELECT dependantpackage FROM packagedependancy WHERE requiredpackage = ?"
-    cursor = con.execute(stmt, (packageid,))
-    data = cursor.fetchall()
-    for row in data:
-      self.MarkPackageAsDirty(con, row['dependantpackage'])
+    packagedependancy = PackageDependancy.objects.filter(requiredpackage=package)
+    for p in packagedependancy:
+      otherpackagebuildstatus = PackageBuildStatus.objects.filter(package = p.dependantpackage). \
+        filter(branchname=packagebuildstatus.branchname).first()
+      if otherpackagebuildstatus:
+        self.MarkPackageAsDirty(otherpackagebuildstatus, branchname)
 
   def MarkProjectAsDirty(self, username, projectname, branchname, distro, release, arch):
-    con = Database(self.config)
-    cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND branchname = ?",  (username, projectname, branchname))
-    data = cursor.fetchall()
-    for row in data:
-      packageid = row['id']
-      stmt = "UPDATE packagebuildstatus SET dirty = 1 WHERE packageid = ? AND distro = ? AND release = ? AND arch = ?"
-      con.execute(stmt, (packageid, distro, release, arch))
-    con.commit()
-    con.close()
+    project = Project.objects.filter(user__username=username).filter(name=projectname).first()
+    packagebuildstatus = PackageBuildStatus.objects.filter(project=project). \
+        filter(branchname=branchname). \
+        filter(distro=distro).filter(release=release).filter(arch=arch)
+    for p in packagebuildstatus:
+      packagebuildstatus.dirty = True
+      packagebuildstatus.save()
 
-  def MarkPackageAsBuilt(self, username, projectname, packagename, branchname, distro, release, arch):
-    con = Database(self.config)
-    cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?",  (username, projectname, packagename, branchname))
-    row = cursor.fetchone()
-    if row is not None:
-      packageid = row['id']
-      stmt = "SELECT id FROM packagebuildstatus WHERE packageid = ? AND distro = ? AND release = ? AND arch = ?"
-      cursor = con.execute(stmt, (packageid, distro, release, arch))
-      row = cursor.fetchone()
-      if row is not None:
-        stmt = "UPDATE packagebuildstatus SET dirty = 0 WHERE id = ?"
-        cursor = con.execute(stmt, (row['id'],))
-      else:
-        stmt = "INSERT INTO packagebuildstatus(packageid, distro, release, arch, dirty) VALUES(?,?,?,?,0)"
-        cursor = con.execute(stmt, (packageid, distro, release, arch))
-      con.commit()
-    con.close()
+  def MarkPackageAsBuilt(self, build):
+    packagebuildstatus = PackageBuildStatus.objects.filter(project=build.project). \
+        filter(package=build.package). \
+        filter(branchname=build.branchname). \
+        filter(distro=build.distro).filter(release=build.release).filter(arch=build.arch).first()
+    if packagebuildstatus:
+        packagebuildstatus.dirty = False;
+        packagebuildstatus.save()
+    else:
+        packagebuildstatus = PackageBuildStatus(project=build.project, package=build.package, branchname=build.branchname,
+            distro=build.distro, release=build.release, arch=build.arch, dirty=False)
+        packagebuildstatus.save()
 
   def GetPackage(self, username, projectname, packagename, branchname):
     package = Package.objects.filter(username=username).filter(projectname=projectname).filter(packagename=packagename).filter(branchname=branchname).first()
@@ -357,7 +349,7 @@ class LightBuildServer:
       if not dep is None:
         for row in dep:
           if row.requiredpackage == requiredpackage:
-            print("DoesPackageDependOnOtherPackage: " + dependantpackage.id + " depends on " + requiredpackage.id)
+            print(f"DoesPackageDependOnOtherPackage: {dependantpackage.id} depends on {requiredpackage.id}")
             return True
           if self.DoesPackageDependOnOtherPackage(row.requiredpackage, requiredpackage):
             return True
@@ -366,7 +358,6 @@ class LightBuildServer:
   # Returns True or False
   def NeedToRebuildPackage(self, username, projectname, packagename, branchname, distro, release, arch):
     result = True
-    con = Database(self.config)
     cursor = con.execute("SELECT * FROM package WHERE username = ? AND projectname = ? AND packagename = ? AND branchname = ?", (username, projectname, packagename, branchname))
     row = cursor.fetchone()
     if row is not None:
@@ -377,15 +368,15 @@ class LightBuildServer:
       if row is not None:
         print(" no need to rebuild " + packagename + " " + str(packageid))
         result = False
-    con.close()
     return result
 
-  def CalculatePackageOrder(self, project, branchname, lxcdistro, lxcrelease, lxcarch):
+  def CalculatePackageOrder(self, project, branchname, distro, release, arch):
     # get the sources of the packaging instructions
     self.getPackagingInstructions(project, branchname)
 
-    buildHelper = BuildHelperFactory.GetBuildHelper(lxcdistro, None, project, None, branchname)
-    return buildHelper.CalculatePackageOrder(lxcdistro, lxcrelease, lxcarch)
+    build = Build(project=project, package=None, branchname=branchname, distro=distro, release=release, arch=arch)
+    buildHelper = BuildHelperFactory.GetBuildHelper(distro, None, build)
+    return buildHelper.CalculatePackageOrder(distro, release, arch)
 
   def AddToBuildQueue(self, project, packagename, branchname, distro, release, arch):
     # find if this project depends on other projects
@@ -440,17 +431,18 @@ class LightBuildServer:
       return False
       
     # 2: check if any project that this package depends on is still building or waiting => return False
-    for DependantProjectName in build.dependsOnOtherProjects:
-      if self.CanFindMachineBuildingProject(build.username, DependantProjectName):
-        return False
+    if build.dependsOnOtherProjects:
+      for DependantProjectName in build.dependsOnOtherProjects:
+        if self.CanFindMachineBuildingProject(build.username, DependantProjectName):
+          return False
 
-    lbs = Build(self, Logger(build.id))
+    lbs = Builder(self, Logger(build))
     lbsName=self.GetLbsName(build)
     # get name of available slot
     buildmachine=self.GetAvailableBuildMachine(build)
-    if buildmachine is not None:
+    if buildmachine:
       build.status = 'BUILDING'
-      build.started = datetime.datetime.now()
+      build.started = timezone.now()
       build.buildmachine = buildmachine
       build.save()
       thread = Thread(target = lbs.buildpackage, args = (build,))
@@ -463,28 +455,32 @@ class LightBuildServer:
       # loop from left to right
       # check if a project might be ready to build
       builds = Build.objects.filter(status='WAITING')
+      first = True
       for build in builds:
+        if not first:
+            time.sleep(10)
+        first = False
         self.attemptToFindBuildMachine(build)
-        time.sleep(10)
+
       self.CheckForHangingBuild()
 
   def LiveLog(self, username, project, packagename, branchname, distro, release, arch):
-      data = self.GetJob(project, packagename, branchname, distro, release, arch, False)
-      if data is None:
+      build = self.GetJob(project, packagename, branchname, distro, release, arch, False)
+      if build is None:
         return ("No build is planned for this package at the moment...", -1)
-      elif data.status == 'BUILDING':
+      elif build.status == 'BUILDING':
         rowsToShow=40
-        logs = Log.objects.filter(buildid=data.id).reverse()[:rowsToShow]
+        logs = Log.objects.filter(buildid=build.id).reverse()[:rowsToShow]
         output = ""
-        for row in data:
+        for row in logs:
           output = row.line + output
         timeout = 2
-      elif data.status == 'CANCELLED':
+      elif build.status == 'CANCELLED':
         return ("This build has been removed from the build queue...", -1)
-      elif data.status == 'WAITING':
+      elif build.status == 'WAITING':
         return ("We are waiting for a build machine to become available...", 10)
-      elif data.status == 'FINISHED':
-        output = Logger().getLog(project, packagename, branchname, distro, release, arch, data.buildnumber)
+      elif build.status == 'FINISHED':
+        output = Logger().getLog(build)
         # stop refreshing
         timeout=-1
 

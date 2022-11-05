@@ -27,12 +27,12 @@ from lib.BuildHelperFedora import BuildHelperFedora
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
 
-  def GetBuildHelper(distro, container, username, projectname, packagename, branchname):
+  def GetBuildHelper(distro, container, build):
     if distro == "debian":
-      return BuildHelperDebian(container, username, projectname, packagename, branchname)
+      return BuildHelperDebian(container, build)
     if distro == "ubuntu":
-      return BuildHelperUbuntu(container, username, projectname, packagename, branchname)
+      return BuildHelperUbuntu(container, build)
     if distro == "centos":
-      return BuildHelperCentos(container, username, projectname, packagename, branchname)
+      return BuildHelperCentos(container, build)
     if distro == "fedora":
-      return BuildHelperFedora(container, username, projectname, packagename, branchname)
+      return BuildHelperFedora(container, build)

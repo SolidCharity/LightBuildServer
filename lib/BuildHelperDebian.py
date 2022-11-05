@@ -29,9 +29,9 @@ import yaml
 class BuildHelperDebian(BuildHelper):
   'build packages for Debian'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
+  def __init__(self, container, build):
     self.dist='debian'
-    BuildHelper.__init__(self, container, username, projectname, packagename, branchname)
+    BuildHelper.__init__(self, container, build)
 
   def PrepareMachineBeforeStart(self):
     print("not implemented")
