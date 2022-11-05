@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Logger: collects all the output"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 import codecs
 import sys
 import time
+import datetime
 import smtplib
 from smtplib import SMTP_SSL
 import os
@@ -28,26 +29,29 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from collections import OrderedDict
-import Config
-from Database import Database
+
+from django.conf import settings
+from django.utils import timezone
+from django.utils.timezone import make_aware
+
+from builder.models import Build, Log
 
 class Logger:
   'collect all the output'
 
-  def __init__(self, buildid=-1):
-    self.lastTimeUpdate = int(time.time())
+  def __init__(self, build=None):
+    self.lastTimeUpdate = timezone.now()
     self.startTimer()
-    self.config = Config.LoadConfig()
-    self.logspath = self.config['lbs']['LogsPath']
-    self.emailserver = self.config['lbs']['EmailServer']
-    self.emailport = self.config['lbs']['EmailPort']
-    self.emailuser = self.config['lbs']['EmailUser']
-    self.emailpassword = self.config['lbs']['EmailPassword']
-    self.buildid = buildid
-    self.MaxDebugLevel = self.config['lbs']['MaxDebugLevel']
+    self.logspath = settings.LOGS_PATH
+    self.emailserver = settings.EMAIL_SERVER
+    self.emailport = settings.EMAIL_PORT
+    self.emailuser = settings.EMAIL_USER
+    self.emailpassword = settings.EMAIL_PASSWORD
+    self.build = build
+    self.MaxDebugLevel = settings.MAX_DEBUG_LEVEL
 
   def startTimer(self):
-    self.starttime = time.time()
+    self.starttime = timezone.now()
     self.linebuffer = []
     self.buffer = ""
     self.error = False
@@ -63,7 +67,7 @@ class Logger:
       self.lastLine = newOutput
       if newOutput[-1:] != "\n":
         newOutput += "\n"
-      timeseconds = int(time.time() - self.starttime)
+      timeseconds = round((timezone.now() - self.starttime).total_seconds())
       timeprefix = "[" + str(int(timeseconds/60/60)).zfill(2) + ":" + str(int(timeseconds/60)%60).zfill(2) + ":" + str(timeseconds%60).zfill(2)  + "] "
       if "LBSERROR" in newOutput:
         self.error = True
@@ -71,16 +75,14 @@ class Logger:
 
       # only write new lines every other second, to avoid putting locks on the database
       # also write often enough, do not collect too many lines
-      if self.buildid != -1 and (self.lastTimeUpdate + 2 < int(time.time()) or len(self.linebuffer) > 20):
-        con = Database(self.config)
-        stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
+      if self.build and ((timezone.now() - self.lastTimeUpdate).total_seconds() > 2 or len(self.linebuffer) > 20):
+
         # write the lines to database, and then dump to file when build is finished
         for line in self.linebuffer:
-          con.execute(stmt, (self.buildid, line))
+            log = Log(build = self.build, line = line, created = timezone.now())
+            log.save()
         self.linebuffer = []
-        con.commit()
-        con.close()
-      self.lastTimeUpdate = int(time.time())
+      self.lastTimeUpdate = timezone.now()
 
       # sometimes we get incomplete bytes, and would get an ordinal not in range error
       # just ignore the exception...
@@ -99,21 +101,15 @@ class Logger:
     return self.lastLine.strip()
 
   def get(self, limit=None):
-    if self.buildid == -1:
+    if not self.build:
       return "no log available"
 
-    con = Database(self.config)
-    stmt = "SELECT * FROM log WHERE buildid = ? ORDER BY id DESC"
+    log = Log.objects.filter(build = self.build)
     if limit is not None:
-      stmt = stmt + " LIMIT ?"
-      cursor = con.execute(stmt, (self.buildid, limit))
-    else:
-      cursor = con.execute(stmt, (self.buildid,))
-    data = cursor.fetchall()
-    con.close()
+      log = log[:limit]
     output = ""
-    for row in data:
-       output = row['line'] + output
+    for row in log:
+       output += row.line
 
     return output
 
@@ -137,25 +133,22 @@ class Logger:
     finally:
       server.quit()
 
-  def getLogPath(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch):
-     return username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + lxcdistro + "/" + lxcrelease + "/" + lxcarch
+  def getLogPath(self, build):
+     return build.user.username + "/" + build.project + "/" + build.package + "/" + build.branchname + "/" + build.distro + "/" + build.release + "/" + build.arch
 
   def store(self, DeleteLogAfterDays, KeepMinimumLogs, logpath):
-    if self.buildid != -1:
+    if self.build and self.build.id:
       # store buffered lines to the database
-      con = Database(self.config)
-      stmt = "INSERT INTO log(buildid, line) VALUES(?,?)"
       for line in self.linebuffer:
-        con.execute(stmt, (self.buildid, line))
+        log = Log(build = self.build, line = line, created=timezone.now())
+        log.save()
       self.linebuffer = []
-      con.commit()
-      con.close()
 
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
       os.makedirs( LogPath )
     buildnumber=0
-    MaximumAgeInSeconds=time.time() - (DeleteLogAfterDays*24*60*60)
+    MaximumAgeInSeconds = timezone.now() - datetime.timedelta(days = DeleteLogAfterDays)
     logfiles=[]
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
@@ -168,10 +161,10 @@ class Logger:
       for i in range(1, len(logfiles) - KeepMinimumLogs):
         file=logfiles[i - 1]
         # delete older logs, depending on DeleteLogAfterDays
-        if os.path.getmtime(LogPath + "/" + file) < MaximumAgeInSeconds:
+        if make_aware(datetime.datetime.fromtimestamp(os.path.getmtime(LogPath + "/" + file))) < MaximumAgeInSeconds:
           os.unlink(LogPath + "/" + file)
-    LogFilePath = LogPath + "/build-" + (str(buildnumber).zfill(6)) + ".log"
-    self.print("This build took about " + str(int((time.time() - self.starttime) / 60)) + " minutes")
+    self.print("This build took about " + str(round((timezone.now() - self.starttime).total_seconds() / 60)) + " minutes")
+    LogFilePath = self.getLogFile(self.build)
     try:
       with open(LogFilePath, 'ab') as f:
         f.write(self.get().encode('utf8'))
@@ -183,57 +176,45 @@ class Logger:
 
   def clean(self):
     # clear log from database
-    if self.buildid != -1:
-      con = Database(self.config)
-      stmt = "DELETE FROM log WHERE buildid = ?"
-      con.execute(stmt, (self.buildid, ))
-      con.commit()
-      con.close()
+    if self.build:
+      logs = Log.objects.filter(build = self.build)
+      logs.delete()
 
-  def getLogFile(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    LogPath = self.logspath + "/" + self.getLogPath(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch)
-    return LogPath + "/build-" + str(buildnumber).zfill(6) + ".log"
+  def getLogFile(self, build):
+    LogPath = self.logspath + "/" + self.getLogPath(build)
+    return LogPath + "/build-" + str(build.id).zfill(6) + ".log"
 
-  def getLog(self, username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber):
-    filename=self.getLogFile(username, projectname, packagename, branchname, lxcdistro, lxcrelease, lxcarch, buildnumber)
+  def getLog(self, build):
+    filename=self.getLogFile(build)
     if os.path.isfile(filename):
       with open(filename, 'r', encoding="utf-8") as content_file:
         return content_file.read()
     return ""
 
-  def getBuildNumbers(self, username, projectname, packagename, branchname, buildtarget):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
-    result={}
-    if not os.path.exists(LogPath):
-      return result
-    for file in os.listdir(LogPath):
-      if file.endswith(".log"):
-        number=int(file[6:-4])
-        result[number] = {}
-        result[number]["timefinished"] = time.ctime( os.path.getmtime(LogPath + "/" + file))
-        result[number]["resultcode"] = "success"
-        with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
-          content = f.read()
-          if content.find('LBSERROR') >= 0:
-            result[number]["resultcode"] = "failure"
-    return OrderedDict(reversed(sorted(result.items())))
+  def getBuildsOfPackage(self, package):
+    result = dict()
 
-  def getLastBuild(self, username, projectname, packagename, branchname, buildtarget):
-    LogPath = self.logspath + "/" + username + "/" + projectname + "/" + packagename + "/" + branchname + "/" + buildtarget
-    result={}
-    if not os.path.exists(LogPath):
-      return result
-    previousNumber = -1
-    for file in os.listdir(LogPath):
-      if file.endswith(".log"):
-        number=int(file[6:-4])
-        if number > previousNumber:
-          previousNumber = number
-          result = {}
-          result['number'] = number
-          result['resultcode'] = "success"
-          with codecs.open(LogPath + "/" + file, encoding='utf-8', mode='r') as f:
-            content = f.read()
-            if content.find('LBSERROR') >= 0:
-              result['resultcode'] = "failure"
-    return result 
+    builds = Build.objects. \
+        filter(user = package.project.user). \
+        filter(project=package.project.name). \
+        filter(package=package.name).order_by('-id')
+
+    for b in builds:
+        key = f"{b.distro}/{b.release}/{b.arch}-{b.branchname}"
+        if not key in result:
+            result[key] = []
+        if len(result[key]) < settings.DISPLAY_MAX_BUILDS_PER_PACKAGE:
+            result[key].append(b)
+
+    return result
+
+
+  def getBuildResult(self):
+    LogFilePath = self.getLogFile(self.build)
+    if not os.path.exists(LogFilePath):
+      return "failure"
+    with codecs.open(LogFilePath, encoding='utf-8', mode='r') as f:
+        content = f.read()
+    if content.find('LBSERROR') >= 0:
+        return "failure"
+    return "success"

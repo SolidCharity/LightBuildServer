@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for CentOS: knows how to build packages for CentOS"""
 
-# Copyright (c) 2014-2021 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
-from BuildHelper import BuildHelper;
+from lib.BuildHelper import BuildHelper;
 import time
 import os
 import glob
@@ -31,9 +31,9 @@ import logging
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
-  def __init__(self, container, username, projectname, packagename, branchname):
+  def __init__(self, container, build):
     self.dist='centos'
-    BuildHelper.__init__(self, container, username, projectname, packagename, branchname)
+    BuildHelper.__init__(self, container, build)
     self.yumOrDnf = 'yum'
     self.releaseForRepoFile = self.release
 

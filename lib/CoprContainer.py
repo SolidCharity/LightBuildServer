@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dummy Wrapper for building packages on Copr"""
 
-# Copyright (c) 2014-2019 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,9 +19,9 @@
 # USA
 #
 
-from RemoteContainer import RemoteContainer
-from Logger import Logger
-from copr.client_v2.client import CoprClient
+from lib.RemoteContainer import RemoteContainer
+from lib.Logger import Logger
+from copr.v3 import Client as CoprClient
 import time
 
 class CoprContainer(RemoteContainer):

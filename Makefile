@@ -31,6 +31,9 @@ create_db:
 	${VENV} python manage.py migrate
 	${VENV} echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(is_superuser=True).exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin')" | python manage.py shell
 
+initdemo:
+	${VENV} python manage.py initdemo
+
 init_config:
 	mkdir -p var/repos var/tarballs var/logs var/src var/container
 

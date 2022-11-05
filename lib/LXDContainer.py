@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for LXD Container Management"""
 
-# Copyright (c) 2014-2021 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,9 +23,9 @@ import sys
 import os
 import time
 import socket
-from RemoteContainer import RemoteContainer
-from Logger import Logger
-from Shell import Shell
+from lib.RemoteContainer import RemoteContainer
+from lib.Logger import Logger
+from lib.Shell import Shell
 
 class LXDContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
@@ -73,10 +73,6 @@ class LXDContainer(RemoteContainer):
     sshpath=self.CONTAINER_PATH + self.containername + "/rootfs/root/.ssh/"
     if result == True:
       result = self.executeOnHost("mkdir -p " + sshpath)
-    if result == True:
-     result = self.shell.executeshell('echo "put ' + self.SSHContainerPath + '/container_rsa.pub authorized_keys2" | sftp -o "StrictHostKeyChecking no" -oPort=' + self.port + ' -i ' + self.SSHContainerPath + '/container_rsa root@' + self.hostname + ':' + sshpath)
-    if result == True:
-      result = self.executeOnHost("cd " + sshpath + " && cat authorized_keys2 >> authorized_keys && rm authorized_keys2")
     if result == True:
       result = self.executeOnHost("chmod 700 " + sshpath + " && chmod 600 " + sshpath + "authorized_keys")
     return result

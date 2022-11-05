@@ -1,0 +1,35 @@
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+# BuildingTimeout in seconds, will stop the build if no output from build script arrives within that time
+BUILDING_TIMEOUT = 600
+
+SHOW_NUMBER_OF_FINISHED_JOBS = 30
+
+EMAIL_FROM_ADDRESS = "lbs@example.org"
+EMAIL_SERVER = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USER = "myuser@gmail.com"
+EMAIL_PASSWORD = "secret"
+
+SEND_EMAIL_ON_SUCCESS = False
+DELETE_LOG_AFTER_DAYS = 20
+KEEP_MINIMUM_LOGS = 5
+DISPLAY_MAX_BUILDS_PER_PACKAGE = 15
+MAX_DEBUG_LEVEL = 1
+
+GIT_SRC_PATH = "var/src"
+LOGS_PATH = "var/logs"
+REPOS_PATH = "var/repos"
+TARBALLS_PATH = "var/tarballs"
+SSH_TMP_PATH = "var/ssh"
+
+PUBLIC_KEY_SERVER = "keyserver.ubuntu.com"
+
+LBS_URL = "http://localhost:8000"
+DOWNLOAD_URL = "http://lbs.example.org"
+
+TIME_ZONE = 'Europe/Amsterdam'

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelperFactory: gets the correct build helper for the right package format"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,20 +19,20 @@
 # USA
 #
 
-from BuildHelperDebian import BuildHelperDebian
-from BuildHelperUbuntu import BuildHelperUbuntu
-from BuildHelperCentos import BuildHelperCentos
-from BuildHelperFedora import BuildHelperFedora
+from lib.BuildHelperDebian import BuildHelperDebian
+from lib.BuildHelperUbuntu import BuildHelperUbuntu
+from lib.BuildHelperCentos import BuildHelperCentos
+from lib.BuildHelperFedora import BuildHelperFedora
 
 class BuildHelperFactory:
   'factory class for specific BuildHelper implementations for the various Linux Distributions'
 
-  def GetBuildHelper(distro, container, username, projectname, packagename, branchname):
+  def GetBuildHelper(distro, container, build):
     if distro == "debian":
-      return BuildHelperDebian(container, username, projectname, packagename, branchname)
+      return BuildHelperDebian(container, build)
     if distro == "ubuntu":
-      return BuildHelperUbuntu(container, username, projectname, packagename, branchname)
+      return BuildHelperUbuntu(container, build)
     if distro == "centos":
-      return BuildHelperCentos(container, username, projectname, packagename, branchname)
+      return BuildHelperCentos(container, build)
     if distro == "fedora":
-      return BuildHelperFedora(container, username, projectname, packagename, branchname)
+      return BuildHelperFedora(container, build)

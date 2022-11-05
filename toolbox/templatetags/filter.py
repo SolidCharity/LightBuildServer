@@ -12,3 +12,12 @@ def replace(value, arg):
 
     what, to = arg.split('|')
     return value.replace(what, to)
+
+@register.filter
+def split(value, arg):
+    """
+    Splitting filter
+    Use `{{ "aaa/bbb"|split:"/" }}`
+    """
+
+    return value.split(arg)

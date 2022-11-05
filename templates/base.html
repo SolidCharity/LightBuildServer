@@ -48,6 +48,11 @@
           <button type="submit" class="btn-xs btn-success">Login</button>
         </form>
         {% endif %}
+        {% if request.user.is_staff %}
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="/admin" target="_blank">Admin</a></li>
+        </ul>
+        {% endif %}
       </div><!--/.navbar-collapse -->
     </div>
   </div>

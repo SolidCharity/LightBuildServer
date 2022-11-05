@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrapper for Docker Container Management"""
 
-# Copyright (c) 2014-2020 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,9 +23,9 @@ import sys
 import os
 import time
 import socket
-from RemoteContainer import RemoteContainer
-from Logger import Logger
-from Shell import Shell
+from lib.RemoteContainer import RemoteContainer
+from lib.Logger import Logger
+from lib.Shell import Shell
 
 class DockerContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
@@ -69,6 +69,8 @@ class DockerContainer(RemoteContainer):
         self.release_for_docker = "9"
       elif self.release == 'buster':
         self.release_for_docker = "10"
+      elif self.release == 'bullseye':
+        self.release_for_docker = "11"
     if self.distro == "ubuntu":
       if self.release == 'focal':
         self.release_for_docker = "20.04"

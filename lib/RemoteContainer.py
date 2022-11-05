@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Interface class for Container Management"""
 
-# Copyright (c) 2014-2016 Timotheus Pokorra
+# Copyright (c) 2014-2022 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,31 +23,33 @@ import sys
 import os
 import time
 import socket
-import Config
-from Logger import Logger
-from Shell import Shell
+from pathlib import Path
+
+from django.conf import settings
+
+from lib.Logger import Logger
+from lib.Shell import Shell
 
 class RemoteContainer:
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath, containertype):
     self.hostname = containername
     self.containertype = containertype
-    self.staticMachine = (True if ('static' in configBuildMachine and configBuildMachine['static'] == "t") else False)
+    self.staticMachine = configBuildMachine.static
 
-    self.port="22"
-    if configBuildMachine['port'] is not None:
-      self.port=str(configBuildMachine['port'])
-    self.cid=10
-    if configBuildMachine['cid'] is not None:
-      self.cid=configBuildMachine['cid']
+    self.port = str(configBuildMachine.port)
+    self.cid = configBuildMachine.cid
 
     self.containername = str(self.cid).zfill(3) + "-" + containername
     if containertype == "lxd":
       self.containername="l" + str(self.cid).zfill(3) + "-" + containername.replace(".","-")
 
+    if "example.org" in self.hostname:
+        raise Exception("please replace example.org with actual hostname")
+
     self.containerIP=socket.gethostbyname(self.hostname)
     self.containerPort=str(2000+int(self.cid))
 
-    if configBuildMachine['local'] is not None and configBuildMachine['local'] == "t":
+    if configBuildMachine.local:
       # the host server for the build container is actually hosting the LBS application as well
       # or the container is running on localhost
       if containertype == "lxc":
@@ -60,8 +62,14 @@ class RemoteContainer:
         self.containerIP=self.calculateLocalContainerIP(1)
         self.containerPort=str(2000+int(self.cid))
 
-    self.config = Config.LoadConfig()
-    self.SSHContainerPath = self.config['lbs']['SSHContainerPath']
+    if not configBuildMachine.private_key or configBuildMachine.private_key=="TODO":
+        raise Exception(f"please add a private key for machine {containername}")
+
+    self.SSHContainerPath = f"{settings.SSH_TMP_PATH}/{containername}/"
+    Path(self.SSHContainerPath).mkdir(parents=True, exist_ok=True)
+    with open(self.SSHContainerPath + 'container_rsa', 'w') as f:
+        f.write(configBuildMachine.private_key)
+
     self.logger = logger
     self.shell = Shell(logger)
     # we are reusing the slots, for caches etc

@@ -17,29 +17,37 @@
   <a name="{{branchname}}_{{buildtarget}}"></a><br/><br/><br/>
   <a href="#{{branchname}}_{{buildtarget}}">
     {% if package.get_branches|length == 1 %}
-    <h4>{{buildtarget|replace:"__|/"}}</h4>
+    <h4>{{buildtarget}}</h4>
     {% else %}
-    <h4>{{branchname}} - {{buildtarget}}|replace:"__|/"</h4>
+    <h4>{{branchname}} - {{buildtarget}}</h4>
     {% endif %}
   </a>
   <ul>
-    <li><a href="{% url "builder:triggerbuild" package.project.user.get_username package.project.name package.name branchname buildtarget %}">Trigger build</a></li>
-  </ul>
+    {% with buildtargetlist=buildtarget|split:"/" %}
+    <li><a href="{% url "builder:triggerbuild" package.project.user.get_username package.project.name package.name branchname buildtargetlist.0 buildtargetlist.1 buildtargetlist.2 %}">Trigger build</a></li>
+    {% endwith %}
 
+    <li>Build history and logs:<ul>
+    {% for key, value in builds_per_target_and_branch.items %}
+    {% with filter_key=buildtarget|add:'-'|add:branchname %}
+    {% if key == filter_key %}
+    {% for build in value %}
+    <li class="{{build.buildsuccess}}">
+        <a href="/logs/{{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}/{{build.distro}}/{{build.release}}/{{build.arch}}/{{build.id}}">log of build {{build.id}}</a> {{build.finished|date:'Y-m-d H:i:s'}}
+        &nbsp;
+        {% if build.buildsuccess == "success" %}Succeeded{%else%}Failure{%endif%}
+    </li>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+    </ul></li>
+  </ul>
   {% endfor %}
   {% endfor %}
+
+
   {% comment %}
-                  <li><a href="{{package['buildurl']}}/{{branchname}}/{{buildtarget}}">Trigger build</a></li>
-      <li><a href="/livelog/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}">view current build</a></li>
-      <li>Build history and logs:<ul>
-        % for buildnumber in package['logs'][buildtarget+"-"+branchname]:
-        <li class="{{package['logs'][buildtarget+"-"+branchname][buildnumber]["resultcode"]}}"> 
-          <a href="/logs/{{username}}/{{projectname}}/{{packagename}}/{{branchname}}/{{buildtarget}}/{{buildnumber}}">log of build {{buildnumber}}</a> {{package['logs'][buildtarget+"-"+branchname][buildnumber]["timefinished"]}}
-          &nbsp;
-          {{"Succeeded" if package['logs'][buildtarget+"-"+branchname][buildnumber]["resultcode"] == "success" else "Failure"}}
-        </li>
-        % end  
-      </ul></li>
       % if buildtarget in package['repoinstructions'] and package['repoinstructions'][buildtarget] is not None:
         <li>Installation instructions:
         <pre>{{package['repoinstructions'][buildtarget]}}</pre>
