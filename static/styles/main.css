@@ -11,3 +11,18 @@ a.success, li.success, code.success {
 a.failure, li.failure, code.failure {
   background-color: red;
 }
+
+div.error {
+    padding: 20px;
+    background-color: red;
+    color: white;
+    font-weight: bolder;
+}
+
+div.success {
+    padding: 20px;
+    background-color: lightgreen;
+    color: black;
+    font-weight: bolder;
+    text-align: center;
+}

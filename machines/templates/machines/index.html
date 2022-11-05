@@ -8,6 +8,13 @@
 
 <div class="container">
     <div class="row">
+        {% if successmessage %}
+        <div class="success">{{successmessage}}</div>
+        {%endif%}
+        {% if errormessage %}
+        <div class="error">{{errormessage}}</div>
+        {%endif%}
+
         <h2>Build Machines</h2>
         <ul>
             {% for machine in machines_list %}
@@ -34,10 +41,10 @@
         <ul>
             {% for job in waiting_builds %}
             <li>
-                <a href="/package/{{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
-                    {{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branch}}/{{job.distro}}-{{job.release}}-{{job.arch}}</a>
+                <a href="/projects/{{job.user.username}}/{{job.project}}/package/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
+                    {{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branchname}}/{{job.distro}}/{{job.release}}/{{job.arch}}</a>
                 {% if request.user %}
-                : <a href="/cancelplannedbuild/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branch}}/{{job.distro}}-{{job.release}}-{{job.arch}}">
+                : <a href="/cancelplannedbuild/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branchname}}/{{job.distro}}/{{job.release}}/{{job.arch}}">
                     Cancel this build</a>
                 {% endif %}
             </li>

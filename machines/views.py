@@ -5,12 +5,15 @@ from .models import Machine
 from builder.models import Build
 from lib.LightBuildServer import LightBuildServer
 
-def monitor(request):
+def monitor(request, successmessage = None, errormessage = None):
     template_name = "machines/index.html"
     machines_list = Machine.objects.all()
     lbs = LightBuildServer()
     return render(request, template_name,
-            {'machines_list': machines_list,
+            {
+             'successmessage': successmessage,
+             'errormessage': errormessage,
+             'machines_list': machines_list,
              'waiting_builds': lbs.GetBuildQueue(request.user),
              'finished_builds': lbs.GetFinishedQueue(request.user),
             })

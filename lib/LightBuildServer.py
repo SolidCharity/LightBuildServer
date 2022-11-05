@@ -107,16 +107,17 @@ class LightBuildServer:
           #   the build will be marked as failed as well
           return
 
-  def CancelPlannedBuild(self, username, projectname, packagename, branchname, distro, release, arch):
-      builds = Build.objects.filter(status='WAITING').filter(username=username). \
-            filter(projectname=projectname).filter(packagename=packagename). \
+  def CancelPlannedBuild(self, project, packagename, branchname, distro, release, arch):
+      build = Build.objects.filter(status='WAITING'). \
+            filter(user=project.user). \
+            filter(project=project.name).filter(package=packagename). \
             filter(branchname=branchname).filter(distro=distro).filter(release=release).filter(arch=arch). \
-            order_by(id)
-      for row in builds:
-        row.status = 'CANCELLED'
-        row.save()
-        # only remove one build job from the queue
-        break
+            first()
+      if build:
+        build.status = 'CANCELLED'
+        build.save()
+      else:
+        raise Exception(f"cannot find build {project} {packagename} {branchname} {distro} {release} {arch}")
 
   def CancelWaitingJobsInQueue(self, queue):
       # TODO: add arch to the queue as well?
@@ -483,7 +484,7 @@ class LightBuildServer:
       elif data.status == 'WAITING':
         return ("We are waiting for a build machine to become available...", 10)
       elif data.status == 'FINISHED':
-        output = Logger().getLog(username, projectname, packagename, branchname, distro, release, arch, data.buildnumber)
+        output = Logger().getLog(project, packagename, branchname, distro, release, arch, data.buildnumber)
         # stop refreshing
         timeout=-1
 
