@@ -30,3 +30,5 @@ PUBLIC_KEY_SERVER = "keyserver.ubuntu.com"
 
 LBS_URL = "http://localhost:8000"
 DOWNLOAD_URL = "http://lbs.example.org"
+
+TIME_ZONE = 'Europe/Amsterdam'

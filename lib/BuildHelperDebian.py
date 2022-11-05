@@ -202,8 +202,8 @@ class BuildHelperDebian(BuildHelper):
 
       # import the private key for signing the package if the file privateLBSkey exists
       SSHContainerPath = f"{settings.SSH_TMP_PATH}/{self.username}/{self.projectname}"
-      Path(self.SSHContainerPath).mkdir(parents=True, exist_ok=True)
-      privateLBSkey_filename = self.SSHContainerPath + '/privateLBSkey'
+      Path(SSHContainerPath).mkdir(parents=True, exist_ok=True)
+      privateLBSkey_filename = SSHContainerPath + '/privateLBSkey'
       if os.path.isfile(privateLBSkey_filename):
         if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf && sed -i -e 's/bionic/" + self.release + "/g' repo/conf/distributions"):
           return False

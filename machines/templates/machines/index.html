@@ -54,7 +54,7 @@
         <table class="table">
             {% for job in finished_builds %}
             <tr>
-                <td>{{job.finished}}</td>
+                <td>{{job.finished|date:'Y-m-d H:i:s'}}</td>
                 <td>{{job.duration}}</td>
                 <td>
                     <a href="/projects/{{job.user.username}}/{{job.project}}/package/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">

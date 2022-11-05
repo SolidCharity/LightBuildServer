@@ -497,4 +497,9 @@ class LightBuildServer:
       elif not auth_user.is_staff:
         builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
       builds = builds.order_by('finished').reverse()[:settings.SHOW_NUMBER_OF_FINISHED_JOBS]
+      for b in builds:
+        duration_in_seconds = round((b.finished - b.started).total_seconds())
+        b.duration = str(int(duration_in_seconds/60/60)).zfill(1) + ":" + \
+            str(int(duration_in_seconds/60)%60).zfill(2) + ":" + \
+            str(duration_in_seconds%60).zfill(2)
       return builds
