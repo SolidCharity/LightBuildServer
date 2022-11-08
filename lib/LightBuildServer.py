@@ -441,12 +441,9 @@ class LightBuildServer:
       # loop from left to right
       # check if a project might be ready to build
       builds = Build.objects.filter(status='WAITING')
-      first = True
       for build in builds:
-        if not first:
-            time.sleep(10)
-        first = False
-        self.attemptToFindBuildMachine(build)
+        if self.attemptToFindBuildMachine(build):
+          time.sleep(10)
 
       self.CheckForHangingBuild()
 
