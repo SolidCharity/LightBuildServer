@@ -17,3 +17,11 @@ def monitor(request, successmessage = None, errormessage = None):
              'waiting_builds': lbs.GetBuildQueue(request.user),
              'finished_builds': lbs.GetFinishedQueue(request.user),
             })
+
+def reset(request, machine_name):
+    lbs = LightBuildServer()
+
+    lbs.ReleaseMachine(machine_name, True)
+
+    successmessage = f"The machine {machine_name} should now be available."
+    return monitor(request, successmessage)
