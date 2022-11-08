@@ -98,7 +98,8 @@ class RemoteContainer:
     # on CentOS: /etc/libvirt/qemu/networks/default.xml 192.168.122
     # on Fedora 27: /etc/libvirt/qemu/networks/default.xml 192.168.124
     # on Ubuntu 16.04: /etc/default/lxc-net 10.0.3
-    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "192.168.124" or '.'.join(lbsipaddress) == "10.0.3":
+    # for lxd I am using 10.0.4
+    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "192.168.124" or '.'.join(lbsipaddress) == "10.0.3" or '.'.join(lbsipaddress) == "10.0.4":
       return '.'.join(lbsipaddress) + "." + str(cid)
 
     # we are running uwsgi and lxc/docker on one host
