@@ -9,7 +9,7 @@
 <h2>Details of Package {{package.project.user.get_username}}:{{package.project.name}}:{{package.name}}</h2>
 
 <ul>
-  <li><a href="{{package.project.git_url}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
+  <li><a href="{{package.project.git_url}}/lbs-{{package.project.name}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
 
   {% for branchname in package.get_branches %}
   {% for buildtarget in package.get_buildtargets %}
