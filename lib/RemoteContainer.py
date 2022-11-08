@@ -69,6 +69,8 @@ class RemoteContainer:
     Path(self.SSHContainerPath).mkdir(parents=True, exist_ok=True)
     with open(self.SSHContainerPath + 'container_rsa', 'w') as f:
         f.write(configBuildMachine.private_key)
+    # only the user can read and write this file
+    os.chmod(self.SSHContainerPath + 'container_rsa', 0o600)
 
     self.logger = logger
     self.shell = Shell(logger)
