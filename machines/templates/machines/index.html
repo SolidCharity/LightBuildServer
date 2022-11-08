@@ -30,7 +30,7 @@
 
                 {% if request.user %}
                     &nbsp; &nbsp; Action: <ul>
-                    <li><a href="/machines/reset/{{buildmachine}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
+                    <li><a href="/machines/reset/{{machine.host}}">Reset the machine</a> (This will stop any running jobs on this machine)</li>
                 </ul>
                 {% endif %}
                 <br/>
