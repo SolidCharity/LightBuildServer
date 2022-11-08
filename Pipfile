@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"
+
+[packages]
+bottle = "*"
+pyyaml = "*"
+requests = "*"
+copr = "*"
+django = "~3.2"
+psycopg2 = "*"
+
+[packages.gunicorn]
+extras = [ "gevent",]
