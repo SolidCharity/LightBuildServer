@@ -481,7 +481,7 @@ class LightBuildServer:
 
   def GetBuildQueue(self, auth_user):
       builds = Build.objects.filter(status='WAITING')
-      if auth_user is None:
+      if auth_user.is_anonymous:
         builds = builds.filter(secret=False)
       elif not auth_user.is_staff:
         builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
@@ -489,7 +489,7 @@ class LightBuildServer:
 
   def GetFinishedQueue(self, auth_user):
       builds = Build.objects.filter(status='FINISHED')
-      if auth_user is None:
+      if auth_user.is_anonymous:
         builds = builds.filter(secret=False)
       elif not auth_user.is_staff:
         builds = builds.filter(Q(Q(user=auth_user) | Q(secret=False)))
