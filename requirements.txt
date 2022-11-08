@@ -5,4 +5,4 @@ PyYAML
 requests
 copr
 
-django>=4.1
+django==3.2.16

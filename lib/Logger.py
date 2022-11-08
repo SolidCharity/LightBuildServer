@@ -25,6 +25,7 @@ import datetime
 import smtplib
 from smtplib import SMTP_SSL
 import os
+from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
@@ -146,7 +147,7 @@ class Logger:
 
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
-      os.makedirs( LogPath )
+      Path(LogPath).mkdir(parents=True, exist_ok=True)
     buildnumber=0
     MaximumAgeInSeconds = timezone.now() - datetime.timedelta(days = DeleteLogAfterDays)
     logfiles=[]

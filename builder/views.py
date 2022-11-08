@@ -2,6 +2,7 @@ import sys
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate
 
 from lib.Logger import Logger
 from lib.LightBuildServer import LightBuildServer
@@ -12,14 +13,21 @@ from builder.models import Build
 
 from machines import views as machine_view
 
-@login_required
-def buildtarget(request, user, project, package, branchname, distro, release, arch):
+def buildtarget(request, user, project, package, branchname, distro, release, arch, authuser=None, authpwd =None):
     project = Project.objects.get(user=User.objects.get(username__exact=user), name=project)
 
+    if authuser and authpwd:
+        currentuser = authenticate(username=authuser, password=authpwd)
+    else:
+        currentuser = request.user
+
     # is the correct user logged in? or the admin?
-    if not project.visible and not request.user.is_staff:
-        if request.user != project.user:
-            raise Exception("you do not have permission for this project")
+    if currentuser and not project.visible and not currentuser.is_staff:
+        if currentuser != project.user:
+            currentuser = None
+
+    if not currentuser or currentuser.is_anonymous:
+        return machine_view.monitor(request, errormessage="You do not have permission for this project")
 
     # start building
     LBS = LightBuildServer()
@@ -50,7 +58,7 @@ def cancelbuild(request, user, project, package, branchname, distro, release, ar
 def viewlog(request, user, project, package, branchname, distro, release, arch, buildid):
     build = Build.objects.get(pk=buildid)
 
-    project = Project.objects.get(user=build.user, name=build.project)
+    project = Project.objects.filter(user=build.user, name=build.project).first()
 
     # is the correct user logged in? or the admin?
     if not project.visible and not request.user.is_staff:
