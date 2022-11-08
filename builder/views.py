@@ -50,7 +50,7 @@ def cancelbuild(request, user, project, package, branchname, distro, release, ar
 def viewlog(request, user, project, package, branchname, distro, release, arch, buildid):
     build = Build.objects.get(pk=buildid)
 
-    project = Project.objects.get(user=build.user, name=build.project)
+    project = Project.objects.filter(user=build.user, name=build.project).first()
 
     # is the correct user logged in? or the admin?
     if not project.visible and not request.user.is_staff:

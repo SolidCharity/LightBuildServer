@@ -147,7 +147,7 @@ class Logger:
 
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
-      os.makedirs( LogPath )
+      Path(LogPath).mkdir(parents=True, exist_ok=True)
     buildnumber=0
     MaximumAgeInSeconds = timezone.now() - datetime.timedelta(days = DeleteLogAfterDays)
     logfiles=[]
@@ -183,7 +183,6 @@ class Logger:
 
   def getLogFile(self, build):
     LogPath = self.logspath + "/" + self.getLogPath(build)
-    Path(LogPath).mkdir(parents=True, exist_ok=True)
     return LogPath + "/build-" + str(build.id).zfill(6) + ".log"
 
   def getLog(self, build):
