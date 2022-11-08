@@ -128,8 +128,8 @@ class LightBuildServer:
     print("ReleaseMachine %s" % (buildmachine))
     machine = Machine.objects.filter(host=buildmachine).first()
 
-    # only release the machine when it is building. if it is already being stopped, do nothing
-    if machine.status == 'BUILDING':
+    # only release the machine when it is building
+    if machine.status == 'BUILDING' or machine.status == 'STOPPING':
       if jobFailed:
         self.CancelWaitingJobsInQueue(machine.build)
 
