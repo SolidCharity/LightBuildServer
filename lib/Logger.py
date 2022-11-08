@@ -25,6 +25,7 @@ import datetime
 import smtplib
 from smtplib import SMTP_SSL
 import os
+from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
@@ -182,6 +183,7 @@ class Logger:
 
   def getLogFile(self, build):
     LogPath = self.logspath + "/" + self.getLogPath(build)
+    Path(LogPath).mkdir(parents=True, exist_ok=True)
     return LogPath + "/build-" + str(build.id).zfill(6) + ".log"
 
   def getLog(self, build):
