@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 
 from .models import Machine
 from builder.models import Build
@@ -18,6 +19,7 @@ def monitor(request, successmessage = None, errormessage = None):
              'finished_builds': lbs.GetFinishedQueue(request.user),
             })
 
+@login_required
 def reset(request, machine_name):
     lbs = LightBuildServer()
 
