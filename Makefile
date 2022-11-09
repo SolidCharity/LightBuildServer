@@ -40,3 +40,6 @@ init_config:
 runserver:
 	${VENV} python manage.py runserver
 
+cronjob:
+	${VENV} python manage.py cronjob
+
