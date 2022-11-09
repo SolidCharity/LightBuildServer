@@ -146,6 +146,10 @@ class LightBuildServer:
       machine.status = 'AVAILABLE'
       machine.save()
 
+      if machine.build and machine.build.status == 'BUILDING':
+        machine.build.status = 'CANCELLED'
+        machine.build.save()
+
   def CanFindDependanciesBuilding(self, build):
     machines = Machine.objects.filter(status='BUILDING'). \
         filter(build__user__username=build.user.username). \
