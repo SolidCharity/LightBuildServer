@@ -101,7 +101,7 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
-      project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
+    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
     if project.public_key_id:
       self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {project.public_key_id}")
 
