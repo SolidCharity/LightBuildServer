@@ -71,6 +71,7 @@ def viewlog(request, user, project, package, branchname, distro, release, arch, 
         { 'buildresult': content,
          'timeoutInSeconds': -1,
          'build_descr': f"{build.user.username}/{build.project}/{build.package}/{build.branchname}",
+         'package_link': f"/projects/{build.user.username}/{build.project}/package/{build.package}/#{build.branchname}_{build.distro}/{build.release}/{build.arch}",
         })
 
 def livelog(request, user, project, package, branchname, distro, release, arch, buildid):
@@ -90,4 +91,5 @@ def livelog(request, user, project, package, branchname, distro, release, arch, 
         { 'buildresult': content,
          'timeoutInSeconds': timeout,
          'build_descr': f"{build.user.username}/{build.project}/{build.package}/{build.branchname}",
+         'package_link': f"/projects/{build.user.username}/{build.project}/package/{build.package}/#{build.branchname}_{build.distro}/{build.release}/{build.arch}",
         })

@@ -16,7 +16,7 @@ timedRefresh({{timeoutInSeconds}}*1000);
 </script>
     <div class="container">
       <div class="row">
-        <h2>Build Result for {{build_descr}}</h2>
+        <h2>Build Result for <a href="{{package_link}}">{{build_descr}}</a></h2>
         {% if not timeoutInSeconds > 0 %}
             <a href="#bottom">go to bottom of this page</a>
         {% endif %}
