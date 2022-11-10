@@ -28,6 +28,8 @@ import shutil
 import re
 import logging
 
+from django.conf import settings
+
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
 
@@ -108,7 +110,7 @@ class BuildHelperCentos(BuildHelper):
               return False
 
     # install own repo as well if it exists
-    repofile=self.config['lbs']['ReposPath'] + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
+    repofile = settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.release + "/lbs-" + self.username + "-" + self.projectname + ".repo"
     if os.path.isfile(repofile):
       self.container.rsyncContainerPut(repofile,"/etc/yum.repos.d/")
       self.run('echo "priority = 60" >> /etc/yum.repos.d/lbs-' + self.username + "-" + self.projectname + ".repo")
@@ -139,8 +141,8 @@ class BuildHelperCentos(BuildHelper):
     myPath = self.username + "/" + self.projectname
     if 'Secret' in self.config['lbs']['Users'][self.username]:
       myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
-    repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
-    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    repopath = settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.release
+    specfile = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
       remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run('sed -i "s/0%{?suse_version}/' + str(self.suse_version) + '/g" ' + remoteSpecName)
@@ -232,7 +234,7 @@ class BuildHelperCentos(BuildHelper):
     myPath = self.username + "/" + self.projectname
     if 'Secret' in self.config['lbs']['Users'][self.username]:
       myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
-    repopath=self.config['lbs']['ReposPath'] + "/" + myPath + "/" + self.dist + "/" + self.release
+    repopath = settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.release
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
       repoFileContent+="name=LBS-"+self.username + "-"+self.projectname +"\n"
@@ -260,7 +262,7 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     result = None
 
-    srcPath=self.config['lbs']['ReposPath'] + "/" + self.username + "/"
+    srcPath = settings.REPOS_PATH + "/" + self.username + "/"
     if 'Secret' in self.config['lbs']['Users'][self.username]:
       srcPath += self.config['lbs']['Users'][self.username]['Secret'] + "/"
 
@@ -283,7 +285,7 @@ class BuildHelperCentos(BuildHelper):
     repourl = self.getRepoUrl(DownloadUrl, None)
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
-    checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
+    checkfile = settings.REPOS_PATH + "/" + self.username + "/"
     if 'Secret' in self.config['lbs']['Users'][self.username]:
       checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
     checkfile += self.projectname
@@ -307,14 +309,14 @@ class BuildHelperCentos(BuildHelper):
       if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
         result += 'rpm --import "http://' + self.config['lbs']['PublicKeyServer'] + '/pks/lookup?op=get&fingerprint=on&search=' + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
     # check if a repo has been created in that place
-    checkfile = self.config['lbs']['ReposPath'] + repourl[len(DownloadUrl + "/repos"):]
+    checkfile = settings.REPOS_PATH + repourl[len(DownloadUrl + "/repos"):]
     if not glob.glob(checkfile):
       return None
 
     # packagename: name of spec file, without .spec at the end
     for packagename in [self.packagename, self.GetSpecFilename()[:-5]]:
       # check if there is such a package at all
-      checkfile = self.config['lbs']['ReposPath'] + "/" + self.username + "/"
+      checkfile = settings.REPOS_PATH + "/" + self.username + "/"
       if 'Secret' in self.config['lbs']['Users'][self.username]:
         checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
       checkfile += self.projectname + "/" + self.dist + "/*/*/" + packagename + "-*"
