@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
-from lib.BuildHelper import BuildHelper;
+
 import time
 import os
 import glob
@@ -29,6 +29,9 @@ import re
 import logging
 
 from django.conf import settings
+
+from lib.BuildHelper import BuildHelper
+from projects.models import Project
 
 class BuildHelperCentos(BuildHelper):
   'build packages for CentOS'
@@ -101,7 +104,7 @@ class BuildHelperCentos(BuildHelper):
         if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
           keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run("if [ -f ~./.ssh/" + key + ".key ]; then rpm --import ~./.ssh/" + key + ".key; else rpm --import 'https://" + self.config['lbs']['PublicKeyServer'] + "/pks/lookup?op=get&fingerprint=on&search=" + key + "'; fi"):
+            if not self.run("if [ -f ~./.ssh/" + key + ".key ]; then rpm --import ~./.ssh/" + key + f".key; else rpm --import 'https://{settings.PUBLIC_KEY_SERVER}/pks/lookup?op=get&fingerprint=on&search={key}'; fi"):
               return False
         if 'enable' in prjconfig['lbs'][self.dist][str(self.release)]:
           enables = prjconfig['lbs'][self.dist][str(self.release)]['enable']
@@ -135,12 +138,12 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def BuildPackage(self):
-    DownloadUrl = self.config['lbs']['DownloadUrl']
-    DeletePackagesAfterDays = self.config['lbs']['DeletePackagesAfterDays']
-    KeepMinimumPackages = self.config['lbs']['KeepMinimumPackages']
+    DownloadUrl = settings.DOWNLOAD_URL
+    DeletePackagesAfterDays = settings.DELETE_PACKAGES_AFTER_DAYS
+    KeepMinimumPackages = settings.KEEP_MINIMUM_PACKAGES
     myPath = self.username + "/" + self.projectname
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-      myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    if self.project.secret:
+      myPath = self.username + "/" + self.project.secret + "/" + self.projectname
     repopath = settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.release
     specfile = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
@@ -197,15 +200,13 @@ class BuildHelperCentos(BuildHelper):
         return False
 
       # import the private key for signing the package if the file privateLBSkey exists
-      sshContainerPath = self.config['lbs']['SSHContainerPath']
-      if os.path.isfile(sshContainerPath + '/' + self.username + '/' + self.projectname + '/privateLBSkey'):
-        # do not sign packages on CentOS5, see https://github.com/tpokorra/lbs-mono/issues/9
-        if not (self.dist == "centos" and self.release == "5"):
-          self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
-          if not self.run("if ls rpmbuild/RPMS/" + arch + "/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm; fi"):
-            return False
-          if not self.run("if ls rpmbuild/RPMS/noarch/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/noarch/*.rpm; fi"):
-            return False
+      SSHContainerPath = f"{settings.SSH_TMP_PATH}/{self.username}/{self.projectname}"
+      if os.path.isfile(SSHContainerPath + '/privateLBSkey'):
+        self.run("gpg --import < ~/.ssh/privateLBSkey; cp -f ~/.ssh/rpmmacros ~/.rpmmacros")
+        if not self.run("if ls rpmbuild/RPMS/" + arch + "/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/" + arch + "/*.rpm; fi"):
+          return False
+        if not self.run("if ls rpmbuild/RPMS/noarch/*.rpm 1> /dev/null 2>&1; then rpm --addsign rpmbuild/RPMS/noarch/*.rpm; fi"):
+          return False
 
       # add result to repo
       self.run("mkdir -p ~/repo/src")
@@ -230,10 +231,10 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def CreateRepoFile(self):
-    DownloadUrl = self.config['lbs']['DownloadUrl']
+    DownloadUrl = settings.DOWNLOAD_URL
     myPath = self.username + "/" + self.projectname
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-      myPath = self.username + "/" + self.config['lbs']['Users'][self.username]['Secret'] + "/" + self.projectname
+    if self.project.secret:
+      myPath = self.username + "/" + self.project.secret + "/" + self.projectname
     repopath = settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.release
     if os.path.isdir(repopath + "/repodata"):
       repoFileContent="[lbs-"+self.username + "-"+self.projectname +"]\n"
@@ -248,8 +249,8 @@ class BuildHelperCentos(BuildHelper):
 
   def getRepoUrl(self, DownloadUrl, buildtarget):
     repourl = DownloadUrl + "/repos/" + self.username + "/"
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-        repourl += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+    if self.project.secret:
+        repourl += self.project.secret + "/"
     repourl += self.projectname
     if buildtarget is not None:
       buildtarget = buildtarget.split("/")
@@ -263,8 +264,8 @@ class BuildHelperCentos(BuildHelper):
     result = None
 
     srcPath = settings.REPOS_PATH + "/" + self.username + "/"
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-      srcPath += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+    if self.project.secret:
+      srcPath += self.project.secret + "/"
 
     srcPath += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + "/src"
     if os.path.isdir(srcPath):
@@ -286,8 +287,8 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     # check if there is such a package at all
     checkfile = settings.REPOS_PATH + "/" + self.username + "/"
-    if 'Secret' in self.config['lbs']['Users'][self.username]:
-      checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+    if self.project.secret:
+      checkfile += self.project.secret + "/"
     checkfile += self.projectname
     # perhaps we have built a Windows installer with NSIS
     windowsfile = checkfile + "/" + self.dist + "/" + buildtarget[1] + "/windows/" + self.packagename + "/" + branchname + "/*.exe"
@@ -306,8 +307,8 @@ class BuildHelperCentos(BuildHelper):
     buildtarget = buildtarget.split("/")
     result = ""
     if not (buildtarget[0] == "centos" and buildtarget[1] == "5"):
-      if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
-        result += 'rpm --import "http://' + self.config['lbs']['PublicKeyServer'] + '/pks/lookup?op=get&fingerprint=on&search=' + self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey'] + '"' + "\n"
+      if self.project.public_key_id:
+        result += f'rpm --import "https://{settings.PUBLIC_KEY_SERVER}/pks/lookup?op=get&fingerprint=on&search={self.project.public_key_id}"' + "\n"
     # check if a repo has been created in that place
     checkfile = settings.REPOS_PATH + repourl[len(DownloadUrl + "/repos"):]
     if not glob.glob(checkfile):
@@ -317,8 +318,8 @@ class BuildHelperCentos(BuildHelper):
     for packagename in [self.packagename, self.GetSpecFilename()[:-5]]:
       # check if there is such a package at all
       checkfile = settings.REPOS_PATH + "/" + self.username + "/"
-      if 'Secret' in self.config['lbs']['Users'][self.username]:
-        checkfile += self.config['lbs']['Users'][self.username]['Secret'] + "/"
+      if self.project.secret:
+        checkfile += self.project.secret + "/"
       checkfile += self.projectname + "/" + self.dist + "/*/*/" + packagename + "-*"
       if not glob.glob(checkfile):
         continue

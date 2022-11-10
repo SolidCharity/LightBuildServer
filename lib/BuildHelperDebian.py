@@ -101,9 +101,8 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
-    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
-    if project.public_key_id:
-      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {project.public_key_id}")
+    if self.project.public_key_id:
+      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}")
 
     # update the repository information
     self.run("apt-get update")
@@ -127,7 +126,6 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def BuildPackage(self):
-    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
     DownloadUrl = settings.DOWNLOAD_URL
     dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
@@ -177,8 +175,8 @@ class BuildHelperDebian(BuildHelper):
 
       debfiles=[]
       myPath = self.username + "/" + self.projectname
-      if project.secret:
-        myPath = self.username + "/" + project.secret + "/" + self.projectname
+      if self.project.secret:
+        myPath = self.username + "/" + self.project.secret + "/" + self.projectname
       repopath=settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
       binarypath = repopath + "/" + arch + "/binary"
       if not os.path.isdir(binarypath):
@@ -230,15 +228,14 @@ class BuildHelperDebian(BuildHelper):
     buildtarget = buildtarget.split("/")
 
     keyinstructions = ""
-    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
 
     # check if there is such a package at all
     checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
     if glob.glob(checkfile):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
-      if project.public_key_id:
-        keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {project.public_key_id}\n"
+      if self.project.public_key_id:
+        keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}\n"
     else:
       checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
@@ -253,8 +250,8 @@ class BuildHelperDebian(BuildHelper):
       result += f"echo 'deb [arch={buildtarget[2]} signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {DownloadUrl}/repos/{self.username}/"
     else:
       result += f"echo 'deb [arch={buildtarget[2]}] {DownloadUrl}/repos/{self.username}/"
-    if project.secret:
-        result += project.secret + "/"
+    if self.project.secret:
+        result += self.project.secret + "/"
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> " + f"/etc/apt/sources.list.d/{self.username}-{self.projectname}.list\n"
     result += "apt update\n"
     # packagename: name of dsc file, without .dsc at the end

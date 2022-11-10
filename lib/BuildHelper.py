@@ -24,6 +24,8 @@ from collections import deque
 
 from django.conf import settings
 
+from projects.models import Project
+
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
@@ -42,6 +44,7 @@ class BuildHelper:
     self.packagename = build.package
     self.branchname = build.branchname
     self.pathSrc = settings.GIT_SRC_PATH+"/"+self.username
+    self.project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
 
   def log(self, message):
     if self.container is not None:
