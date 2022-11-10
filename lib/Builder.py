@@ -151,7 +151,7 @@ class Builder:
           raise Exception("Problem with PrepareForBuilding")
 
         # copy the repo to the container
-        git_project_name = project.git_url.trim('/').split('/')[-1]
+        git_project_name = project.git_url.strip('/').split('/')[-1]
         self.container.rsyncContainerPut(pathSrc+git_project_name, "/root/"+git_project_name)
 
         # copy the keys and other files to the container into the /root/.ssh directory
@@ -202,7 +202,7 @@ class Builder:
     self.logger.print(" * Preparing the machine...")
 
     project = Project.objects.filter(user = build.user, name=build.project).first()
-    git_project_name = project.git_url.trim('/').split('/')[-1]
+    git_project_name = project.git_url.strip('/').split('/')[-1]
 
     # get the sources of the packaging instructions
     gotPackagingInstructions = False

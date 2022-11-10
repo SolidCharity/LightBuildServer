@@ -181,7 +181,7 @@ class LightBuildServer:
   def getPackagingInstructions(self, build):
     project = Project.objects.filter(name=build.project).filter(user=build.user).first()
     lbsproject = project.git_url
-    git_project_name = project.git_url.trim('/').split('/')[-1]
+    git_project_name = project.git_url.strip('/').split('/')[-1]
     pathSrc = settings.GIT_SRC_PATH+"/"+build.user.username+"/"
 
     # first try with git branch master, to see if the branch is decided in the setup.sh. then there must be a config.yml
