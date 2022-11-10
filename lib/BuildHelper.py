@@ -45,7 +45,7 @@ class BuildHelper:
     self.branchname = build.branchname
     self.pathSrc = settings.GIT_SRC_PATH+"/"+self.username
     self.project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
-    self.git_project_name = self.project.git_url.trim('/').split('/')[-1]
+    self.git_project_name = self.project.git_url.strip('/').split('/')[-1]
 
   def log(self, message):
     if self.container is not None:
