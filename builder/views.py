@@ -55,8 +55,10 @@ def cancelbuild(request, user, project, package, branchname, distro, release, ar
         print(sys.exc_info())
         return machine_view.monitor(request, errormessage="Unexpected error")
 
-def viewlog(request, user, project, package, branchname, distro, release, arch, buildid):
-    build = Build.objects.get(pk=buildid)
+def viewlog(request, user, project, package, branchname, distro, release, arch, buildnumber):
+    build = Build.objects.filter(user__username=user).filter(project=project). \
+        filter(package=package).filter(branchname=branchname). \
+        filter(distro=distro).filter(release=release).filter(arch=arch).filter(number=buildnumber).first()
 
     project = Project.objects.filter(user=build.user, name=build.project).first()
 

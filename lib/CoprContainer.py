@@ -62,7 +62,7 @@ class CoprContainer(RemoteContainer):
     # see http://python-copr.readthedocs.io/en/latest/client_v2/handlers.html#copr.client_v2.handlers.BuildHandle.create_from_url
     # see http://python-copr.readthedocs.io/en/latest/client_v2/resource_info/build.html#create-new-build
     self.build = self.project.create_build_from_url(srpm_url=urlsrcrpm)
-    buildurl = self.cl.root_url + "/coprs/" + self.project.owner + "/" + self.project.name + "/build/" + str(self.build.id)
+    buildurl = self.cl.root_url + "/coprs/" + self.project.owner + "/" + self.project.name + "/build/" + str(self.build.number)
     # somehow the html characters are encoded 
     #self.logger.print("see the the details of the build with logs at <a href='" + buildurl + "'>" + buildurl + "</a>...")
     self.logger.print("see the details of the build with logs at " + buildurl)

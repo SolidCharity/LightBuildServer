@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Build(models.Model):
+    number = models.IntegerField(default=-1)
     status = models.CharField(max_length=20, choices=[
         ("WAITING", "waiting"),
         ("BUILDING", "building"),

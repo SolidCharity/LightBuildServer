@@ -232,7 +232,7 @@ class Builder:
       self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
     self.finished = True
     logpath=self.logger.getLogPath(build)
-    buildnumber=self.logger.store(settings.DELETE_LOG_AFTER_DAYS, settings.KEEP_MINIMUM_LOGS, logpath)
+    build.number=self.logger.store(settings.DELETE_LOG_AFTER_DAYS, settings.KEEP_MINIMUM_LOGS, logpath)
     if self.logger.hasLBSERROR() or settings.SEND_EMAIL_ON_SUCCESS:
       if settings.EMAIL_FROM_ADDRESS == 'lbs@example.org':
         self.logger.print("Please configure the email settings for sending notification emails")
@@ -240,7 +240,7 @@ class Builder:
         try:
           self.logger.email(settings.EMAIL_FROM_ADDRESS, build.user.email, \
             "LBS Result for " + build.project + "/" + build.package, \
-            settings.LBS_URL + "/logs/" + logpath + "/" + str(buildnumber))
+            settings.LBS_URL + "/logs/" + logpath + "/" + str(build.number))
         except Exception as e:
           self.logger.print("ERROR: we could not send the email")
           traceback.print_exc()

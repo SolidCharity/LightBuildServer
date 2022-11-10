@@ -148,15 +148,15 @@ class Logger:
     LogPath = self.logspath + "/" + logpath
     if not os.path.exists(LogPath):
       Path(LogPath).mkdir(parents=True, exist_ok=True)
-    buildnumber=0
+    self.build.number=0
     MaximumAgeInSeconds = timezone.now() - datetime.timedelta(days = DeleteLogAfterDays)
     logfiles=[]
     for file in os.listdir(LogPath):
       if file.endswith(".log"):
         logfiles.append(file)
         oldnumber=int(file[6:-4])
-        if oldnumber >= buildnumber:
-          buildnumber = oldnumber + 1
+        if oldnumber >= self.build.number:
+          self.build.number = oldnumber + 1
     logfiles=sorted(logfiles)
     if len(logfiles) > KeepMinimumLogs:
       for i in range(1, len(logfiles) - KeepMinimumLogs):
@@ -173,7 +173,7 @@ class Logger:
       print ("Unexpected error:", sys.exc_info())
     sys.stdout.flush()
 
-    return buildnumber
+    return self.build.number
 
   def clean(self):
     # clear log from database
@@ -183,7 +183,7 @@ class Logger:
 
   def getLogFile(self, build):
     LogPath = self.logspath + "/" + self.getLogPath(build)
-    return LogPath + "/build-" + str(build.id).zfill(6) + ".log"
+    return LogPath + "/build-" + str(build.number).zfill(6) + ".log"
 
   def getLog(self, build):
     filename=self.getLogFile(build)

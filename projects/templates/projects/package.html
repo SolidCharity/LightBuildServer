@@ -33,7 +33,7 @@
     {% if key == filter_key %}
     {% for build in value %}
     <li class="{{build.buildsuccess}}">
-        <a href="/logs/{{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}/{{build.distro}}/{{build.release}}/{{build.arch}}/{{build.id}}">log of build {{build.id}}</a> {{build.finished|date:'Y-m-d H:i:s'}}
+        <a href="/logs/{{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}/{{build.distro}}/{{build.release}}/{{build.arch}}/{{build.number}}">log of build {{build.number}}</a> {{build.finished|date:'Y-m-d H:i:s'}}
         &nbsp;
         {% if build.buildsuccess == "success" %}Succeeded{%else%}Failure{%endif%}
     </li>
