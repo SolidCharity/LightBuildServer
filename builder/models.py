@@ -28,8 +28,13 @@ class Build(models.Model):
     hanging = models.BooleanField(default=False)
     buildsuccess = models.CharField(max_length=20,default=None, null=True)
 
+    class Meta:
+        db_table = "lbs_build"
 
 class Log(models.Model):
     build = models.ForeignKey(Build, on_delete=models.CASCADE)
     line = models.TextField()
     created = models.DateTimeField()
+
+    class Meta:
+        db_table = "lbs_log"

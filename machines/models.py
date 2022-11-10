@@ -35,6 +35,7 @@ class Machine(models.Model):
         return self.host
 
     class Meta:
+        db_table = "lbs_machine"
         ordering = ("host",)
 
         constraints = [
