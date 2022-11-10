@@ -180,17 +180,18 @@ class LightBuildServer:
   # this is called from Build.py buildpackage, and from LightBuildServer.py CalculatePackageOrder
   def getPackagingInstructions(self, build):
     project = Project.objects.filter(name=build.project).filter(user=build.user).first()
-    lbsproject = project.git_url + '/lbs-' + project.name
+    lbsproject = project.git_url
+    git_project_name = project.git_url.trim('/').split('/')[-1]
     pathSrc = settings.GIT_SRC_PATH+"/"+build.user.username+"/"
 
     # first try with git branch master, to see if the branch is decided in the setup.sh. then there must be a config.yml
-    self.getPackagingInstructionsInternal(project, build, project.git_branch, lbsproject, pathSrc)
+    self.getPackagingInstructionsInternal(project, build, project.git_branch, lbsproject, git_project_name, pathSrc)
 
-    if not os.path.isfile(pathSrc+'lbs-'+build.project+"/config.yml"):
-      self.getPackagingInstructionsInternal(project, build, build.branchname, lbsproject, pathSrc)
+    if not os.path.isfile(pathSrc+git_project_name+"/config.yml"):
+      self.getPackagingInstructionsInternal(project, build, build.branchname, lbsproject, git_project_name, pathSrc)
     return pathSrc
 
-  def getPackagingInstructionsInternal(self, project, build, branchname, lbsproject, pathSrc):
+  def getPackagingInstructionsInternal(self, project, build, branchname, lbsproject, git_project_name, pathSrc):
     os.makedirs(pathSrc, exist_ok=True)
 
     needToDownload = True
@@ -198,15 +199,15 @@ class LightBuildServer:
     #we want a clean clone
     #but do not delete the tree if it is being used by another build
     t = None
-    if os.path.isfile(pathSrc+'lbs-'+build.project+'-lastused'):
-      t = os.path.getmtime(pathSrc+'lbs-'+build.project+'-lastused')
+    if os.path.isfile(pathSrc+git_project_name+'-lastused'):
+      t = os.path.getmtime(pathSrc+git_project_name+'-lastused')
       # delete the tree only if it has not been used within the last 3 minutes
       if (time.time() - t) < 3*60:
         needToDownload = False
       # update the timestamp
-      os.utime(pathSrc+'lbs-'+build.project+'-lastused')
+      os.utime(pathSrc+git_project_name+'-lastused')
     else:
-      open(pathSrc+'lbs-'+build.project+'-lastused', 'a').close()
+      open(pathSrc+git_project_name+'-lastused', 'a').close()
 
     headers = {}
     url = None
@@ -218,7 +219,7 @@ class LightBuildServer:
         headers['PRIVATE-TOKEN'] = project.git_private_token
 
     # check if the version we have is still uptodate
-    etagFile = pathSrc+'lbs-'+build.project+'-etag'
+    etagFile = pathSrc+git_project_name+'-etag'
     if needToDownload and os.path.isfile(etagFile):
       with open(etagFile, 'r') as content_file:
         Etag = content_file.read()
@@ -227,14 +228,14 @@ class LightBuildServer:
       if 'Etag' in r.headers and r.headers['Etag'] == '"' + Etag + '"':
          needToDownload = False
 
-    if not needToDownload and os.path.isdir(pathSrc+'lbs-'+build.project):
+    if not needToDownload and os.path.isdir(pathSrc+git_project_name):
       # we can reuse the existing source, it was used just recently, or has not changed on the server
-      self.StorePackageHashes(pathSrc+'lbs-'+build.project, project, branchname)
+      self.StorePackageHashes(pathSrc+git_project_name, project, branchname)
       return
 
     # delete the working tree
-    if os.path.isdir(pathSrc+'lbs-'+build.project):
-      shutil.rmtree(pathSrc+'lbs-'+build.project)
+    if os.path.isdir(pathSrc+git_project_name):
+      shutil.rmtree(pathSrc+git_project_name)
 
     sourceFile = pathSrc + "/" + branchname + ".tar.gz"
     if os.path.isfile(sourceFile):
@@ -257,19 +258,19 @@ class LightBuildServer:
     shell = Shell(Logger())
     if project.git_type == 'github':
       cmd="cd " + pathSrc + ";"
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + build.project + "-" + branchname + " lbs-" + build.project
+      cmd+=f"tar xzf {branchname}.tar.gz; mv {git_project_name}-{branchname} {git_project_name}"
       shell.executeshell(cmd)
     elif project.git_type == 'gitlab':
       cmd="cd " + pathSrc + ";"
-      cmd+="tar xzf " + branchname + ".tar.gz; mv lbs-" + build.project + "-" + branchname + "-* lbs-" + build.project
+      cmd+=f"tar xzf {branchname}.tar.gz; mv {git_project_name}-{branchname}-* {git_project_name}"
       shell.executeshell(cmd)
 
     if os.path.isfile(sourceFile):
       os.remove(sourceFile)
-    if not os.path.isdir(pathSrc+'lbs-'+build.project):
+    if not os.path.isdir(pathSrc+git_project_name):
       raise Exception("Problem with cloning the git repo")
 
-    self.StorePackageHashes(pathSrc+'lbs-'+build.project, project, branchname)
+    self.StorePackageHashes(pathSrc+git_project_name, project, branchname)
 
   def StorePackageHashes(self, projectPathSrc, project, branchname):
     shell = Shell(Logger())

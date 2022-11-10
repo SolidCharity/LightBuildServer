@@ -66,15 +66,15 @@ class BuildHelperCentos(BuildHelper):
     return True
 
   def GetSpecFilename(self):
-    if os.path.isdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
-      for file in os.listdir(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename):
+    if os.path.isdir(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename):
+      for file in os.listdir(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename):
         if file.endswith(".spec") and self.packagename.startswith(file.split('.')[0]):
           return file
     return self.packagename + ".spec"
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
-    configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
+    configfile=self.pathSrc + "/" + self.git_project_name + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       prjconfig = yaml.load(stream)
@@ -123,9 +123,9 @@ class BuildHelperCentos(BuildHelper):
 
   def InstallRequiredPackages(self):
     # now install required packages
-    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
-      remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
+      remoteSpecName = self.git_project_name + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run("sed -e 's/Release:.*%{release}/Release: 0/g' " + remoteSpecName + " > /tmp/" + self.packagename + ".spec")
       if self.dist == "centos" and self.release == "5":
         # we cannot use yum-builddep because it requires a SRPM. need to use a setup.sh script instead
@@ -145,16 +145,16 @@ class BuildHelperCentos(BuildHelper):
     if self.project.secret:
       myPath = self.username + "/" + self.project.secret + "/" + self.projectname
     repopath = settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.release
-    specfile = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetSpecFilename()
     if os.path.isfile(specfile):
-      remoteSpecName="lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".spec"
+      remoteSpecName = self.git_project_name + "/" + self.packagename + "/" + self.packagename + ".spec"
       self.run('sed -i "s/0%{?suse_version}/' + str(self.suse_version) + '/g" ' + remoteSpecName)
       #self.run('sed -i "s/0%{?rhel}/' + str(self.rhel) + '/g" ' + remoteSpecName)
       #self.run('sed -i "s/0%{?fedora}/' + str(self.fedora) + '/g" ' + remoteSpecName)
       self.run("cp " + remoteSpecName + " rpmbuild/SPECS")
 
       # copy patches, and other files (eg. env.sh for mono-opt)
-      self.run("cp lbs-" + self.projectname + "/" + self.packagename + "/* rpmbuild/SOURCES")
+      self.run("cp " + self.git_project_name + "/" + self.packagename + "/* rpmbuild/SOURCES")
 
       # move the sources that have been downloaded according to instructions in config.yml. see BuildHelper::DownloadSources
       self.run("mv sources/* rpmbuild/SOURCES")
@@ -355,7 +355,7 @@ class BuildHelperCentos(BuildHelper):
     return condition
 
   def GetDependanciesAndProvides(self):
-    specfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetSpecFilename()
+    specfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetSpecFilename()
     builddepends=[]
     deliverables={}
     if os.path.isfile(specfile):

@@ -57,7 +57,7 @@ class BuildHelperDebian(BuildHelper):
 
   def GetDscFilename(self):
     filename = self.packagename + ".dsc"
-    path = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename
+    path = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename
     if os.path.isdir(path):
       for file in os.listdir(path):
         if file.endswith(".dsc") and self.packagename.lower().startswith(file.lower().split('.')[0]):
@@ -75,7 +75,7 @@ class BuildHelperDebian(BuildHelper):
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
-    configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
+    configfile=self.pathSrc + "/" + self.git_project_name + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
       prjconfig = yaml.load(stream)
@@ -110,13 +110,13 @@ class BuildHelperDebian(BuildHelper):
 
   def InstallRequiredPackages(self):
     # now install required packages
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None
     # force-yes for packages from our own repository, they are not signed at the moment
     aptInstallFlags="--force-yes "
     nextLineBuildDepends=False
     if os.path.isfile(dscfile):
-      self.run("cp -R lbs-" + self.projectname + "/" + self.packagename + "/* /tmp");
+      self.run("cp -R " + self.git_project_name + "/" + self.packagename + "/* /tmp");
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/" + self.GetDscFilename())
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/control")
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/changelog")
@@ -127,19 +127,19 @@ class BuildHelperDebian(BuildHelper):
 
   def BuildPackage(self):
     DownloadUrl = settings.DOWNLOAD_URL
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
-      pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
+      pathPackageSrc="/root/" + self.git_project_name + "/" + self.packagename
 
       # if debian.tar.gz exists, assume the sources come from OBS
-      if os.path.isfile(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian.tar.gz"):
+      if os.path.isfile(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/debian.tar.gz"):
         self.run("cd " + pathPackageSrc + " && mkdir -p debian && tar xzf debian.tar.gz && rm debian.tar.gz");
         self.run("cd " + pathPackageSrc + " && (for f in debian.*; do mv \$f debian/\${f:7}; done)")
         # make sure that we only have lowercase letters in the dsc filename
         self.run("cd " + pathPackageSrc + " && (for f in *.dsc; do mv \$f \${f,,}; done)")
 
       # if *debian.tar.xz exists, the files might come from Debian Launchpad
-      if len(glob.glob(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/*debian.tar.xz")) > 0:
+      if len(glob.glob(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/*debian.tar.xz")) > 0:
         self.run("cd " + pathPackageSrc + " && tar xf *debian.tar.xz && rm *debian.tar.xz");
 
       # unpack the sources
@@ -153,7 +153,7 @@ class BuildHelperDebian(BuildHelper):
       self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tgz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
-      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; mv \$dir/.* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
+      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* " + self.git_project_name + "/" + self.packagename + "; mv \$dir/.* " + self.git_project_name + "/" + self.packagename + "; fi; done")
       self.run("rm -Rf tmpSource")
 
       # read version from dsc file, that is on the build server
@@ -194,10 +194,10 @@ class BuildHelperDebian(BuildHelper):
               # ignore errors if the package version contains more than 0.1.0-0
               # avoiding ValueError: invalid literal for int() with base 10
               oldnumber=0
-      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc")
-      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/debian/changelog")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/" + self.packagename + ".dsc")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/debian/changelog")
 
-      if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
+      if not self.run("cd " + self.git_project_name + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
         return False
 
       # import the private key for signing the package if the file privateLBSkey exists
@@ -207,15 +207,15 @@ class BuildHelperDebian(BuildHelper):
       if os.path.isfile(privateLBSkey_filename):
         if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf && sed -i -e 's/bionic/" + self.release + "/g' repo/conf/distributions"):
           return False
-        if not self.run("cd lbs-" + self.projectname + "; dpkg-sig --sign builder *.deb"):
+        if not self.run("cd " + self.git_project_name + "; dpkg-sig --sign builder *.deb"):
           return False
-        if not self.run("cd repo; for f in ~/lbs-" + self.projectname + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/lbs-" + self.projectname + "/\`basename \$f\`; done"):
+        if not self.run("cd repo; for f in ~/" + self.git_project_name + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/" + self.git_project_name + "/\`basename \$f\`; done"):
           return False
         self.run("rm -Rf repo/conf")
       else:
         # add result to repo
         self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
-        self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
+        self.run("cp " + self.git_project_name + "/*.deb repo/" + self.container.arch + "/binary")
       if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
         return False
 
@@ -260,7 +260,7 @@ class BuildHelperDebian(BuildHelper):
     return result
 
   def GetDependanciesAndProvides(self):
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     builddepends=[]
     deliverables={}
     if os.path.isfile(dscfile):
@@ -284,7 +284,7 @@ class BuildHelperDebian(BuildHelper):
                 if len(word.strip()) > 0:
                   builddepends.append(word.split()[0])
 
-    controlfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
+    controlfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/debian/control"
     recentpackagename=self.packagename
     nextLineDepends=False
     if os.path.isfile(controlfile):
