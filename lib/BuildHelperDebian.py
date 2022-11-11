@@ -102,7 +102,7 @@ class BuildHelperDebian(BuildHelper):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
     if self.project.public_key_id:
-      if not self.run("mkdir -p /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
+      if not self.run(f"mkdir -p /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
         return False
 
     # update the repository information
