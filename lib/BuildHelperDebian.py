@@ -48,7 +48,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2 dirmngr"):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
@@ -87,7 +87,7 @@ class BuildHelperDebian(BuildHelper):
         if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
           keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run(f"gpg --no-default-keyring --keyring /usr/share/keyrings/lbs-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {key}"):
+            if not self.run(f"mkdir -p /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/lbs-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {key}"):
               return False
 
     # install own repo as well if it exists
@@ -102,10 +102,12 @@ class BuildHelperDebian(BuildHelper):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
     if self.project.public_key_id:
-      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}")
+      if not self.run("mkdir -p /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
+        return False
 
     # update the repository information
-    self.run("apt-get update")
+    if not self.run("apt-get update"):
+        return False
     return True
 
   def InstallRequiredPackages(self):
