@@ -97,7 +97,7 @@ class BuildHelperDebian(BuildHelper):
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
     if 'PublicKey' in self.config['lbs']['Users'][self.username]['Projects'][self.projectname]:
       key = self.config['lbs']['Users'][self.username]['Projects'][self.projectname]['PublicKey']
-      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}")
+      self.run(f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{self.config['lbs']['PublicKeyServer']}:80 --recv-keys {key}")
 
     # update the repository information
     self.run("apt-get update")
