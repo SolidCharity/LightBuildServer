@@ -77,7 +77,7 @@ class BuildHelperCentos(BuildHelper):
     configfile=self.pathSrc + "/" + self.git_project_name + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
-      prjconfig = yaml.load(stream)
+      prjconfig = yaml.load(stream, Loader=yaml.Loader)
       if self.dist in prjconfig['lbs'] and str(self.release) in prjconfig['lbs'][self.dist]:
         repos = prjconfig['lbs'][self.dist][str(self.release)]['repos']
         for repo in repos:

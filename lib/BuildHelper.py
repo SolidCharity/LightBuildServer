@@ -72,7 +72,7 @@ class BuildHelper:
     file = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
-      pkgconfig = yaml.load(stream)
+      pkgconfig = yaml.load(stream, Loader=yaml.Loader)
       for url in pkgconfig['lbs']['source']['download']:
         filename="`basename " + url + "`"
         if isinstance(pkgconfig['lbs']['source']['download'], dict):
