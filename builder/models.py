@@ -38,3 +38,4 @@ class Log(models.Model):
 
     class Meta:
         db_table = "lbs_log"
+        ordering = ("id",)
