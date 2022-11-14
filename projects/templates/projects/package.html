@@ -41,7 +41,7 @@
     {% endif %}
     {% endwith %}
     {% endfor %}
-
+    </ul></li>
 
     {% for key, value in repoinstructions_per_buildtarget.items %}
     {% if key == buildtarget %}
@@ -66,8 +66,6 @@
     </li>
     {% endif %}
     {% endfor %}
-
-    </ul></li>
   </ul>
   {% endfor %}
   {% endfor %}
