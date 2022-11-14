@@ -502,3 +502,27 @@ class LightBuildServer:
             str(int(duration_in_seconds/60)%60).zfill(2) + ":" + \
             str(duration_in_seconds%60).zfill(2)
       return builds
+
+  def GetAllInstructions(self, package):
+
+    repoInstructions = {}
+    srcInstructions = {}
+    winInstructions = {}
+
+    for buildtarget in package.get_buildtargets():
+        tmpBuild = Build(user=package.project.user, project=package.project.name, package=package.name, branchname=None, \
+            distro=buildtarget.split("/")[0], release=None, arch=None)
+        buildHelper = BuildHelperFactory.GetBuildHelper(buildtarget.split("/")[0], None, tmpBuild)
+
+        if package.windows_installer:
+            for branchname in package["Branches"]:
+                winInstructions[branchname] = buildHelper.GetWinInstructions(settings.DOWNLOAD_URL, buildtarget, branchname)
+        else:
+            data = buildHelper.GetRepoInstructions(settings.DOWNLOAD_URL, buildtarget)
+            if data:
+                repoInstructions[buildtarget] = data
+            data = buildHelper.GetSrcInstructions(settings.DOWNLOAD_URL, buildtarget)
+            if data:
+                srcInstructions[buildtarget] = data
+
+    return (repoInstructions, srcInstructions, winInstructions)
