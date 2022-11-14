@@ -59,15 +59,9 @@ class DockerContainer(RemoteContainer):
     if self.distro == "fedora":
       if self.release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        self.release_for_docker = "31"
+        self.release_for_docker = "36"
     if self.distro == "debian":
-      if self.release == 'wheezy':
-        self.release_for_docker = "7"
-      elif self.release == 'jessie':
-        self.release_for_docker = "8"
-      elif self.release == 'stretch':
-        self.release_for_docker = "9"
-      elif self.release == 'buster':
+      if self.release == 'buster':
         self.release_for_docker = "10"
       elif self.release == 'bullseye':
         self.release_for_docker = "11"
@@ -76,14 +70,8 @@ class DockerContainer(RemoteContainer):
         self.release_for_docker = "22.04"
       if self.release == 'focal':
         self.release_for_docker = "20.04"
-      if self.release == 'eoan':
-        self.release_for_docker = "19.10"
       if self.release == 'bionic':
         self.release_for_docker = "18.04"
-      if self.release == 'xenial':
-        self.release_for_docker = "16.04"
-      if self.release == 'trusty':
-        self.release_for_docker = "14.04"
 
     return True
 
