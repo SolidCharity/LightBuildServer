@@ -61,6 +61,7 @@ def viewlog(request, user, project, package, branchname, distro, release, arch, 
         filter(distro=distro).filter(release=release).filter(arch=arch).filter(number=buildnumber).first()
 
     project = Project.objects.filter(user=build.user, name=build.project).first()
+    package = Package.objects.filter(project=project, name=package).first()
 
     # is the correct user logged in? or the admin?
     if not project.visible and not request.user.is_staff:
@@ -72,14 +73,15 @@ def viewlog(request, user, project, package, branchname, distro, release, arch, 
     return render(request, "builder/log.html",
         { 'buildresult': content,
          'timeoutInSeconds': -1,
-         'build_descr': f"{build.user.username}/{build.project}/{build.package}/{build.branchname}",
-         'package_link': f"/projects/{build.user.username}/{build.project}/package/{build.package}/#{build.branchname}_{build.distro}/{build.release}/{build.arch}",
+         'package': package,
+         'build': build,
         })
 
 def livelog(request, user, project, package, branchname, distro, release, arch, buildid):
     build = Build.objects.get(pk=buildid)
 
     project = Project.objects.get(user=build.user, name=build.project)
+    package = Package.objects.filter(project=project, name=package).first()
 
     # is the correct user logged in? or the admin?
     if not project.visible and not request.user.is_staff:
@@ -92,6 +94,6 @@ def livelog(request, user, project, package, branchname, distro, release, arch, 
     return render(request, "builder/log.html",
         { 'buildresult': content,
          'timeoutInSeconds': timeout,
-         'build_descr': f"{build.user.username}/{build.project}/{build.package}/{build.branchname}",
-         'package_link': f"/projects/{build.user.username}/{build.project}/package/{build.package}/#{build.branchname}_{build.distro}/{build.release}/{build.arch}",
+         'package': package,
+         'build': build,
         })
