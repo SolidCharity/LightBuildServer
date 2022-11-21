@@ -86,12 +86,12 @@ class Command(BaseCommand):
         self.create_user("basx", "basx@example.org")
 
         # create some projects and packages
-        self.create_project("solidcharity", "openpetra", "https://github.com/solidcharity/", "master", visible=True)
+        self.create_project("solidcharity", "openpetra", "https://github.com/solidcharity/lbs-openpetra", "master", visible=True)
         self.create_package("solidcharity", "openpetra", "manual", ("debian/bullseye/amd64",), ("master",))
 
-        self.create_project("basx", "basxconnect", "https://github.com/basxsoftwareassociation/", "main", visible=False)
+        self.create_project("basx", "basxconnect", "https://github.com/basxsoftwareassociation/lbs-basxconnect", "main", visible=False)
 
-        self.create_project("tpokorra", "test", "https://github.com/tpokorra/", "master", visible=False)
+        self.create_project("tpokorra", "test", "https://github.com/tpokorra/lbs-test", "master", visible=False)
         self.create_package("tpokorra", "test", "test", ("centos/9-Stream/amd64", "debian/bullseye/amd64",), ("master",))
 
-        self.create_project("tpokorra", "lbs", "https://github.com/tpokorra/", "master", visible=True)
+        self.create_project("tpokorra", "lbs", "https://github.com/tpokorra/lbs-lbs", "master", visible=True)

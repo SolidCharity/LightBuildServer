@@ -27,15 +27,10 @@
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
           <li {% block navbar_projects %}{% endblock %}><a href="/projects">Projects</a></li>
-          {% comment %} ------------------------------------------------- TODO: Django-ify
-          {% if page == "package" %}
-            li class="active"><a href="/package/{{username}}/{{projectname}}/{{packagename}}
-               % if defined("buildtarget") and defined("branchname"):
-#{{branchname}}_{{buildtarget}}
-               % end
-">Package {{username}}:{{projectname}}:{{packagename}}</a></li>-->
+          {% if package %}
+            <li class="active"><a href="/projects/{{package.project.user.get_username}}/{{package.project.name}}/package/{{package.name}}{% if build %}#{{build.branchname}}_{{build.distro}}/{{build.release}}/{{build.arch}}{% endif %}">Package {{package.project.user.get_username}}:{{package.project.name}}:{{package.name}}</a>
+            </li>
           {% endif %}
-          {% endcomment %}
           <li {% block navbar_machines %}{% endblock %}><a href="/machines">Machines</a></li>
           <li><a href="http://www.lightbuildserver.org" target="_blank">About</a></li>
         </ul>

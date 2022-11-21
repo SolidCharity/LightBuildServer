@@ -9,7 +9,7 @@
 <h2>Details of Package {{package.project.user.get_username}}:{{package.project.name}}:{{package.name}}</h2>
 
 <ul>
-  <li><a href="{{package.project.git_url}}/lbs-{{package.project.name}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
+  <li><a href="{{package.project.git_url}}/tree/{{package.project.git_branch}}/{{package.name}}" target="_blank">Project sources</a></li>
 
   {% for branchname in package.get_branches %}
   {% for buildtarget in package.get_buildtargets %}
@@ -33,7 +33,7 @@
     {% if key == filter_key %}
     {% for build in value %}
     <li class="{{build.buildsuccess}}">
-        <a href="/logs/{{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}/{{build.distro}}/{{build.release}}/{{build.arch}}/{{build.id}}">log of build {{build.id}}</a> {{build.finished|date:'Y-m-d H:i:s'}}
+        <a href="/logs/{{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}/{{build.distro}}/{{build.release}}/{{build.arch}}/{{build.number}}">log of build {{build.number}}</a> {{build.finished|date:'Y-m-d H:i:s'}}
         &nbsp;
         {% if build.buildsuccess == "success" %}Succeeded{%else%}Failure{%endif%}
     </li>
@@ -42,28 +42,33 @@
     {% endwith %}
     {% endfor %}
     </ul></li>
+
+    {% for key, value in repoinstructions_per_buildtarget.items %}
+    {% if key == buildtarget %}
+    <li>Installation instructions:
+        <pre>{{value}}</pre>
+    </li>
+    {% endif %}
+    {% endfor %}
+
+    {% for key, value in srcinstructions_per_buildtarget.items %}
+    {% if key == buildtarget %}
+    <li>Download Source package:
+        <a href="{{value_0}}">{{value_1}}</a>
+    </li>
+    {% endif %}
+    {% endfor %}
+
+    {% for key, value in wininstructions_per_branchname.items %}
+    {% if key == branchname %}
+    <li>Download Windows Installer:
+        <a href="{{value_0}}">{{value_1}}</a>
+    </li>
+    {% endif %}
+    {% endfor %}
   </ul>
   {% endfor %}
   {% endfor %}
-
-
-  {% comment %}
-      % if buildtarget in package['repoinstructions'] and package['repoinstructions'][buildtarget] is not None:
-        <li>Installation instructions:
-        <pre>{{package['repoinstructions'][buildtarget]}}</pre>
-        </li>
-      % end
-      % if buildtarget in package['srcinstructions'] and package['srcinstructions'][buildtarget] is not None:
-        <li>Download Source package:
-        <a href="{{package['srcinstructions'][buildtarget][0]}}">{{package['srcinstructions'][buildtarget][1]}}</a>
-        </li>
-      % end
-      % if branchname in package['wininstructions'] and package['wininstructions'][branchname] is not None:
-        <li>Download Windows Installer:
-        <a href="{{package['wininstructions'][branchname][0]}}">{{package['wininstructions'][branchname][1]}}</a>
-        </li>
-      % end
-  {% endcomment %}
 </ul>
 
 

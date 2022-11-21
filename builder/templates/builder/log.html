@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Build Result for {{build_descr}}{% endblock %}
+{% block title %}Build Result for {{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}{% endblock %}
 
 {% block navbar_machines %}class="active"{% endblock %}
 
@@ -16,7 +16,7 @@ timedRefresh({{timeoutInSeconds}}*1000);
 </script>
     <div class="container">
       <div class="row">
-        <h2>Build Result for {{build_descr}}</h2>
+        <h2>Build Result for {{build.user.username}}/{{build.project}}/{{build.package}}/{{build.branchname}}</h2>
         {% if not timeoutInSeconds > 0 %}
             <a href="#bottom">go to bottom of this page</a>
         {% endif %}

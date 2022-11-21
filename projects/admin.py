@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django import forms
 
 from .models import Project, Package, Distro, Branch, ProjectFile
 
@@ -30,8 +31,13 @@ class ProjectAdmin(admin.ModelAdmin):
         None
 
 
+class ProjectFileAdminForm(forms.ModelForm):
+    content = forms.CharField(widget=forms.Textarea(), strip=False)
+
+
 class ProjectFileAdmin(admin.ModelAdmin):
     list_display = ['project', 'filename']
+    form = ProjectFileAdminForm
 
 
 class PackageAdmin(admin.ModelAdmin):

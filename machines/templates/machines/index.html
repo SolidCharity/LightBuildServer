@@ -60,8 +60,8 @@
                     <a href="/projects/{{job.user.username}}/{{job.project}}/package/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}">
                         {{job.user.username}}/{{job.project}}/{{job.package}}#{{job.branchname}}_{{job.distro}}/{{job.release}}/{{job.arch}}</a>
                 </td>
-                <td><a href="/logs/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branchname}}/{{job.distro}}/{{job.release}}/{{job.arch}}/{{job.id}}">
-                    build {{job.id}}</a></td>
+                <td><a href="/logs/{{job.user.username}}/{{job.project}}/{{job.package}}/{{job.branchname}}/{{job.distro}}/{{job.release}}/{{job.arch}}/{{job.number}}">
+                    build {{job.number}}</a></td>
                 <td>
                 <code class="{{job.buildsuccess}}">
                     {% if job.buildsuccess == "success" %}Succeeded{% else %}Failure{% endif %}

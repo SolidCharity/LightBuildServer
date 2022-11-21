@@ -24,6 +24,8 @@ from collections import deque
 
 from django.conf import settings
 
+from projects.models import Project
+
 class BuildHelper:
   'abstract base class for BuildHelper implementations for the various Linux Distributions'
 
@@ -42,6 +44,8 @@ class BuildHelper:
     self.packagename = build.package
     self.branchname = build.branchname
     self.pathSrc = settings.GIT_SRC_PATH+"/"+self.username
+    self.project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
+    self.git_project_name = self.project.git_url.strip('/').split('/')[-1]
 
   def log(self, message):
     if self.container is not None:
@@ -65,10 +69,10 @@ class BuildHelper:
   def DownloadSources(self):
     # parse config.yml file and download the sources
     # unpacking and moving to the right place depends on the distro
-    file = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/config.yml"
+    file = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/config.yml"
     if os.path.isfile(file):
       stream = open(file, 'r')
-      pkgconfig = yaml.load(stream)
+      pkgconfig = yaml.load(stream, Loader=yaml.Loader)
       for url in pkgconfig['lbs']['source']['download']:
         filename="`basename " + url + "`"
         if isinstance(pkgconfig['lbs']['source']['download'], dict):
@@ -92,7 +96,7 @@ class BuildHelper:
     return True
 
   def SetupEnvironment(self, branchname):
-    path="lbs-" + self.projectname + "/" + self.packagename
+    path = self.git_project_name + "/" + self.packagename
     if not os.path.isdir(self.pathSrc + "/" + path):
       self.log("cannot find path " + path)
       return False

@@ -40,6 +40,7 @@ class Project(models.Model):
         return sorted(targets)
 
     class Meta:
+        db_table = "lbs_project"
         ordering = ("name",)
 
 
@@ -77,6 +78,7 @@ class Package(models.Model):
         return sorted(branches)
 
     class Meta:
+        db_table = "lbs_package"
         ordering = ("name",)
 
 
@@ -89,16 +91,24 @@ class PackageBuildStatus(models.Model):
 
     dirty = models.BooleanField(default = False)
 
+    class Meta:
+        db_table = "lbs_package_build_status"
+
 
 class PackageSrcHash(models.Model):
     package = models.ForeignKey(Package, on_delete=models.CASCADE)
     branchname = models.CharField(max_length=250)
     sourcehash = models.CharField(max_length=250)
 
+    class Meta:
+        db_table = "lbs_package_src_hash"
 
 class PackageDependancy(models.Model):
     dependantpackage = models.ForeignKey(Package, related_name='dependantpackage', on_delete=models.PROTECT)
     requiredpackage = models.ForeignKey(Package, related_name='requiredpackage', on_delete=models.PROTECT)
+
+    class Meta:
+        db_table = "lbs_package_dependancy"
 
 
 class Distro(models.Model):
@@ -109,6 +119,7 @@ class Distro(models.Model):
         return self.name
     
     class Meta:
+        db_table = "lbs_distro"
         ordering = ("name",)
 
 
@@ -120,6 +131,7 @@ class Branch(models.Model):
         return self.name
 
     class Meta:
+        db_table = "lbs_branch"
         ordering = ("name",)
         verbose_name_plural = "branches"
 
@@ -133,6 +145,7 @@ class ProjectFile(models.Model):
         return self.filename
 
     class Meta:
+        db_table = "lbs_project_file"
         ordering = ("project", "filename",)
 
     def changeform_link(self):

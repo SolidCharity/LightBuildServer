@@ -48,7 +48,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2 dirmngr"):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
@@ -57,7 +57,7 @@ class BuildHelperDebian(BuildHelper):
 
   def GetDscFilename(self):
     filename = self.packagename + ".dsc"
-    path = self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename
+    path = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename
     if os.path.isdir(path):
       for file in os.listdir(path):
         if file.endswith(".dsc") and self.packagename.lower().startswith(file.lower().split('.')[0]):
@@ -75,10 +75,10 @@ class BuildHelperDebian(BuildHelper):
 
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
-    configfile=self.pathSrc + "/lbs-" + self.projectname + "/config.yml"
+    configfile=self.pathSrc + "/" + self.git_project_name + "/config.yml"
     if os.path.isfile(configfile):
       stream = open(configfile, 'r')
-      prjconfig = yaml.load(stream)
+      prjconfig = yaml.load(stream, Loader=yaml.Loader)
       if self.dist in prjconfig['lbs'] and self.container.release in prjconfig['lbs'][self.dist]:
         repos = prjconfig['lbs']['debian'][self.container.release]['repos']
         for repo in repos:
@@ -87,7 +87,7 @@ class BuildHelperDebian(BuildHelper):
         if 'keys' in prjconfig['lbs'][self.dist][str(self.release)]:
           keys = prjconfig['lbs'][self.dist][str(self.release)]['keys']
           for key in keys:
-            if not self.run(f"gpg --no-default-keyring --keyring /usr/share/keyrings/lbs-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {key}"):
+            if not self.run(f"mkdir -p /root/.gnupg && chmod 700 /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/lbs-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {key}"):
               return False
 
     # install own repo as well if it exists
@@ -101,23 +101,24 @@ class BuildHelperDebian(BuildHelper):
     if os.path.isfile(repofile):
       repopath=DownloadUrl + "/repos/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + self.container.release
       self.run(f"cd /etc/apt/sources.list.d/; echo 'deb [signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {repopath} {self.container.release} main' > lbs-{self.username}-{self.projectname}.list")
-      project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
-    if project.public_key_id:
-      self.run("gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {project.public_key_id}")
+    if self.project.public_key_id:
+      if not self.run(f"mkdir -p /root/.gnupg && chmod 700 /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
+        return False
 
     # update the repository information
-    self.run("apt-get update")
+    if not self.run("apt-get update"):
+        return False
     return True
 
   def InstallRequiredPackages(self):
     # now install required packages
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     packages=None
     # force-yes for packages from our own repository, they are not signed at the moment
     aptInstallFlags="--force-yes "
     nextLineBuildDepends=False
     if os.path.isfile(dscfile):
-      self.run("cp -R lbs-" + self.projectname + "/" + self.packagename + "/* /tmp");
+      self.run("cp -R " + self.git_project_name + "/" + self.packagename + "/* /tmp");
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/" + self.GetDscFilename())
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/control")
       self.run("sed -i 's/%{release}/0/g' " + "/tmp/debian/changelog")
@@ -127,21 +128,20 @@ class BuildHelperDebian(BuildHelper):
     return True
 
   def BuildPackage(self):
-    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
     DownloadUrl = settings.DOWNLOAD_URL
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     if os.path.isfile(dscfile):
-      pathPackageSrc="/root/lbs-" + self.projectname + "/" + self.packagename
+      pathPackageSrc="/root/" + self.git_project_name + "/" + self.packagename
 
       # if debian.tar.gz exists, assume the sources come from OBS
-      if os.path.isfile(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian.tar.gz"):
+      if os.path.isfile(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/debian.tar.gz"):
         self.run("cd " + pathPackageSrc + " && mkdir -p debian && tar xzf debian.tar.gz && rm debian.tar.gz");
         self.run("cd " + pathPackageSrc + " && (for f in debian.*; do mv \$f debian/\${f:7}; done)")
         # make sure that we only have lowercase letters in the dsc filename
         self.run("cd " + pathPackageSrc + " && (for f in *.dsc; do mv \$f \${f,,}; done)")
 
       # if *debian.tar.xz exists, the files might come from Debian Launchpad
-      if len(glob.glob(self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/*debian.tar.xz")) > 0:
+      if len(glob.glob(self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/*debian.tar.xz")) > 0:
         self.run("cd " + pathPackageSrc + " && tar xf *debian.tar.xz && rm *debian.tar.xz");
 
       # unpack the sources
@@ -155,7 +155,7 @@ class BuildHelperDebian(BuildHelper):
       self.run("for file in /root/sources/*.tar.gz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tgz; do if [ -f \$file ]; then cd tmpSource && tar xzf \$file;rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
       self.run("for file in /root/sources/*.tar.bz2; do if [ -f \$file ]; then cd tmpSource && tar xjf \$file; rm " + pathPackageSrc + "/\`basename \$file\`; fi; done")
-      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* lbs-" + self.projectname + "/" + self.packagename + "; mv \$dir/.* lbs-" + self.projectname + "/" + self.packagename + "; fi; done")
+      self.run("for dir in tmpSource/*; do if [ -d \$dir ]; then mv \$dir/* " + self.git_project_name + "/" + self.packagename + "; mv \$dir/.* " + self.git_project_name + "/" + self.packagename + "; fi; done")
       self.run("rm -Rf tmpSource")
 
       # read version from dsc file, that is on the build server
@@ -177,8 +177,8 @@ class BuildHelperDebian(BuildHelper):
 
       debfiles=[]
       myPath = self.username + "/" + self.projectname
-      if project.secret:
-        myPath = self.username + "/" + project.secret + "/" + self.projectname
+      if self.project.secret:
+        myPath = self.username + "/" + self.project.secret + "/" + self.projectname
       repopath=settings.REPOS_PATH + "/" + myPath + "/" + self.dist + "/" + self.container.release + "/"
       binarypath = repopath + "/" + arch + "/binary"
       if not os.path.isdir(binarypath):
@@ -196,10 +196,10 @@ class BuildHelperDebian(BuildHelper):
               # ignore errors if the package version contains more than 0.1.0-0
               # avoiding ValueError: invalid literal for int() with base 10
               oldnumber=0
-      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/" + self.packagename + ".dsc")
-      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' lbs-" + self.projectname + "/" + self.packagename + "/debian/changelog")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/" + self.packagename + ".dsc")
+      self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/debian/changelog")
 
-      if not self.run("cd lbs-" + self.projectname + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
+      if not self.run("cd " + self.git_project_name + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
         return False
 
       # import the private key for signing the package if the file privateLBSkey exists
@@ -209,15 +209,15 @@ class BuildHelperDebian(BuildHelper):
       if os.path.isfile(privateLBSkey_filename):
         if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf && sed -i -e 's/bionic/" + self.release + "/g' repo/conf/distributions"):
           return False
-        if not self.run("cd lbs-" + self.projectname + "; dpkg-sig --sign builder *.deb"):
+        if not self.run("cd " + self.git_project_name + "; dpkg-sig --sign builder *.deb"):
           return False
-        if not self.run("cd repo; for f in ~/lbs-" + self.projectname + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/lbs-" + self.projectname + "/\`basename \$f\`; done"):
+        if not self.run("cd repo; for f in ~/" + self.git_project_name + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/" + self.git_project_name + "/\`basename \$f\`; done"):
           return False
         self.run("rm -Rf repo/conf")
       else:
         # add result to repo
         self.run("mkdir -p ~/repo/" + self.container.arch + "/binary")
-        self.run("cp lbs-" + self.projectname + "/*.deb repo/" + self.container.arch + "/binary")
+        self.run("cp " + self.git_project_name + "/*.deb repo/" + self.container.arch + "/binary")
       if not self.run("cd repo && dpkg-scanpackages -m . /dev/null | gzip -9c > Packages.gz"):
         return False
 
@@ -230,15 +230,14 @@ class BuildHelperDebian(BuildHelper):
     buildtarget = buildtarget.split("/")
 
     keyinstructions = ""
-    project = Project.objects.filter(user__username=self.username).filter(name=self.projectname).first()
 
     # check if there is such a package at all
     checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
     if glob.glob(checkfile):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
-      if project.public_key_id:
-        keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {project.public_key_id}\n"
+      if self.project.public_key_id:
+        keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}\n"
     else:
       checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
       if glob.glob(checkfile):
@@ -253,8 +252,8 @@ class BuildHelperDebian(BuildHelper):
       result += f"echo 'deb [arch={buildtarget[2]} signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {DownloadUrl}/repos/{self.username}/"
     else:
       result += f"echo 'deb [arch={buildtarget[2]}] {DownloadUrl}/repos/{self.username}/"
-    if project.secret:
-        result += project.secret + "/"
+    if self.project.secret:
+        result += self.project.secret + "/"
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> " + f"/etc/apt/sources.list.d/{self.username}-{self.projectname}.list\n"
     result += "apt update\n"
     # packagename: name of dsc file, without .dsc at the end
@@ -263,7 +262,7 @@ class BuildHelperDebian(BuildHelper):
     return result
 
   def GetDependanciesAndProvides(self):
-    dscfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/" + self.GetDscFilename()
+    dscfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/" + self.GetDscFilename()
     builddepends=[]
     deliverables={}
     if os.path.isfile(dscfile):
@@ -287,7 +286,7 @@ class BuildHelperDebian(BuildHelper):
                 if len(word.strip()) > 0:
                   builddepends.append(word.split()[0])
 
-    controlfile=self.pathSrc + "/lbs-" + self.projectname + "/" + self.packagename + "/debian/control"
+    controlfile=self.pathSrc + "/" + self.git_project_name + "/" + self.packagename + "/debian/control"
     recentpackagename=self.packagename
     nextLineDepends=False
     if os.path.isfile(controlfile):

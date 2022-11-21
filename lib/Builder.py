@@ -151,7 +151,8 @@ class Builder:
           raise Exception("Problem with PrepareForBuilding")
 
         # copy the repo to the container
-        self.container.rsyncContainerPut(pathSrc+'lbs-'+build.project, "/root/lbs-"+build.project)
+        git_project_name = project.git_url.strip('/').split('/')[-1]
+        self.container.rsyncContainerPut(pathSrc+git_project_name, "/root/"+git_project_name)
 
         # copy the keys and other files to the container into the /root/.ssh directory
         SSHContainerPath = os.path.join(settings.SSH_TMP_PATH, build.user.username, build.project)
@@ -200,11 +201,14 @@ class Builder:
     self.logger.print(" * Starting at " + strftime("%Y-%m-%d %H:%M:%S GMT%z"))
     self.logger.print(" * Preparing the machine...")
 
+    project = Project.objects.filter(user = build.user, name=build.project).first()
+    git_project_name = project.git_url.strip('/').split('/')[-1]
+
     # get the sources of the packaging instructions
     gotPackagingInstructions = False
     try:
       pathSrc=self.LBS.getPackagingInstructions(build)
-      packageSrcPath=pathSrc + '/lbs-' + build.project + '/' + build.package
+      packageSrcPath=pathSrc + '/' + git_project_name + '/' + build.package
       gotPackagingInstructions = True
     except Exception as e:
       self.logger.print("LBSERROR: "+str(e)+ "; for more details see the server log")
@@ -232,7 +236,7 @@ class Builder:
       self.LBS.ReleaseMachine(build.buildmachine, jobFailed)
     self.finished = True
     logpath=self.logger.getLogPath(build)
-    buildnumber=self.logger.store(settings.DELETE_LOG_AFTER_DAYS, settings.KEEP_MINIMUM_LOGS, logpath)
+    build.number=self.logger.store(settings.DELETE_LOG_AFTER_DAYS, settings.KEEP_MINIMUM_LOGS, logpath)
     if self.logger.hasLBSERROR() or settings.SEND_EMAIL_ON_SUCCESS:
       if settings.EMAIL_FROM_ADDRESS == 'lbs@example.org':
         self.logger.print("Please configure the email settings for sending notification emails")
@@ -240,7 +244,7 @@ class Builder:
         try:
           self.logger.email(settings.EMAIL_FROM_ADDRESS, build.user.email, \
             "LBS Result for " + build.project + "/" + build.package, \
-            settings.LBS_URL + "/logs/" + logpath + "/" + str(buildnumber))
+            settings.LBS_URL + "/logs/" + logpath + "/" + str(build.number))
         except Exception as e:
           self.logger.print("ERROR: we could not send the email")
           traceback.print_exc()

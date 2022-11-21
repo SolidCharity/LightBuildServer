@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.contrib.auth.models import User
 
 from lib.Logger import Logger
+from lib.LightBuildServer import LightBuildServer
 
 from .models import Project, Package
 
@@ -57,10 +58,15 @@ def view_package(request, user, project, package):
 
     logger = Logger()
     builds_per_target_and_branch = logger.getBuildsOfPackage(package)
+    lbs = LightBuildServer()
+    (repoInstructions, srcInstructions, winInstructions) = lbs.GetAllInstructions(package)
 
     template_name = "projects/package.html"
     return render(request, template_name,
             {
              'package': package,
              'builds_per_target_and_branch': builds_per_target_and_branch,
+             'repoinstructions_per_buildtarget': repoInstructions,
+             'srcinstructions_per_buildtarget': srcInstructions,
+             'wininstructions_per_branchname': winInstructions,
             })
