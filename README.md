@@ -32,6 +32,19 @@ The generated packages are delivered from the server directly, via apt or yum re
 
 We are using LXC/LXD/Docker to build the packages or run the CI scripts.
 
+See in action
+-------------
+
+You can see a LightBuildServer in action at https://lbs.solidcharity.com. 
+
+You can see:
+* the logs of the public builds: https://lbs.solidcharity.com/machines/
+* you can install a Debian package: https://lbs.solidcharity.com/projects/solidcharity/openpetra/package/sql2diagram/
+* you can see test runs, run every night: https://lbs.solidcharity.com/projects/basx/basxconnect/package/basxconnect-test/
+* you can see the test of installation routines of software, run every night: https://lbs.solidcharity.com/projects/tpokorra/hostsharing/package/civicrm-test/
+
+For each project, there is a link at the top, directing you to the setup script and/or packaging instructions for that project.
+
 License
 -------
 
