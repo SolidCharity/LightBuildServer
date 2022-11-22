@@ -107,7 +107,8 @@ class Logger:
 
     log = Log.objects.filter(build = self.build)
     if limit is not None:
-      log = log[:limit]
+      # get the last lines
+      log = log[-limit:]
     output = ""
     for row in log:
        output += row.line
