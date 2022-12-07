@@ -73,6 +73,17 @@ class BuildHelperDebian(BuildHelper):
       filename = filename.lower()
     return filename
 
+  def GetBinaryPackagename(self):
+    packagename = self.GetDscFilename()[:-4]
+    path = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename
+    for line in open(path + "/" + self.GetDscFilename()):
+      if line.startswith("Binary: "):
+        packagename=line[len("Binary: "):].strip()
+        if packagename.find(",") > 0:
+          packagename=packagename[:packagename.find(",")].strip()
+        break
+    return packagename
+
   def InstallRepositories(self, DownloadUrl):
     # first install required repos
     configfile=self.pathSrc + "/" + self.git_project_name + "/config.yml"
@@ -185,8 +196,7 @@ class BuildHelperDebian(BuildHelper):
         binarypath = repopath + "/pool/main/" + self.packagename[0] + "/" + self.packagename
       if os.path.isdir(binarypath):
         for file in os.listdir(binarypath):
-          # TODO use GetDscFilename, without dsc, instead of packagename
-          if file.startswith(self.packagename + "_" + buildversion + "-") and file.endswith("_" + arch + ".deb"):
+          if file.startswith(self.GetBinaryPackagename() + "_" + buildversion + "-") and file.endswith("_" + arch + ".deb"):
             try:	
               oldnumber=int(file[len(self.packagename + "_" + buildversion + "-"):-1*len("_" + arch + ".deb")])
               debfiles.append(str(oldnumber).zfill(6) + ":" + file)
@@ -232,21 +242,21 @@ class BuildHelperDebian(BuildHelper):
     keyinstructions = ""
 
     # check if there is such a package at all
-    checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetDscFilename()[:-4].lower() + "*"
+    checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/" + buildtarget[1] + "/pool/main/*/*/" + self.GetBinaryPackagename() + "*"
     if glob.glob(checkfile):
       # repo has been created with reprepro
       path = " " + buildtarget[1] + " main"
       if self.project.public_key_id:
         keyinstructions += f"gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}\n"
     else:
-      checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetDscFilename()[:-4] + "*"
+      checkfile=settings.REPOS_PATH + "/" + self.username + "/" + self.projectname + "/" + self.dist + "/*/*/binary/" + self.GetBinaryPackagename() + "*"
       if glob.glob(checkfile):
         path = "/ /"
       else:
         return None
    
     result = ""
-    result += "apt install apt-transport-https gnupg ca-certificates\n"
+    result += "apt install apt-transport-https gnupg2 ca-certificates\n"
     result += keyinstructions
     if keyinstructions:
       result += f"echo 'deb [arch={buildtarget[2]} signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {DownloadUrl}/repos/{self.username}/"
@@ -257,7 +267,7 @@ class BuildHelperDebian(BuildHelper):
     result += self.projectname + "/" + buildtarget[0] + "/" + buildtarget[1] + path + "' >> " + f"/etc/apt/sources.list.d/{self.username}-{self.projectname}.list\n"
     result += "apt update\n"
     # packagename: name of dsc file, without .dsc at the end
-    result += "apt install " + self.GetDscFilename()[:-4].lower()
+    result += "apt install " + self.GetBinaryPackagename()
 
     return result
 
