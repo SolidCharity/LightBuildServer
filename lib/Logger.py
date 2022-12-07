@@ -106,9 +106,9 @@ class Logger:
       return "no log available"
 
     log = Log.objects.filter(build = self.build)
-    if limit is not None:
+    if limit is not None and len(log) > limit:
       # get the last lines
-      log = log[-limit:]
+      log = log[len(log)-limit:]
     output = ""
     for row in log:
        output += row.line
