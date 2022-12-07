@@ -76,12 +76,13 @@ class BuildHelperDebian(BuildHelper):
   def GetBinaryPackagename(self):
     packagename = self.GetDscFilename()[:-4]
     path = self.pathSrc + "/" + self.git_project_name + "/" + self.packagename
-    for line in open(path + "/" + self.GetDscFilename()):
-      if line.startswith("Binary: "):
-        packagename=line[len("Binary: "):].strip()
-        if packagename.find(",") > 0:
-          packagename=packagename[:packagename.find(",")].strip()
-        break
+    if os.path.isfile(path + "/" + self.GetDscFilename()):
+      for line in open(path + "/" + self.GetDscFilename()):
+        if line.startswith("Binary: "):
+          packagename=line[len("Binary: "):].strip()
+          if packagename.find(",") > 0:
+            packagename=packagename[:packagename.find(",")].strip()
+          break
     return packagename
 
   def InstallRepositories(self, DownloadUrl):
