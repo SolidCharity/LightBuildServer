@@ -256,7 +256,7 @@ class BuildHelperDebian(BuildHelper):
         return None
    
     result = ""
-    result += "apt install apt-transport-https gnupg ca-certificates\n"
+    result += "apt install apt-transport-https gnupg2 ca-certificates\n"
     result += keyinstructions
     if keyinstructions:
       result += f"echo 'deb [arch={buildtarget[2]} signed-by=/usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg] {DownloadUrl}/repos/{self.username}/"
