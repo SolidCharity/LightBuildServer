@@ -7,3 +7,4 @@ web/nohup.out
 *.code-workspace
 .vscode/settings.json
 settings_local.py
+/static/
