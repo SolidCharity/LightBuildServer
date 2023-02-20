@@ -5,4 +5,4 @@ PyYAML
 requests
 copr
 
-django==3.2.17
+django==3.2.18
