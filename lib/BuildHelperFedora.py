@@ -32,7 +32,7 @@ class BuildHelperFedora(BuildHelperCentos):
     self.rhel = 0
     self.rawhide = 38
     # this is the latest release. rawhide might be already 25, 23 latest release, 24 in testing
-    self.latestrelease = 36
+    self.latestrelease = 37
     if self.release == "rawhide":
      self.release = self.rawhide
     self.release = str(self.release)
