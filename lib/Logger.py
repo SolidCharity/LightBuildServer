@@ -202,6 +202,8 @@ class Logger:
         filter(package=package.name).order_by('-id')
 
     for b in builds:
+        if b.number == -1:
+            continue
         key = f"{b.distro}/{b.release}/{b.arch}-{b.branchname}"
         if not key in result:
             result[key] = []
