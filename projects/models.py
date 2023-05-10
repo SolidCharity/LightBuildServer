@@ -12,6 +12,7 @@ class Project(models.Model):
     git_url = models.CharField(max_length=250)
     git_branch = models.CharField(max_length=250)
     git_type = models.CharField(max_length=20, default="github", choices=[
+        ("gitea", "Gitea"),
         ("github", "Github"),
         ("gitlab", "Gitlab"),
     ])
