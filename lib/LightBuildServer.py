@@ -211,7 +211,9 @@ class LightBuildServer:
 
     headers = {}
     url = None
-    if project.git_type == 'github':
+    if project.git_type == 'gitea':
+      url = lbsproject + "/archive/" + branchname + ".tar.gz"
+    elif project.git_type == 'github':
       url = lbsproject + "/archive/" + branchname + ".tar.gz"
     elif project.git_type == 'gitlab':
       url = lbsproject + "/repository/archive.tar.gz?ref=" + branchname
