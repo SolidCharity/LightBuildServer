@@ -239,7 +239,7 @@ class LightBuildServer:
     if os.path.isdir(pathSrc+git_project_name):
       shutil.rmtree(pathSrc+git_project_name)
 
-    sourceFile = pathSrc + "/" + branchname + ".tar.gz"
+    sourceFile = f"{pathSrc}/{branchname}.tar.gz"
     if os.path.isfile(sourceFile):
       os.remove(sourceFile)
     r = requests.get(url, headers=headers)
@@ -258,7 +258,11 @@ class LightBuildServer:
         fd.write(Etag.strip('"'))
 
     shell = Shell(Logger())
-    if project.git_type == 'github':
+    if project.git_type == 'gitea':
+      cmd="cd " + pathSrc + ";"
+      cmd+=f"tar xzf {branchname}.tar.gz"
+      shell.executeshell(cmd)
+    elif project.git_type == 'github':
       cmd="cd " + pathSrc + ";"
       cmd+=f"tar xzf {branchname}.tar.gz; mv {git_project_name}-{branchname} {git_project_name}"
       shell.executeshell(cmd)
