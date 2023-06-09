@@ -61,10 +61,18 @@ def view_package(request, user, project, package):
     lbs = LightBuildServer()
     (repoInstructions, srcInstructions, winInstructions) = lbs.GetAllInstructions(package)
 
+    if package.project.git_type == 'github':
+        project_browse_url = f"{package.project.git_url}/tree/{package.project.git_branch}"
+    elif package.project.git_type == 'gitea':
+        project_browse_url = f"{package.project.git_url}/src/branch/{package.project.git_branch}"
+    elif package.project.git_type == 'gitlab':
+        project_browse_url = f"{package.project.git_url}/-/tree/{package.project.git_branch}"
+
     template_name = "projects/package.html"
     return render(request, template_name,
             {
              'package': package,
+             'project_browse_url': project_browse_url,
              'builds_per_target_and_branch': builds_per_target_and_branch,
              'repoinstructions_per_buildtarget': repoInstructions,
              'srcinstructions_per_buildtarget': srcInstructions,
