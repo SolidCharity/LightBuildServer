@@ -48,7 +48,7 @@ class BuildHelperDebian(BuildHelper):
       return False
     if not self.run("DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"):
       return False
-    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https dpkg-sig reprepro wget rsync devscripts equivs iproute2 dirmngr"):
+    if not self.run("apt-get -y install build-essential ca-certificates iptables curl apt-transport-https reprepro wget rsync devscripts equivs iproute2 dirmngr"):
       #apt-utils
       return False
     # make sure we have a fully qualified hostname
@@ -210,9 +210,6 @@ class BuildHelperDebian(BuildHelper):
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/" + self.packagename + ".dsc")
       self.run("sed -i -e 's/%{release}/" + str(buildnumber) + "/g' " + self.git_project_name + "/" + self.packagename + "/debian/changelog")
 
-      if not self.run("cd " + self.git_project_name + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -uc -b"):
-        return False
-
       # import the private key for signing the package if the file privateLBSkey exists
       SSHContainerPath = f"{settings.SSH_TMP_PATH}/{self.username}/{self.projectname}"
       Path(SSHContainerPath).mkdir(parents=True, exist_ok=True)
@@ -220,8 +217,12 @@ class BuildHelperDebian(BuildHelper):
       if os.path.isfile(privateLBSkey_filename):
         if not self.run("gpg --import < ~/.ssh/privateLBSkey && mkdir -p repo/conf && cp .ssh/distributions repo/conf && sed -i -e 's/bionic/" + self.release + "/g' repo/conf/distributions"):
           return False
-        if not self.run("cd " + self.git_project_name + "; dpkg-sig --sign builder *.deb"):
-          return False
+
+      # build and sign package
+      if not self.run("cd " + self.git_project_name + "/" + self.packagename + " && dpkg-buildpackage -rfakeroot -b"):
+        return False
+
+      if os.path.isfile(privateLBSkey_filename):
         if not self.run("cd repo; for f in ~/" + self.git_project_name + "/*.deb; do pkgname=\`basename \$f\`; pkgname=\`echo \$pkgname | awk -F '_' '{print \$1}'\`; reprepro --delete clearvanished; reprepro remove " + self.container.release + " \$pkgname; reprepro includedeb " + self.container.release + " ~/" + self.git_project_name + "/\`basename \$f\`; done"):
           return False
         self.run("rm -Rf repo/conf")
