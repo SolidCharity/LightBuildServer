@@ -6,15 +6,13 @@ name = "pypi"
 [dev-packages]
 
 [requires]
-python_version = "3.7"
+python_version = "3.11"
 
 [packages]
 bottle = "*"
 pyyaml = "*"
 requests = "*"
 copr = "*"
-django = "~3.2"
+django = "~=4.2"
 psycopg2 = "*"
-
-[packages.gunicorn]
-extras = [ "gevent",]
+gunicorn = {extras = [ "gevent",]}
