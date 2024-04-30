@@ -54,12 +54,16 @@ class DockerContainer(RemoteContainer):
       print("we do not support 32 bit (" + arch + ") containers yet")
       return False
 
+    self.release_for_docker = self.release
     if self.distro == "centos":
-      self.release_for_docker=release
+      if self.release == "9-Stream":
+        self.release_for_docker="stream9"
+      elif self.release == "8-Stream":
+        self.release_for_docker="stream8"
     if self.distro == "fedora":
       if self.release == "rawhide":
         # rawhide is an upgrade from the latest fedora release. see BuildHelperFedora.PrepareMachineAfterStart
-        self.release_for_docker = "36"
+        self.release_for_docker = "40"
     if self.distro == "debian":
       if self.release == 'buster':
         self.release_for_docker = "10"
