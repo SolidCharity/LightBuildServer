@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,7 @@ from django.utils import timezone
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
 from lib.CoprContainer import CoprContainer
-from lib.LXDContainer import LXDContainer
+from lib.IncusContainer import IncusContainer
 from lib.BuildHelper import BuildHelper
 from lib.BuildHelperFactory import BuildHelperFactory
 from lib.Shell import Shell
@@ -56,8 +56,8 @@ class Builder:
     self.buildmachine = buildmachine
     # create a container on a remote machine
     machine = Machine.objects.filter(host=buildmachine).first()
-    if machine.type == 'lxd':
-      self.container = LXDContainer(buildmachine, machine, self.logger, packageSrcPath)
+    if machine.type == 'incus':
+      self.container = IncusContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine.type == 'docker':
       self.container = DockerContainer(buildmachine, machine, self.logger, packageSrcPath)
     elif machine.type == 'copr':

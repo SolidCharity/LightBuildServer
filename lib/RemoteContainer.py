@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Interface class for Container Management"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ class RemoteContainer:
     self.cid = configBuildMachine.cid
 
     self.containername = str(self.cid).zfill(3) + "-" + containername
-    if containertype == "lxd":
+    if containertype == "incus":
       self.containername="l" + str(self.cid).zfill(3) + "-" + containername.replace(".","-")
 
     if "example.org" in self.hostname:
@@ -52,10 +52,7 @@ class RemoteContainer:
     if configBuildMachine.local:
       # the host server for the build container is actually hosting the LBS application as well
       # or the container is running on localhost
-      if containertype == "lxc":
-        self.containerIP=self.calculateLocalContainerIP(self.cid)
-        self.containerPort="22"
-      if containertype == "lxd":
+      if containertype in ("lxc", "incus"):
         self.containerIP=self.calculateLocalContainerIP(self.cid)
         self.containerPort="22"
       if containertype == "docker":
@@ -83,10 +80,9 @@ class RemoteContainer:
     self.packageSrcPath = packageSrcPath
 
   def calculateLocalContainerIP(self, cid):
-    # for LXD, we always configure the bridge with 10.0.4:
-    # lxc network create lxdbr0 ipv6.address=none ipv4.address=10.0.4.1/24 ipv4.nat=true
-    if self.containertype == "lxd":
-      return "10.0.4." + str(cid)
+    # for Incus, we always configure the bridge with 10.0.6:
+    if self.containertype == "incus":
+      return "10.0.6." + str(cid)
 
     # test if we are inside a container as well
     # we just test if the host server for the build container is actually hosting the LBS application as well
@@ -98,8 +94,8 @@ class RemoteContainer:
     # on CentOS: /etc/libvirt/qemu/networks/default.xml 192.168.122
     # on Fedora 27: /etc/libvirt/qemu/networks/default.xml 192.168.124
     # on Ubuntu 16.04: /etc/default/lxc-net 10.0.3
-    # for lxd I am using 10.0.4
-    if '.'.join(lbsipaddress) == "192.168.122" or '.'.join(lbsipaddress) == "192.168.124" or '.'.join(lbsipaddress) == "10.0.3" or '.'.join(lbsipaddress) == "10.0.4":
+    # for Incus I am using 10.0.6
+    if '.'.join(lbsipaddress) in ("192.168.122", "192.168.124", "10.0.3", "10.0.4", "10.0.6"):
       return '.'.join(lbsipaddress) + "." + str(cid)
 
     # we are running uwsgi and lxc/docker on one host

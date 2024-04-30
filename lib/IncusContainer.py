@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Wrapper for LXD Container Management"""
+"""Wrapper for Incus Container Management"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,47 +27,45 @@ from lib.RemoteContainer import RemoteContainer
 from lib.Logger import Logger
 from lib.Shell import Shell
 
-class LXDContainer(RemoteContainer):
+class IncusContainer(RemoteContainer):
   def __init__(self, containername, configBuildMachine, logger, packageSrcPath):
-    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath, "lxd")
-    self.SCRIPTS_PATH = "/usr/share/lxd-scripts/"
+    RemoteContainer.__init__(self, containername, configBuildMachine, logger, packageSrcPath, "incus")
+    self.SCRIPTS_PATH = "/usr/share/incus-scripts/"
 
-    self.CONTAINER_PATH = "/var/snap/lxd/common/lxd/storage-pools/default/containers/"
+    self.CONTAINER_PATH = "/var/lib/incus/containers/"
     if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
-      self.CONTAINER_PATH = "/var/lib/lxd/containers/"
-      if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
-        self.CONTAINER_PATH = "/var/snap/lxd/common/lxd/containers/"
-        if self.executeOnHost("cd " + self.CONTAINER_PATH + " || exit -1") == False:
-          raise Exception("cannot find path for LXC containers")
+      raise Exception("cannot find path for Incus containers")
 
   def executeOnHost(self, command):
     return RemoteContainer.executeOnHost(self, command)
 
   def createmachine(self, distro, release, arch, staticIP):
-    # create lxd container with specified OS
+    # create container with specified OS
     self.distro = distro
     self.release = release
     self.arch = arch
     self.staticIP = staticIP
 
     if not self.staticMachine:
-      if self.executeOnHost("lxc stop " + self.containername + " || echo 'container is not running'") == False:
+      if self.executeOnHost("incus stop " + self.containername + " || echo 'container is not running'") == False:
         return False
       if self.executeOnHost(self.SCRIPTS_PATH + "listcontainers.sh | grep '" + self.containername + "' || exit -1") == True:
-        if self.executeOnHost("lxc delete " + self.containername) == False:
+        if self.executeOnHost("incus delete " + self.containername) == False:
           return False
     result = False
     if self.staticMachine:
       result = True
     else:
       if distro == "centos":
-        result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initCentOS.sh " + self.containername + " " + str(self.cid) + " " + release + " " + " 0")
+      if distro == "rockylinux":
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initRockyLinux.sh " + self.containername + " " + str(self.cid) + " " + release + " " + " 0")
       if distro == "fedora":
-        result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initFedora.sh " + self.containername + " " + str(self.cid) + " " + release + " " + " 0")
       if distro == "debian":
-        result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initDebian.sh " + self.containername + " " + str(self.cid) + " " + release + " " + " 0")
       if distro == "ubuntu":
-        result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + arch + " 0")
+        result = self.executeOnHost(self.SCRIPTS_PATH + "initUbuntu.sh " + self.containername + " " + str(self.cid) + " " + release + " " + " 0")
     if result == True:
       result = self.executeOnHost(self.SCRIPTS_PATH + "tunnelport.sh " + str(self.cid) + " 22")
     sshpath=self.CONTAINER_PATH + self.containername + "/rootfs/root/.ssh/"
@@ -78,7 +76,7 @@ class LXDContainer(RemoteContainer):
     return result
 
   def startmachine(self):
-    if self.executeOnHost("lxc start " + self.containername):
+    if self.executeOnHost("incus start " + self.containername):
       # remove the ip address
       if self.containerPort == "22":
         self.shell.executeshell('ssh-keygen -f "' + os.path.expanduser("~") + '/.ssh/known_hosts" -R ' + self.containerIP)
@@ -87,7 +85,7 @@ class LXDContainer(RemoteContainer):
       if self.distro == "fedora" or self.distro == "centos" or self.distro == "debian":
         # need to request IPv4 address. cgroup v2 issue?
         # see https://stackoverflow.com/questions/59535007/how-to-fix-network-issues-with-lxd-on-fedora-31
-        self.executeOnHost("lxc exec " + self.containername + " -- /bin/bash -c 'dhclient eth0'")
+        self.executeOnHost("incus exec " + self.containername + " -- /bin/bash -c 'dhclient eth0'")
       # wait until ssh server is running
       result = self.executeInContainer('echo "container is running"')
       return result
@@ -111,10 +109,10 @@ class LXDContainer(RemoteContainer):
     return False
 
   def destroy(self):
-    return self.executeOnHost("lxc delete " + self.containername + " && sleep 10")
+    return self.executeOnHost("incus delete " + self.containername + " && sleep 10")
 
   def stop(self):
-    return self.executeOnHost("lxc stop " + self.containername + " && sleep 10")
+    return self.executeOnHost("incus stop " + self.containername + " && sleep 10")
 
   def rsyncContainerPut(self, src, dest):
     dest = dest[:dest.rindex("/")]

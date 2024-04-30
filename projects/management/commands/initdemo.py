@@ -77,7 +77,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         # create some build machines
-        self.add_machine("build01.example.org", 2222, 5, "lxd")
+        self.add_machine("build01.example.org", 2222, 5, "incus")
         self.add_machine("build02.example.org", 2222, 8, "docker")
 
         # create some demo users
