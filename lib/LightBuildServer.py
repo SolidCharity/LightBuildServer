@@ -161,8 +161,8 @@ class LightBuildServer:
     for row in machines:
       # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
       # does this package actually depend on that other package?
-      dependantpackage = self.GetPackage(build.user.username, build.projectname, build.packagename, build.branchname)
-      requiredpackage = self.GetPackage(build.user.username, build.projectname, row.packagename, build.branchname)
+      dependantpackage = self.GetPackage(build.user.username, build.project, build.package, build.branchname)
+      requiredpackage = self.GetPackage(build.user.username, build.project, row.packagename, build.branchname)
       result = self.DoesPackageDependOnOtherPackage(dependantpackage, requiredpackage)
       if result:
         print("cannot build " + build.packagename + " because it depends on another package")
@@ -336,7 +336,7 @@ class LightBuildServer:
         packagebuildstatus.save()
 
   def GetPackage(self, username, projectname, packagename, branchname):
-    package = Package.objects.filter(username=username).filter(projectname=projectname).filter(packagename=packagename).filter(branchname=branchname).first()
+    package = Package.objects.filter(projectname=projectname).filter(packagename=packagename).filter(branchname=branchname).first()
     return package
 
   def DoesPackageDependOnOtherPackage(self, dependantpackage, requiredpackage):
