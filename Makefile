@@ -25,7 +25,7 @@ create_venv:
 	python3 -m venv .venv
 
 pip_packages:
-	${VENV} pip install -r requirements.txt
+	${VENV} pipenv install
 
 create_db:
 	${VENV} python manage.py migrate

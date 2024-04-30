@@ -1,8 +1,0 @@
-gunicorn
-gunicorn[gevent]
-bottle
-PyYAML
-requests
-copr
-
-django==4.2.9
