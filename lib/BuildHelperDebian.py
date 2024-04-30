@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
