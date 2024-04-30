@@ -117,8 +117,8 @@ class BuildHelperDebian(BuildHelper):
       if not self.run(f"mkdir -p /root/.gnupg && chmod 700 /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
         return False
 
-    # update the repository information
-    if not self.run("apt-get update"):
+    # update the repository information. ignore the return value because the project might by new and there is no download repo yet
+    if not self.run("apt-get update || exit 0"):
         return False
     return True
 
