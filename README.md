@@ -30,7 +30,7 @@ The server uses the database backend of Django (Postgresql, Sqlilte, MySQL) for 
 
 The generated packages are delivered from the server directly, via apt or yum repositories.
 
-We are using LXC/LXD/Docker to build the packages or run the CI scripts.
+We are using Incus/Docker to build the packages or run the CI scripts.
 
 See in action
 -------------

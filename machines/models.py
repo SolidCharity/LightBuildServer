@@ -11,7 +11,7 @@ class Machine(models.Model):
         MaxValueValidator(65535),
     ])
     type = models.CharField(max_length=20, choices=[
-        ("lxd", "LXD"),
+        ("incus", "Incus"),
         ("docker", "Docker"),
         ("copr", "Copr"),
     ])

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Light Build Server: build packages for various distributions, using linux containers"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@ from django.utils import timezone
 
 from lib.RemoteContainer import RemoteContainer
 from lib.DockerContainer import DockerContainer
-from lib.LXDContainer import LXDContainer
+from lib.IncusContainer import IncusContainer
 from lib.CoprContainer import CoprContainer
 from lib.BuildHelper import BuildHelper
 from lib.BuildHelperFactory import BuildHelperFactory
@@ -55,11 +55,11 @@ class LightBuildServer:
 
 
   def GetAvailableBuildMachine(self, build):
-    m = Machine.objects.filter(status='AVAILABLE')
+    m = Machine.objects.filter(status='AVAILABLE').filter(enabled=True)
     if build.avoiddocker:
       m = m.exclude(type='docker')
     if build.avoidlxc:
-      m = m.exclude(type='lxc').exclude(type='lxd')
+      m = m.exclude(type='lxc').exclude(type='incus')
     if not build.designated_build_machine:
       m = m.filter(static=False)
     else:
@@ -136,8 +136,8 @@ class LightBuildServer:
       machine.status = 'STOPPING'
       machine.save()
 
-      if machine.type == 'lxd':
-        LXDContainer(buildmachine, machine, Logger(), '').stop()
+      if machine.type == 'incus':
+        IncusContainer(buildmachine, machine, Logger(), '').stop()
       elif machine.type == 'docker':
         DockerContainer(buildmachine, machine, Logger(), '').stop()
       elif machine.type == 'copr':
@@ -161,8 +161,8 @@ class LightBuildServer:
     for row in machines:
       # there is a machine building a package on the same queue (same user, project, branch, distro, release, arch)
       # does this package actually depend on that other package?
-      dependantpackage = self.GetPackage(build.user.username, build.projectname, build.packagename, build.branchname)
-      requiredpackage = self.GetPackage(build.user.username, build.projectname, row.packagename, build.branchname)
+      dependantpackage = self.GetPackage(build.user.username, build.project, build.package, build.branchname)
+      requiredpackage = self.GetPackage(build.user.username, build.project, row.packagename, build.branchname)
       result = self.DoesPackageDependOnOtherPackage(dependantpackage, requiredpackage)
       if result:
         print("cannot build " + build.packagename + " because it depends on another package")
@@ -336,7 +336,7 @@ class LightBuildServer:
         packagebuildstatus.save()
 
   def GetPackage(self, username, projectname, packagename, branchname):
-    package = Package.objects.filter(username=username).filter(projectname=projectname).filter(packagename=packagename).filter(branchname=branchname).first()
+    package = Package.objects.filter(projectname=projectname).filter(packagename=packagename).filter(branchname=branchname).first()
     return package
 
   def DoesPackageDependOnOtherPackage(self, dependantpackage, requiredpackage):

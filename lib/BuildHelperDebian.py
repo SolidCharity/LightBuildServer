@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BuildHelper for Debian: knows how to build packages for Debian"""
 
-# Copyright (c) 2014-2022 Timotheus Pokorra
+# Copyright (c) 2014-2024 Timotheus Pokorra
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -117,8 +117,8 @@ class BuildHelperDebian(BuildHelper):
       if not self.run(f"mkdir -p /root/.gnupg && chmod 700 /root/.gnupg && gpg --no-default-keyring --keyring /usr/share/keyrings/{self.username}-{self.projectname}-keyring.gpg --keyserver hkp://{settings.PUBLIC_KEY_SERVER}:80 --recv-keys {self.project.public_key_id}"):
         return False
 
-    # update the repository information
-    if not self.run("apt-get update"):
+    # update the repository information. ignore the return value because the project might by new and there is no download repo yet
+    if not self.run("apt-get update || exit 0"):
         return False
     return True
 
