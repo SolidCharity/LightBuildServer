@@ -37,6 +37,7 @@ class ProjectFileAdminForm(forms.ModelForm):
 
 class ProjectFileAdmin(admin.ModelAdmin):
     list_display = ['project', 'filename']
+    search_fields = ['project__user__username', 'project__name', 'filename']
     form = ProjectFileAdminForm
 
 
