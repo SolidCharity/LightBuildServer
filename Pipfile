@@ -13,6 +13,6 @@ bottle = "*"
 pyyaml = "*"
 requests = "*"
 copr = "*"
-django = "~=4.2"
+django = "~=5.2"
 psycopg2 = "*"
 gunicorn = {extras = [ "gevent",]}
