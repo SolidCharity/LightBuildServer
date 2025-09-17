@@ -2,12 +2,20 @@ from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
+from datetime import datetime, timedelta
+
 from .models import Machine
 from builder.models import Build
 from lib.LightBuildServer import LightBuildServer
 
 def monitor(request, successmessage = None, errormessage = None):
     template_name = "machines/index.html"
+
+    time_threshold = datetime.now() - timedelta(hours=2)
+    builds = Build.objects.filter(status = "BUILDING", started__lt = time_threshold)
+    if builds.count() > 0 and errormessage is None:
+        errormessage = "A current build takes too long. Is the build machine hanging?"
+
     machines_list = Machine.objects.all()
     lbs = LightBuildServer()
     return render(request, template_name,
